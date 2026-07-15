@@ -30,10 +30,10 @@ export const Route = createFileRoute("/")({
         content:
           "Watch FIFA World Cup 2026 live streams, Bangladeshi news channels and Hollywood cinema — all in one place.",
       },
-      { property: "og:title", content: "FIFA World Cup 2026 Live" },
+      { property: "og:title", content: "FIFA World Cup 2026 Live — Cinema & News Channels" },
       {
         property: "og:description",
-        content: "Live FIFA World Cup 2026, news and cinema channels streaming.",
+        content: "Watch FIFA World Cup 2026 live streams, Bangladeshi news channels and Hollywood cinema — all in one place.",
       },
     ],
   }),
