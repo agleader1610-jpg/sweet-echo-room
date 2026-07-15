@@ -1,0 +1,93 @@
+package com.eip.netsniffer
+
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+
+/**
+ * Fail-open remote version gate.
+ *
+ * On launch we hit the admin-controlled config endpoint. If the server
+ * marks this build as too old AND force_update is on, we show a modal
+ * that only lets the user download the new APK.
+ *
+ * Any failure (network down, project deleted, malformed response) →
+ * silently continue. The app keeps working — total isolation, no
+ * dependency on the website for normal operation.
+ */
+object VersionChecker {
+    private const val CONFIG_URL =
+        "https://project--f00d65ad-dcc3-4c22-8aeb-41f0a50a2b72.lovable.app/api/public/app-version"
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(6, TimeUnit.SECONDS)
+        .readTimeout(6, TimeUnit.SECONDS)
+        .build()
+
+    fun check(activity: Activity) {
+        thread(isDaemon = true) {
+            try {
+                val currentCode = try {
+                    @Suppress("DEPRECATION")
+                    activity.packageManager
+                        .getPackageInfo(activity.packageName, 0).versionCode
+                } catch (_: PackageManager.NameNotFoundException) { 1 }
+
+                val res = client.newCall(Request.Builder().url(CONFIG_URL).build()).execute()
+                if (!res.isSuccessful) return@thread
+                val body = res.body?.string() ?: return@thread
+                val j = JSONObject(body)
+                if (!j.optBoolean("ok", false)) return@thread
+
+                val minVersion = j.optInt("min_version", 1)
+                val force = j.optBoolean("force_update", false)
+                val apkUrl = j.optString("apk_url", "")
+                val msg = j.optString(
+                    "update_message",
+                    "নতুন version এসেছে। অনুগ্রহ করে update করুন।"
+                )
+                val vName = j.optString("latest_version_name", "")
+
+                if (force && currentCode < minVersion) {
+                    Handler(Looper.getMainLooper()).post {
+                        showBlockDialog(activity, msg, vName, apkUrl)
+                    }
+                }
+            } catch (_: Throwable) {
+                // Fail-open — do nothing.
+            }
+        }
+    }
+
+    private fun showBlockDialog(activity: Activity, msg: String, vName: String, apkUrl: String) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        val title = if (vName.isNotEmpty()) "Update required (v$vName)" else "Update required"
+        val dialog = AlertDialog.Builder(activity)
+            .setTitle(title)
+            .setMessage(msg)
+            .setCancelable(false)
+            .setPositiveButton("Download new APK") { _, _ ->
+                if (apkUrl.isNotEmpty()) {
+                    try {
+                        activity.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    } catch (_: Throwable) {}
+                }
+                activity.finishAffinity()
+            }
+            .setNegativeButton("Exit") { _, _ -> activity.finishAffinity() }
+            .create()
+        dialog.show()
+    }
+}

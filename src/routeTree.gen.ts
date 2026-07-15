@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatRouteImport } from './routes/stat'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamProxyRouteImport } from './routes/api/stream/proxy'
 import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-proxy'
 import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
+import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
 import { Route as ApiStreamPlaylistChannelIdRouteImport } from './routes/api/stream/playlist.$channelId'
 
 const StatRoute = StatRouteImport.update({
   id: '/stat',
   path: '/stat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +48,11 @@ const ApiPublicCapturesIngestRoute = ApiPublicCapturesIngestRouteImport.update({
   path: '/api/public/captures-ingest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAppVersionRoute = ApiPublicAppVersionRouteImport.update({
+  id: '/api/public/app-version',
+  path: '/api/public/app-version',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStreamPlaylistChannelIdRoute =
   ApiStreamPlaylistChannelIdRouteImport.update({
     id: '/api/stream/playlist/$channelId',
@@ -50,7 +62,9 @@ const ApiStreamPlaylistChannelIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/stat': typeof StatRoute
+  '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
@@ -58,7 +72,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/stat': typeof StatRoute
+  '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
@@ -67,7 +83,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/stat': typeof StatRoute
+  '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
@@ -77,7 +95,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/stat'
+    | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
@@ -85,7 +105,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/stat'
+    | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
@@ -93,7 +115,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/stat'
+    | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
@@ -102,7 +126,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   StatRoute: typeof StatRoute
+  ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
   ApiPublicWsProxyRoute: typeof ApiPublicWsProxyRoute
   ApiStreamProxyRoute: typeof ApiStreamProxyRoute
@@ -116,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/stat'
       fullPath: '/stat'
       preLoaderRoute: typeof StatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -146,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCapturesIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/app-version': {
+      id: '/api/public/app-version'
+      path: '/api/public/app-version'
+      fullPath: '/api/public/app-version'
+      preLoaderRoute: typeof ApiPublicAppVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stream/playlist/$channelId': {
       id: '/api/stream/playlist/$channelId'
       path: '/api/stream/playlist/$channelId'
@@ -158,7 +198,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   StatRoute: StatRoute,
+  ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
   ApiPublicWsProxyRoute: ApiPublicWsProxyRoute,
   ApiStreamProxyRoute: ApiStreamProxyRoute,

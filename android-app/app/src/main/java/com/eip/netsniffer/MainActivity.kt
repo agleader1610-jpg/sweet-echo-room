@@ -32,6 +32,9 @@ class MainActivity : AppCompatActivity() {
         b.pager.setCurrentItem(prefs.getInt(PREF_LAST_TAB, 0), false)
 
         setupDraggableFab()
+
+        // Remote force-update gate (fail-open: silent on any failure).
+        VersionChecker.check(this)
     }
 
     // ---------------- Draggable FAB ----------------
