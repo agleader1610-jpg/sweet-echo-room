@@ -46,7 +46,7 @@ class JsBridge {
             if (!abs.startsWith("ws://", true) && !abs.startsWith("wss://", true)) return abs
             if (!base.startsWith("ws://", true) && !base.startsWith("wss://", true)) return abs
 
-            val cleanedBase = base.replace(Regex("([?&])target=[^&]*&?"), "$1")
+            val cleanedBase = base.replace(Regex("([?&])target=[^&]*&?"), "\$1")
                 .trimEnd('?', '&')
             val out = StringBuilder(cleanedBase)
                 .append(if (cleanedBase.contains("?")) "&" else "?")
