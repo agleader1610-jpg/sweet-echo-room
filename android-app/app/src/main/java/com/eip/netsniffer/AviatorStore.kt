@@ -34,6 +34,10 @@ data class AviatorState(
     val lastWaitDurationMs: Long = 0L,    // gap between crash and next takeoff (betting window)
     val cycleCount: Int = 0,               // full crash→crash cycles observed
 
+    // Hard timestamps — the ONLY source of truth for bet/fly durations.
+    val lastCrashAt: Long = 0L,           // when the last CRASH event was received
+    val lastTakeoffAt: Long = 0L,         // when the first FLY tick after that crash arrived
+
     val lastCommand: String? = null,
     val lastSourceUrl: String? = null,
     val updatedAt: Long = 0L,
