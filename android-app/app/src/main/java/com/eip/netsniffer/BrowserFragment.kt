@@ -165,8 +165,8 @@ class BrowserFragment : Fragment() {
         private const val PREF_WS_RELAY_ENABLED = "ws_relay_enabled"
         private const val PREF_WS_RELAY_URL = "ws_relay_url"
         private const val BROKEN_TLS_RELAY_PREFIX =
-            "wss://netsniffer.198-54-121-62.sslip.io/ws-proxy"
+            "ws://netsniffer.198-54-121-62.sslip.io/ws-proxy"
         private const val DEFAULT_WS_RELAY_URL =
-            "ws://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035"
+            "wss://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035"
     }
 }
