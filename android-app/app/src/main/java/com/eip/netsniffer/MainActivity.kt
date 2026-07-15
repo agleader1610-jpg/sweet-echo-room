@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
 
         b.pager.adapter = PagerAdapter(this)
         b.pager.offscreenPageLimit = 3
+        b.pager.isUserInputEnabled = false
         b.pager.setCurrentItem(prefs.getInt(PREF_LAST_TAB, 0), false)
 
         setupDraggableFab()
