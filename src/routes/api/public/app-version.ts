@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
-import { fetchBuildsFromGithub } from '@/lib/github-releases.functions';
+import { fetchBuildsFromGithub } from '@/lib/github-releases';
 
 // Public endpoint the Android app hits at launch. Merges:
 //  - admin-controlled gate (min_version, force_update, update_message) from DB
