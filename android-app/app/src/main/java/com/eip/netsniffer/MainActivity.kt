@@ -168,12 +168,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (b.pager.currentItem != 0) {
-            b.pager.setCurrentItem(0, true)
-        } else {
+        // On Browser tab: let WebView walk its own history first
+        if (b.pager.currentItem == 0) {
+            val browser = getBrowserFragment()
+            if (browser?.handleBackPressed() == true) return
             super.onBackPressed()
+            return
         }
+        // Any other tab → return to Browser tab
+        b.pager.setCurrentItem(0, true)
     }
+
 
     companion object {
         private const val PREF_FAB_X = "fab_x"

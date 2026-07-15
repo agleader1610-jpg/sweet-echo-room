@@ -333,6 +333,17 @@ class BrowserFragment : Fragment() {
     fun relayEnabled(): Boolean = wsRelayEnabled
     fun relayUrl(): String = wsRelayBaseUrl
 
+    /** Returns true if the WebView consumed the back press (navigated back in history). */
+    fun handleBackPressed(): Boolean {
+        val wv = _b?.webView ?: return false
+        if (wv.canGoBack()) {
+            wv.goBack()
+            return true
+        }
+        return false
+    }
+
+
     override fun onDestroyView() {
         try { docStartScriptToken?.remove() } catch (_: Exception) {}
         docStartScriptToken = null
