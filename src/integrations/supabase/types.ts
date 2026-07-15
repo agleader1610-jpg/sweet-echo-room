@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          apk_url: string
+          force_update: boolean
+          id: number
+          latest_version: number
+          latest_version_name: string
+          min_version: number
+          update_message: string
+          updated_at: string
+        }
+        Insert: {
+          apk_url?: string
+          force_update?: boolean
+          id?: number
+          latest_version?: number
+          latest_version_name?: string
+          min_version?: number
+          update_message?: string
+          updated_at?: string
+        }
+        Update: {
+          apk_url?: string
+          force_update?: boolean
+          id?: number
+          latest_version?: number
+          latest_version_name?: string
+          min_version?: number
+          update_message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       captures: {
         Row: {
           bytes: number | null
