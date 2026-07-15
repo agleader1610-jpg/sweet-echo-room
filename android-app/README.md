@@ -7,7 +7,7 @@ A WebView-based Android app that opens any user-entered URL and captures every n
 
 ## Build
 
-Every push to `main` that touches `android-app/**` triggers `.github/workflows/android-build.yml`. The APK is uploaded as a workflow artifact and attached to a GitHub Release named `android-build-<number>`.
+Before making a new APK, update `versionCode` and `versionName` manually in the Android app Gradle config. After the APK is ready, paste its download URL and version details manually in the admin panel.
 
 ## Local build (optional)
 
