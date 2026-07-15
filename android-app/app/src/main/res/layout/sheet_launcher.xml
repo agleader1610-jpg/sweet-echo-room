@@ -177,10 +177,14 @@
         </LinearLayout>
 
         <!-- Section: Relay -->
+        <!-- WS RELAY PROXY section hidden for release. Toggle + input kept in tree
+             (visibility=gone) so MainActivity references keep compiling and relay
+             stays ON by default via SharedPreferences. -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="WS RELAY PROXY"
+            android:visibility="gone"
             android:textColor="@color/muted"
             android:textSize="10sp"
             android:letterSpacing="0.2"
@@ -192,6 +196,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:visibility="gone"
             android:paddingBottom="10dp">
 
             <TextView
@@ -215,6 +220,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:hint="@string/hint_ws_relay"
+            android:visibility="gone"
             android:textColor="@color/text"
             android:textColorHint="@color/muted"
             android:background="@drawable/input_bg"
