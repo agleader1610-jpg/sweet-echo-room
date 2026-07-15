@@ -88,7 +88,7 @@ export const publishUpdate = createServerFn({ method: 'POST' })
         update_message: data.update_message,
         latest_version: latest?.runNumber ?? data.min_version,
         latest_version_name: latest ? `1.0.${latest.runNumber}` : '1.0',
-        apk_url: latest?.apkUrl ?? '',
+        apk_url: latest ? `/api/public/download-apk/${latest.runNumber}` : '',
         updated_at: new Date().toISOString(),
       })
       .eq('id', 1);

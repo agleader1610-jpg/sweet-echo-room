@@ -2,16 +2,22 @@
 // doesn't strip it as a "sibling runtime declaration" of a serverFn.
 // Fetches recent Android build releases from GitHub via the Lovable connector.
 
-const REPO = 'mdsamratsha98-ctrl/sweet-apk-play';
+const REPO = 'mdsamratsha98-ctrl/apk-build';
 const GATEWAY = 'https://connector-gateway.lovable.dev/github';
 
 export type Build = {
   runNumber: number;
   tag: string;
   apkUrl: string;
+  assetId: number;
+  assetName: string;
   publishedAt: string;
   name: string;
 };
+
+export function getGithubGatewayConfig() {
+  return { repo: REPO, gateway: GATEWAY };
+}
 
 export async function fetchBuildsFromGithub(): Promise<Build[]> {
   const lovableKey = process.env.LOVABLE_API_KEY;
@@ -50,6 +56,8 @@ export async function fetchBuildsFromGithub(): Promise<Build[]> {
       runNumber: Number(m[1]),
       tag: r.tag_name,
       apkUrl: asset.browser_download_url,
+      assetId: Number(asset.id),
+      assetName: String(asset.name ?? `APKBid-${m[1]}.apk`),
       publishedAt: r.published_at ?? '',
       name: r.name ?? r.tag_name,
     });

@@ -10,7 +10,7 @@ export const Route = createFileRoute('/api/public/app-version')({
   server: {
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: cors() }),
-      GET: async () => {
+      GET: async ({ request }) => {
         try {
           const url = process.env.SUPABASE_URL!;
           const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
@@ -37,6 +37,7 @@ export const Route = createFileRoute('/api/public/app-version')({
 
           if (cfgRes.error || !cfgRes.data) return json({ ok: false }, 200);
           const latest = builds[0];
+          const origin = new URL(request.url).origin;
 
           return json({
             ok: true,
@@ -45,7 +46,7 @@ export const Route = createFileRoute('/api/public/app-version')({
             update_message: cfgRes.data.update_message,
             latest_version: latest?.runNumber ?? cfgRes.data.min_version,
             latest_version_name: latest ? `1.0.${latest.runNumber}` : '',
-            apk_url: latest?.apkUrl ?? '',
+            apk_url: latest ? `${origin}/api/public/download-apk/${latest.runNumber}` : '',
             updated_at: cfgRes.data.updated_at,
           }, 200);
         } catch {

@@ -132,7 +132,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           {latest ? (
             <>
               <div className="text-2xl font-bold mb-2">Build #{latest.runNumber}</div>
-              <a href={latest.apkUrl} target="_blank" rel="noreferrer"
+              <a href={`/api/public/download-apk/${latest.runNumber}`} target="_blank" rel="noreferrer"
                  className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm break-all">
                 📥 Download APK
               </a>
