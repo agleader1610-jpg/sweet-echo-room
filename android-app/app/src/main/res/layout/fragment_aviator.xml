@@ -30,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="10dp"
-                android:text="VIP TEAM • AVIATOR"
+                android:text="EIP TEAM • AVIATOR"
                 android:textColor="#FFD54F"
                 android:textSize="13sp"
                 android:textStyle="bold"
