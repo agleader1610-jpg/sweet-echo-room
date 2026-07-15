@@ -97,7 +97,8 @@ class AviatorFragment : Fragment() {
         }
 
         b.cyclesText.text = st.cycleCount.toString()
-        // BET tile = betting-window duration (wait), FLY tile = flight duration
+        // BET tile (id=flyMsText) = betting-window duration
+        // FLY tile (id=waitMsText) = flight duration
         b.flyMsText.text  = fmtMs(st.lastWaitDurationMs)
         b.waitMsText.text = fmtMs(st.lastFlyDurationMs)
     }
