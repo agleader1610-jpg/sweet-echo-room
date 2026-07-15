@@ -27,6 +27,9 @@ class BrowserFragment : Fragment() {
     @Volatile private var wsRelayEnabled = false
     @Volatile private var wsRelayBaseUrl = ""
     private var docStartScriptToken: androidx.webkit.ScriptHandler? = null
+    @Volatile private var triedFallback = false
+    @Volatile private var currentTarget: String = PRIMARY_URL
+    private var dotsAnim: Animation? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View {
         _b = FragmentBrowserBinding.inflate(inflater, container, false)
