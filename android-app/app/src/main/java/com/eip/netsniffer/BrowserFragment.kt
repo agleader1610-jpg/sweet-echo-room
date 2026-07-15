@@ -99,12 +99,7 @@ class BrowserFragment : Fragment() {
             wv.loadUrl(PRIMARY_URL)
         }
 
-        wv.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                b.progress.progress = newProgress
-                b.progress.visibility = if (newProgress in 1..99) View.VISIBLE else View.GONE
-            }
-        }
+
 
         b.goBtn.setOnClickListener { loadFromInput() }
         b.relayToggle.setOnCheckedChangeListener { _, _ ->
