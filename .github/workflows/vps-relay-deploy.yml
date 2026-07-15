@@ -53,6 +53,10 @@ jobs:
           : "${VPS_PORT:=22}"
           : "${VPS_RELAY_TOKEN:=$DEFAULT_RELAY_TOKEN}"
           : "${VPS_RELAY_DOMAIN:=$DEFAULT_RELAY_DOMAIN}"
+          if [ -z "${VPS_HOST:-}" ] || [ -z "${VPS_USER:-}" ] || [ -z "${SSHPASS:-}" ]; then
+            echo "Missing required secrets: VPS_HOST, VPS_USER, VPS_PASSWORD" >&2
+            exit 1
+          fi
           sshpass -e ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new "$VPS_USER@$VPS_HOST" \
             "REMOTE_DIR='$REMOTE_DIR' RELAY_SERVICE='$RELAY_SERVICE' RELAY_PORT='$RELAY_PORT' RELAY_TOKEN='$VPS_RELAY_TOKEN' RELAY_DOMAIN='$VPS_RELAY_DOMAIN' bash -s" <<'REMOTE'
           set -euo pipefail
