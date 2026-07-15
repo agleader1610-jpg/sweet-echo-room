@@ -57,6 +57,8 @@ server.on('upgrade', (req, socket, head) => {
 
 wss.on('connection', (client, req, targetUrl) => {
   const targetLabel = targetUrl.toString();
+  const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const targetCookie = requestUrl.searchParams.get('target_cookie') || '';
   const protocolHeader = req.headers['sec-websocket-protocol'];
   const protocols = typeof protocolHeader === 'string'
     ? protocolHeader.split(',').map((p) => p.trim()).filter(Boolean)
@@ -65,6 +67,9 @@ wss.on('connection', (client, req, targetUrl) => {
   const upstream = new WebSocket(targetLabel, protocols, {
     headers: {
       ...(req.headers.origin ? { origin: req.headers.origin } : {}),
+      ...(req.headers['user-agent'] ? { 'user-agent': req.headers['user-agent'] } : {}),
+      ...(req.headers['accept-language'] ? { 'accept-language': req.headers['accept-language'] } : {}),
+      ...(targetCookie ? { cookie: targetCookie } : {}),
     },
   });
 

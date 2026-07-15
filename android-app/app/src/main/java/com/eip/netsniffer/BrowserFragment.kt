@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import androidx.webkit.WebViewCompat
@@ -31,10 +32,13 @@ class BrowserFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
     override fun onViewCreated(view: View, s: Bundle?) {
         val wv: WebView = b.webView
-        wsRelayBaseUrl = prefs.getString(PREF_WS_RELAY_URL, null)
+        val savedRelay = prefs.getString(PREF_WS_RELAY_URL, null)
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: DEFAULT_WS_RELAY_URL
+        wsRelayBaseUrl = if (savedRelay == null || savedRelay.startsWith(BROKEN_TLS_RELAY_PREFIX, true)) {
+            prefs.edit().putString(PREF_WS_RELAY_URL, DEFAULT_WS_RELAY_URL).apply()
+            DEFAULT_WS_RELAY_URL
+        } else savedRelay
         wsRelayEnabled = prefs.getBoolean(PREF_WS_RELAY_ENABLED, true)
         b.relayProxyInput.setText(wsRelayBaseUrl)
         b.relayToggle.isChecked = wsRelayEnabled
@@ -45,6 +49,7 @@ class BrowserFragment : Fragment() {
         wv.settings.loadWithOverviewMode = true
         wv.settings.useWideViewPort = true
         wv.settings.mediaPlaybackRequiresUserGesture = false
+        wv.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 
         // JS bridge so page scripts can report fetch / XHR / WebSocket events
         wv.addJavascriptInterface(JsBridge(), "__NetSniffer")
@@ -159,7 +164,9 @@ class BrowserFragment : Fragment() {
     companion object {
         private const val PREF_WS_RELAY_ENABLED = "ws_relay_enabled"
         private const val PREF_WS_RELAY_URL = "ws_relay_url"
+        private const val BROKEN_TLS_RELAY_PREFIX =
+            "wss://netsniffer.198-54-121-62.sslip.io/ws-proxy"
         private const val DEFAULT_WS_RELAY_URL =
-            "wss://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035"
+            "ws://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035"
     }
 }

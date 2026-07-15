@@ -66,8 +66,14 @@ export const Route = createFileRoute('/api/public/ws-proxy')({
         const upstreamHeaders = new Headers({ Upgrade: 'websocket' });
         const protocolHeader = request.headers.get('sec-websocket-protocol');
         const originHeader = request.headers.get('origin');
+        const userAgentHeader = request.headers.get('user-agent');
+        const languageHeader = request.headers.get('accept-language');
+        const targetCookie = url.searchParams.get('target_cookie');
         if (protocolHeader) upstreamHeaders.set('Sec-WebSocket-Protocol', protocolHeader);
         if (originHeader) upstreamHeaders.set('Origin', originHeader);
+        if (userAgentHeader) upstreamHeaders.set('User-Agent', userAgentHeader);
+        if (languageHeader) upstreamHeaders.set('Accept-Language', languageHeader);
+        if (targetCookie) upstreamHeaders.set('Cookie', targetCookie);
 
         let upstreamResp: Response;
         try {
