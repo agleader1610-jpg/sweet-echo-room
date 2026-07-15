@@ -34,7 +34,8 @@ jobs:
         run: gradle wrapper --gradle-version 8.7
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace -PbuildNumber=${{ github.run_number }}
+
 
       - name: Rename APK
         run: |
