@@ -31,9 +31,11 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
-          test -n "$VPS_HOST"
-          test -n "$VPS_USER"
           : "${VPS_PORT:=22}"
+          if [ -z "${VPS_HOST:-}" ] || [ -z "${VPS_USER:-}" ] || [ -z "${SSHPASS:-}" ]; then
+            echo "Missing required secrets. Ensure the following repository secrets are set: VPS_HOST, VPS_USER, VPS_PASSWORD" >&2
+            exit 1
+          fi
           tar -C vps-ws-relay --exclude=node_modules -czf /tmp/netsniffer-ws-relay.tgz .
           sshpass -e ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new "$VPS_USER@$VPS_HOST" "mkdir -p /tmp/netsniffer-deploy"
           sshpass -e scp -P "$VPS_PORT" -o StrictHostKeyChecking=accept-new /tmp/netsniffer-ws-relay.tgz "$VPS_USER@$VPS_HOST:/tmp/netsniffer-deploy/netsniffer-ws-relay.tgz"
