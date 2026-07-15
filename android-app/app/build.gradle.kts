@@ -11,9 +11,13 @@ android {
         applicationId = "com.eip.netsniffer"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // Injected by GitHub Actions via -PbuildNumber=<run_number>.
+        // Local dev builds fall back to 1.
+        val ciBuildNumber = (project.findProperty("buildNumber") as String?)?.toIntOrNull() ?: 1
+        versionCode = ciBuildNumber
+        versionName = "1.0.$ciBuildNumber"
     }
+
 
     buildTypes {
         release {

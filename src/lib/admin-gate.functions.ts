@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { useSession } from '@tanstack/react-start/server';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { fetchBuildsFromGithub, type Build } from '@/lib/github-releases.functions';
 
 type GateSession = { unlocked?: boolean };
 
@@ -47,33 +48,49 @@ export const adminStatus = createServerFn({ method: 'GET' }).handler(async () =>
   return { unlocked: !!session.data.unlocked };
 });
 
-export const getAppConfig = createServerFn({ method: 'GET' }).handler(async () => {
+// Returns the current config + live list of GitHub build releases.
+// Admin picks a `min_version` from the dropdown; no typing needed.
+export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async () => {
   await requireUnlocked();
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
   const { data, error } = await supabaseAdmin
     .from('app_config')
-    .select('*')
+    .select('min_version,force_update,update_message,updated_at')
     .eq('id', 1)
     .maybeSingle();
   if (error) throw error;
-  return data;
+  const builds: Build[] = await fetchBuildsFromGithub().catch(() => []);
+  return {
+    config: data ?? { min_version: 1, force_update: true, update_message: '', updated_at: null },
+    builds,
+  };
 });
 
-export const updateAppConfig = createServerFn({ method: 'POST' })
+export const publishUpdate = createServerFn({ method: 'POST' })
   .inputValidator((d: {
     min_version: number;
-    latest_version: number;
-    latest_version_name: string;
-    apk_url: string;
-    update_message: string;
     force_update: boolean;
+    update_message: string;
   }) => d)
   .handler(async ({ data }) => {
     await requireUnlocked();
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    // Keep the legacy latest_version / apk_url columns in sync so anything
+    // still reading them stays consistent, even though the public endpoint
+    // now pulls those from GitHub live.
+    const builds = await fetchBuildsFromGithub().catch(() => []);
+    const latest = builds[0];
     const { error } = await supabaseAdmin
       .from('app_config')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update({
+        min_version: data.min_version,
+        force_update: data.force_update,
+        update_message: data.update_message,
+        latest_version: latest?.runNumber ?? data.min_version,
+        latest_version_name: latest ? `1.0.${latest.runNumber}` : '1.0',
+        apk_url: latest?.apkUrl ?? '',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', 1);
     if (error) throw error;
     return { ok: true };
