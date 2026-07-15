@@ -81,9 +81,21 @@ class AviatorFragment : Fragment() {
         b.liveMultiplier.text = if (big != null) "%.2fx".format(big) else "—"
         b.liveMultiplier.setTextColor(color)
 
+        // Derive current round: after CRASH the new roundId may not have arrived yet.
+        // If the latest known roundId matches the crashed prevRoundId, next round = prev + 1.
+        val displayCurrent: Long? = when {
+            st.phase == AviatorPhase.CRASHED && st.prevRoundId != null -> st.prevRoundId + 1
+            st.phase == AviatorPhase.BETTING && st.roundId != null -> st.roundId
+            st.phase == AviatorPhase.FLYING && st.roundId != null -> st.roundId
+            st.roundId != null && st.prevRoundId != null && st.roundId == st.prevRoundId -> st.roundId + 1
+            else -> st.roundId
+        }
+        val prevShown = st.prevRoundId ?: (displayCurrent?.minus(1))
         b.roundLine.text = buildString {
-            append("round #${st.roundId ?: "-"}")
-            if (st.openBetsCount != null) append("   • open bets: ${st.openBetsCount}")
+            append("current #${displayCurrent ?: "-"}")
+            if (prevShown != null) append("   • prev #$prevShown")
+            if (st.prevCrashX != null) append(" → %.2fx".format(st.prevCrashX))
+            if (st.openBetsCount != null) append("   • bets: ${st.openBetsCount}")
         }
 
         b.cyclesText.text = st.cycleCount.toString()
