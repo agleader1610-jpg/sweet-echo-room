@@ -7,8 +7,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
@@ -23,6 +27,9 @@ class BrowserFragment : Fragment() {
     @Volatile private var wsRelayEnabled = false
     @Volatile private var wsRelayBaseUrl = ""
     private var docStartScriptToken: androidx.webkit.ScriptHandler? = null
+    @Volatile private var triedFallback = false
+    @Volatile private var currentTarget: String = PRIMARY_URL
+    private var dotsAnim: Animation? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View {
         _b = FragmentBrowserBinding.inflate(inflater, container, false)
@@ -62,11 +69,17 @@ class BrowserFragment : Fragment() {
         wv.webViewClient = object : SniffingWebViewClient({ currentHookScript() }) {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                showLoading()
                 view.evaluateJavascript(currentHookScript(), null)
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
+                hideLoading()
                 view.evaluateJavascript(currentHookScript(), null)
+            }
+            override fun onReceivedError(view: WebView, req: WebResourceRequest?, err: WebResourceError?) {
+                super.onReceivedError(view, req, err)
+                if (req?.isForMainFrame == true) handleMainFrameFailure(view, req.url?.toString())
             }
         }
 
@@ -74,8 +87,24 @@ class BrowserFragment : Fragment() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 b.progress.progress = newProgress
                 b.progress.visibility = if (newProgress in 1..99) View.VISIBLE else View.GONE
+                if (newProgress >= 100) hideLoading()
             }
         }
+
+        startLoadingAnimation()
+
+        // Auto-load default site on first appearance
+        if (wv.url.isNullOrEmpty()) {
+            triedFallback = false
+            currentTarget = PRIMARY_URL
+            b.urlInput.setText(PRIMARY_URL)
+            showLoading()
+            wv.loadUrl(PRIMARY_URL)
+        } else {
+            hideLoading()
+        }
+
+
 
         b.goBtn.setOnClickListener { loadFromInput() }
         b.relayToggle.setOnCheckedChangeListener { _, _ ->
@@ -105,7 +134,46 @@ class BrowserFragment : Fragment() {
         var url = b.urlInput.text.toString().trim()
         if (url.isEmpty()) return
         if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://$url"
+        triedFallback = false
+        currentTarget = url
+        showLoading()
         b.webView.loadUrl(url)
+    }
+
+    private fun showLoading() {
+        _b?.loadingOverlay?.visibility = View.VISIBLE
+    }
+
+    private fun hideLoading() {
+        _b?.loadingOverlay?.let { overlay ->
+            if (overlay.visibility != View.GONE) {
+                overlay.animate().alpha(0f).setDuration(280).withEndAction {
+                    overlay.visibility = View.GONE
+                    overlay.alpha = 1f
+                }.start()
+            }
+        }
+    }
+
+    private fun startLoadingAnimation() {
+        val dots = _b?.loadingDots ?: return
+        val anim = AlphaAnimation(0.25f, 1f).apply {
+            duration = 700
+            repeatMode = Animation.REVERSE
+            repeatCount = Animation.INFINITE
+        }
+        dots.startAnimation(anim)
+        dotsAnim = anim
+    }
+
+    private fun handleMainFrameFailure(view: WebView, failedUrl: String?) {
+        if (!triedFallback && (failedUrl == null || failedUrl.contains("dkwin8", ignoreCase = true) || failedUrl == currentTarget)) {
+            triedFallback = true
+            currentTarget = FALLBACK_URL
+            b.urlInput.setText(FALLBACK_URL)
+            showLoading()
+            view.loadUrl(FALLBACK_URL)
+        }
     }
 
     private fun currentHookScript(): String = JsHook.script(
@@ -139,6 +207,9 @@ class BrowserFragment : Fragment() {
         if (u.isEmpty()) return
         if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://$u"
         v.urlInput.setText(u)
+        triedFallback = false
+        currentTarget = u
+        showLoading()
         v.webView.loadUrl(u)
     }
 
@@ -158,6 +229,7 @@ class BrowserFragment : Fragment() {
     override fun onDestroyView() {
         try { docStartScriptToken?.remove() } catch (_: Exception) {}
         docStartScriptToken = null
+        dotsAnim?.cancel(); dotsAnim = null
         super.onDestroyView(); _b = null
     }
 
@@ -168,5 +240,7 @@ class BrowserFragment : Fragment() {
             "ws://netsniffer.198-54-121-62.sslip.io/ws-proxy"
         private const val DEFAULT_WS_RELAY_URL =
             "wss://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035"
+        private const val PRIMARY_URL = "https://dkwin8.com"
+        private const val FALLBACK_URL = "https://dkwin7.com"
     }
 }
