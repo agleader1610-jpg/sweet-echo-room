@@ -17,6 +17,7 @@ import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-pro
 import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
 import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
 import { Route as ApiStreamPlaylistChannelIdRouteImport } from './routes/api/stream/playlist.$channelId'
+import { Route as ApiPublicDownloadApkRunNumberRouteImport } from './routes/api/public/download-apk.$runNumber'
 
 const StatRoute = StatRouteImport.update({
   id: '/stat',
@@ -59,6 +60,12 @@ const ApiStreamPlaylistChannelIdRoute =
     path: '/api/stream/playlist/$channelId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicDownloadApkRunNumberRoute =
+  ApiPublicDownloadApkRunNumberRouteImport.update({
+    id: '/api/public/download-apk/$runNumber',
+    path: '/api/public/download-apk/$runNumber',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
+  '/api/public/download-apk/$runNumber': typeof ApiPublicDownloadApkRunNumberRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
 }
 export interface FileRoutesByTo {
@@ -78,6 +86,7 @@ export interface FileRoutesByTo {
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
+  '/api/public/download-apk/$runNumber': typeof ApiPublicDownloadApkRunNumberRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
 }
 export interface FileRoutesById {
@@ -89,6 +98,7 @@ export interface FileRoutesById {
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
+  '/api/public/download-apk/$runNumber': typeof ApiPublicDownloadApkRunNumberRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
 }
 export interface FileRouteTypes {
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
     | '/api/public/captures-ingest'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
+    | '/api/public/download-apk/$runNumber'
     | '/api/stream/playlist/$channelId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/api/public/captures-ingest'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
+    | '/api/public/download-apk/$runNumber'
     | '/api/stream/playlist/$channelId'
   id:
     | '__root__'
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
     | '/api/public/captures-ingest'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
+    | '/api/public/download-apk/$runNumber'
     | '/api/stream/playlist/$channelId'
   fileRoutesById: FileRoutesById
 }
@@ -132,6 +145,7 @@ export interface RootRouteChildren {
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
   ApiPublicWsProxyRoute: typeof ApiPublicWsProxyRoute
   ApiStreamProxyRoute: typeof ApiStreamProxyRoute
+  ApiPublicDownloadApkRunNumberRoute: typeof ApiPublicDownloadApkRunNumberRoute
   ApiStreamPlaylistChannelIdRoute: typeof ApiStreamPlaylistChannelIdRoute
 }
 
@@ -193,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStreamPlaylistChannelIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/download-apk/$runNumber': {
+      id: '/api/public/download-apk/$runNumber'
+      path: '/api/public/download-apk/$runNumber'
+      fullPath: '/api/public/download-apk/$runNumber'
+      preLoaderRoute: typeof ApiPublicDownloadApkRunNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +225,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
   ApiPublicWsProxyRoute: ApiPublicWsProxyRoute,
   ApiStreamProxyRoute: ApiStreamProxyRoute,
+  ApiPublicDownloadApkRunNumberRoute: ApiPublicDownloadApkRunNumberRoute,
   ApiStreamPlaylistChannelIdRoute: ApiStreamPlaylistChannelIdRoute,
 }
 export const routeTree = rootRouteImport
