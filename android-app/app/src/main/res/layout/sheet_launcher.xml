@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/sheet_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="24dp">
+
+        <View
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/sheet_handle"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="18dp">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@mipmap/ic_launcher"
+                android:background="@drawable/fab_gradient"
+                android:padding="6dp"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_name"
+                    android:textColor="@color/text"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:letterSpacing="0.05"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Control Center"
+                    android:textColor="@color/muted"
+                    android:textSize="11sp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Section: Tabs -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODULES"
+            android:textColor="@color/muted"
+            android:textSize="10sp"
+            android:letterSpacing="0.2"
+            android:paddingBottom="10dp"/>
+
+        <LinearLayout
+            android:id="@+id/tabToggle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <Button
+                android:id="@+id/tabBrowserBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="52dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/tab_browser"
+                android:textAllCaps="false"
+                android:textSize="12sp"
+                android:background="@drawable/tab_chip_bg"
+                android:textColor="@color/tab_chip_text"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"/>
+            <Button
+                android:id="@+id/tabAviatorBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="52dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/tab_aviator"
+                android:textAllCaps="false"
+                android:textSize="12sp"
+                android:background="@drawable/tab_chip_bg"
+                android:textColor="@color/tab_chip_text"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"/>
+            <Button
+                android:id="@+id/tabProfileBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="52dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/tab_profile"
+                android:textAllCaps="false"
+                android:textSize="12sp"
+                android:background="@drawable/tab_chip_bg"
+                android:textColor="@color/tab_chip_text"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"/>
+            <Button
+                android:id="@+id/tabNetworkBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="52dp"
+                android:text="@string/tab_network"
+                android:textAllCaps="false"
+                android:textSize="12sp"
+                android:background="@drawable/tab_chip_bg"
+                android:textColor="@color/tab_chip_text"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"/>
+        </LinearLayout>
+
+        <!-- Section: URL -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="QUICK NAVIGATE"
+            android:textColor="@color/muted"
+            android:textSize="10sp"
+            android:letterSpacing="0.2"
+            android:paddingTop="22dp"
+            android:paddingBottom="10dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/sheetUrlInput"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="10dp"
+                android:hint="@string/hint_url"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted"
+                android:background="@drawable/input_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:inputType="textUri"
+                android:imeOptions="actionGo"
+                android:singleLine="true"
+                android:textSize="13sp"/>
+
+            <Button
+                android:id="@+id/sheetGoBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:minWidth="72dp"
+                android:text="@string/btn_go"
+                android:textColor="@color/text"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@drawable/btn_gradient"
+                android:stateListAnimator="@null"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"/>
+        </LinearLayout>
+
+        <!-- Section: Relay -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="WS RELAY PROXY"
+            android:textColor="@color/muted"
+            android:textSize="10sp"
+            android:letterSpacing="0.2"
+            android:paddingTop="22dp"
+            android:paddingBottom="10dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/ws_relay"
+                android:textColor="@color/text"
+                android:textSize="13sp"/>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/sheetRelayToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="@color/text"
+                android:trackTint="@color/primary"/>
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/sheetRelayInput"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="@string/hint_ws_relay"
+            android:textColor="@color/text"
+            android:textColorHint="@color/muted"
+            android:background="@drawable/input_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:inputType="textUri"
+            android:imeOptions="actionDone"
+            android:singleLine="true"
+            android:textSize="12sp"/>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

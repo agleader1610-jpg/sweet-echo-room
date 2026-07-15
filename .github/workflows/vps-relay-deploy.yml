@@ -1,0 +1,132 @@
+name: Deploy VPS WebSocket Relay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vps-ws-relay/**"
+      - ".github/workflows/vps-relay-deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      REMOTE_DIR: /opt/netsniffer/vps-ws-relay
+      RELAY_SERVICE: netsniffer-ws-relay
+      RELAY_PORT: "8787"
+      DEFAULT_RELAY_TOKEN: ns-android-2026-relay-4d184ca9-2578-4035
+      DEFAULT_RELAY_DOMAIN: netsniffer.198-54-121-62.sslip.io
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH tooling
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+
+      - name: Upload relay files
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          : "${VPS_PORT:=22}"
+          tar -C vps-ws-relay --exclude=node_modules -czf /tmp/netsniffer-ws-relay.tgz .
+          sshpass -e ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new "$VPS_USER@$VPS_HOST" "mkdir -p /tmp/netsniffer-deploy"
+          sshpass -e scp -P "$VPS_PORT" -o StrictHostKeyChecking=accept-new /tmp/netsniffer-ws-relay.tgz "$VPS_USER@$VPS_HOST:/tmp/netsniffer-deploy/netsniffer-ws-relay.tgz"
+
+      - name: Install and restart relay on VPS
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_RELAY_TOKEN: ${{ secrets.VPS_RELAY_TOKEN }}
+          VPS_RELAY_DOMAIN: ${{ secrets.VPS_RELAY_DOMAIN }}
+        run: |
+          set -euo pipefail
+          : "${VPS_PORT:=22}"
+          : "${VPS_RELAY_TOKEN:=$DEFAULT_RELAY_TOKEN}"
+          : "${VPS_RELAY_DOMAIN:=$DEFAULT_RELAY_DOMAIN}"
+          sshpass -e ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new "$VPS_USER@$VPS_HOST" \
+            "REMOTE_DIR='$REMOTE_DIR' RELAY_SERVICE='$RELAY_SERVICE' RELAY_PORT='$RELAY_PORT' RELAY_TOKEN='$VPS_RELAY_TOKEN' RELAY_DOMAIN='$VPS_RELAY_DOMAIN' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          if ! command -v node >/dev/null 2>&1; then
+            echo "Node.js 20+ is required on the VPS" >&2
+            exit 1
+          fi
+
+          id netsniffer >/dev/null 2>&1 || useradd --system --home /opt/netsniffer --shell /usr/sbin/nologin netsniffer
+          mkdir -p "$REMOTE_DIR"
+          tar -xzf /tmp/netsniffer-deploy/netsniffer-ws-relay.tgz -C "$REMOTE_DIR"
+          cd "$REMOTE_DIR"
+          npm install --omit=dev
+          chown -R netsniffer:netsniffer /opt/netsniffer
+
+          NODE_BIN="$(command -v node)"
+          cat > "/etc/systemd/system/${RELAY_SERVICE}.service" <<UNIT
+          [Unit]
+          Description=NetSniffer WebSocket Relay Proxy
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          WorkingDirectory=${REMOTE_DIR}
+          Environment=NODE_ENV=production
+          Environment=PORT=${RELAY_PORT}
+          Environment=RELAY_TOKEN=${RELAY_TOKEN}
+          ExecStart=${NODE_BIN} server.mjs
+          Restart=always
+          RestartSec=3
+          User=netsniffer
+          Group=netsniffer
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+
+          systemctl daemon-reload
+          systemctl enable --now "$RELAY_SERVICE"
+          systemctl restart "$RELAY_SERVICE"
+
+          if command -v nginx >/dev/null 2>&1 && [ -n "$RELAY_DOMAIN" ]; then
+            cat > /etc/nginx/conf.d/netsniffer-ws-relay.conf <<NGINX
+          server {
+              listen 80;
+              listen [::]:80;
+              server_name ${RELAY_DOMAIN};
+
+              location /health {
+                  proxy_pass http://127.0.0.1:${RELAY_PORT};
+                  proxy_http_version 1.1;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+
+              location /ws-proxy {
+                  proxy_pass http://127.0.0.1:${RELAY_PORT};
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade \$http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+                  proxy_read_timeout 86400;
+                  proxy_send_timeout 86400;
+              }
+          }
+          NGINX
+            nginx -t
+            systemctl reload nginx
+          fi
+
+          curl -fsS "http://127.0.0.1:${RELAY_PORT}/health"
+          REMOTE

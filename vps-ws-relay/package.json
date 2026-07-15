@@ -1,0 +1,12 @@
+{
+  "name": "netsniffer-vps-ws-relay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "RELAY_TOKEN=dev-local-token PORT=8787 node server.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
