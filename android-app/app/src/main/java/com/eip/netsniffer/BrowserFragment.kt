@@ -127,6 +127,58 @@ class BrowserFragment : Fragment() {
                 true
             } else false
         }
+
+        // ---- VIP overlay (compact aviator status pinned in browser tab) ----
+        AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
+            updateOverlayVisibility()
+        }
+        AviatorStore.state.observe(viewLifecycleOwner) { renderOverlay() }
+        AviatorStore.rounds.observe(viewLifecycleOwner) { renderOverlay() }
+    }
+
+    private fun updateOverlayVisibility() {
+        val v = _b ?: return
+        val on = AviatorStore.overlayEnabled.value == true
+        val st = AviatorStore.state.value
+        v.vipOverlay.visibility = if (on && st != null && st.updatedAt != 0L) View.VISIBLE else View.GONE
+    }
+
+    private fun renderOverlay() {
+        val v = _b ?: return
+        updateOverlayVisibility()
+        val st = AviatorStore.state.value ?: return
+        val (label, color) = when (st.phase) {
+            AviatorPhase.FLYING  -> "FLYING"   to 0xFFFFB74D.toInt()
+            AviatorPhase.CRASHED -> "CRASHED"  to 0xFFE53935.toInt()
+            AviatorPhase.BETTING -> "BET"      to 0xFF4CAF50.toInt()
+            AviatorPhase.IDLE    -> "IDLE"     to 0xFF455A64.toInt()
+        }
+        v.overlayPhase.text = label
+        v.overlayPhase.setBackgroundColor(color)
+        val big = when (st.phase) {
+            AviatorPhase.FLYING  -> st.liveMultiplier
+            AviatorPhase.CRASHED -> st.crashX ?: st.prevCrashX
+            else -> st.prevCrashX
+        }
+        v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
+        v.overlayLive.setTextColor(color)
+        v.overlayPrev.text = st.prevCrashX?.let { "prev %.2fx".format(it) } ?: "prev —"
+
+        val hist = AviatorStore.rounds.value.orEmpty().take(8)
+        if (hist.isEmpty()) {
+            v.overlayHistory.text = ""
+        } else {
+            val sb = StringBuilder()
+            hist.forEach { r ->
+                val c = when {
+                    r.crashX >= 10.0 -> "🟪"
+                    r.crashX >= 2.0  -> "🟩"
+                    else             -> "🟥"
+                }
+                sb.append(c).append("%.2f ".format(r.crashX))
+            }
+            v.overlayHistory.text = sb.toString().trim()
+        }
     }
 
     private fun loadFromInput() {

@@ -43,6 +43,7 @@ object AviatorStore {
     val state = MutableLiveData(AviatorState())
     val rounds = MutableLiveData<List<AviatorRound>>(emptyList())
     val cashoutFeed = MutableLiveData<List<AviatorCashout>>(emptyList())
+    val overlayEnabled = MutableLiveData(false)
     private const val MAX_HISTORY = 200
 
     @Synchronized
