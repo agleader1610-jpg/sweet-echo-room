@@ -174,7 +174,7 @@ class BrowserFragment : Fragment() {
         }
     }
 
-
+    private fun currentHookScript(): String = JsHook.script(
         wsRelayEnabled = wsRelayEnabled,
         wsRelayBaseUrl = wsRelayBaseUrl
     )
