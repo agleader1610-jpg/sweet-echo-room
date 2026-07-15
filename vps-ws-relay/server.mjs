@@ -58,7 +58,7 @@ server.on('upgrade', (req, socket, head) => {
 wss.on('connection', (client, req, targetUrl) => {
   const targetLabel = targetUrl.toString();
   const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-  const targetCookie = requestUrl.searchParams.get('target_cookie') || '';
+  const targetCookie = sanitizeHeaderValue(requestUrl.searchParams.get('target_cookie') || '', 8192);
   const protocolHeader = req.headers['sec-websocket-protocol'];
   const protocols = typeof protocolHeader === 'string'
     ? protocolHeader.split(',').map((p) => p.trim()).filter(Boolean)
@@ -129,6 +129,10 @@ function isBlockedHost(host) {
   if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
   if (host === '::1' || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80')) return true;
   return false;
+}
+
+function sanitizeHeaderValue(value, maxLength) {
+  return String(value || '').replace(/[\r\n]/g, '').slice(0, maxLength);
 }
 
 function logFrame(direction, target, data, isBinary) {

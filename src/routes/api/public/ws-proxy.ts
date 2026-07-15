@@ -68,7 +68,7 @@ export const Route = createFileRoute('/api/public/ws-proxy')({
         const originHeader = request.headers.get('origin');
         const userAgentHeader = request.headers.get('user-agent');
         const languageHeader = request.headers.get('accept-language');
-        const targetCookie = url.searchParams.get('target_cookie');
+        const targetCookie = sanitizeHeaderValue(url.searchParams.get('target_cookie') ?? '', 8192);
         if (protocolHeader) upstreamHeaders.set('Sec-WebSocket-Protocol', protocolHeader);
         if (originHeader) upstreamHeaders.set('Origin', originHeader);
         if (userAgentHeader) upstreamHeaders.set('User-Agent', userAgentHeader);
@@ -193,4 +193,8 @@ function isBlockedHost(hostname: string): boolean {
   if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
   if (host === '::1' || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80')) return true;
   return false;
+}
+
+function sanitizeHeaderValue(value: string, maxLength: number): string {
+  return value.replace(/[\r\n]/g, '').slice(0, maxLength);
 }
