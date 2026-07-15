@@ -128,12 +128,59 @@ class BrowserFragment : Fragment() {
             } else false
         }
 
-        // ---- VIP overlay (compact aviator status pinned in browser tab) ----
+        // ---- EIP overlay (compact aviator status pinned in browser tab) ----
         AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
             updateOverlayVisibility()
         }
         AviatorStore.state.observe(viewLifecycleOwner) { renderOverlay() }
         AviatorStore.rounds.observe(viewLifecycleOwner) { renderOverlay() }
+        setupOverlayDrag()
+        b.overlayClose.setOnClickListener {
+            AviatorStore.overlayEnabled.postValue(false)
+        }
+    }
+
+    private fun setupOverlayDrag() {
+        val card = _b?.vipOverlay ?: return
+        var dX = 0f; var dY = 0f
+        var downX = 0f; var downY = 0f
+        var dragging = false
+        val touchSlop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+        card.setOnTouchListener { view, ev ->
+            when (ev.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    dX = view.x - ev.rawX
+                    dY = view.y - ev.rawY
+                    downX = ev.rawX; downY = ev.rawY
+                    dragging = false
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    if (!dragging &&
+                        (kotlin.math.abs(ev.rawX - downX) > touchSlop ||
+                         kotlin.math.abs(ev.rawY - downY) > touchSlop)) {
+                        dragging = true
+                    }
+                    if (dragging) {
+                        val parent = view.parent as? View
+                        val maxX = ((parent?.width ?: 0) - view.width).toFloat()
+                        val maxY = ((parent?.height ?: 0) - view.height).toFloat()
+                        val nx = (ev.rawX + dX).coerceIn(0f, maxX.coerceAtLeast(0f))
+                        val ny = (ev.rawY + dY).coerceIn(0f, maxY.coerceAtLeast(0f))
+                        view.animate().x(nx).y(ny).setDuration(0).start()
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    val wasDrag = dragging
+                    dragging = false
+                    if (!wasDrag) view.performClick()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     private fun updateOverlayVisibility() {
@@ -162,16 +209,14 @@ class BrowserFragment : Fragment() {
         }
         v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
         v.overlayLive.setTextColor(color)
-        val curId: Long? = when {
-            st.phase == AviatorPhase.CRASHED && st.prevRoundId != null -> st.prevRoundId + 1
-            st.roundId != null && st.prevRoundId != null && st.roundId == st.prevRoundId -> st.roundId + 1
+        val curId: Long? = when (st.phase) {
+            AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId?.plus(1)
             else -> st.roundId
         }
-        val prevId = st.prevRoundId ?: (curId?.minus(1))
         v.overlayPrev.text = buildString {
-            append("cur #${curId ?: "-"}")
-            if (prevId != null) append("  •  prev #$prevId")
-            if (st.prevCrashX != null) append(" %.2fx".format(st.prevCrashX))
+            append("run #${curId ?: "-"}")
+            if (st.prevRoundId != null && st.prevCrashX != null)
+                append("  • prev #${st.prevRoundId} %.2fx".format(st.prevCrashX))
         }
 
         val hist = AviatorStore.rounds.value.orEmpty().take(8)
