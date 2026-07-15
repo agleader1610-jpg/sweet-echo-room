@@ -1,59 +1,13 @@
 import { createServerFn } from '@tanstack/react-start';
+import { fetchBuildsFromGithub, type Build } from '@/lib/github-releases';
 
-// Fetches recent Android build releases from GitHub. Called by the admin
-// panel to populate the "minimum required build" dropdown. Uses the
-// Lovable GitHub connector so no manual token is needed.
-const REPO = 'mdsamratsha98-ctrl/sweet-apk-play';
-const GATEWAY = 'https://connector-gateway.lovable.dev/github';
-
-export type Build = {
-  runNumber: number;
-  tag: string;
-  apkUrl: string;
-  publishedAt: string;
-  name: string;
-};
-
-export async function fetchBuildsFromGithub(): Promise<Build[]> {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const ghKey = process.env.GITHUB_API_KEY;
-  if (!lovableKey || !ghKey) return [];
-  const res = await fetch(
-    `${GATEWAY}/repos/${REPO}/releases?per_page=20`,
-    {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${lovableKey}`,
-        'X-Connection-Api-Key': ghKey,
-      },
-    },
-  );
-  if (!res.ok) return [];
-  const releases = (await res.json()) as any[];
-  const out: Build[] = [];
-  for (const r of releases) {
-    const m = String(r.tag_name ?? '').match(/android-build-(\d+)/);
-    if (!m) continue;
-    const asset = (r.assets ?? []).find((a: any) =>
-      String(a.name ?? '').endsWith('.apk'),
-    );
-    if (!asset) continue;
-    out.push({
-      runNumber: Number(m[1]),
-      tag: r.tag_name,
-      apkUrl: asset.browser_download_url,
-      publishedAt: r.published_at ?? '',
-      name: r.name ?? r.tag_name,
-    });
-  }
-  out.sort((a, b) => b.runNumber - a.runNumber);
-  return out;
-}
+export type { Build };
 
 export const listBuilds = createServerFn({ method: 'GET' }).handler(async () => {
   try {
     return { ok: true as const, builds: await fetchBuildsFromGithub() };
-  } catch {
+  } catch (e) {
+    console.error('[listBuilds] failed', e);
     return { ok: false as const, builds: [] as Build[] };
   }
 });
