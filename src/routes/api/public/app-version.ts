@@ -1,10 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
-import { fetchBuildsFromGithub } from '@/lib/github-releases';
 
-// Public endpoint the Android app hits at launch. Merges:
-//  - admin-controlled gate (min_version, force_update, update_message) from DB
-//  - live latest APK info (latest_version + apk_url) from GitHub Releases
+// Public endpoint the Android app hits at launch.
+// It returns only the manually saved update config from the admin panel.
 // Fail-open: any error → { ok: false } so the app continues normally.
 export const Route = createFileRoute('/api/public/app-version')({
   server: {
@@ -26,27 +24,22 @@ export const Route = createFileRoute('/api/public/app-version')({
             },
           });
 
-          const [cfgRes, builds] = await Promise.all([
-            supa
-              .from('app_config')
-              .select('min_version,update_message,force_update,updated_at')
-              .eq('id', 1)
-              .maybeSingle(),
-            fetchBuildsFromGithub().catch(() => []),
-          ]);
+          const cfgRes = await supa
+            .from('app_config')
+            .select('min_version,latest_version,latest_version_name,apk_url,update_message,force_update,updated_at')
+            .eq('id', 1)
+            .maybeSingle();
 
           if (cfgRes.error || !cfgRes.data) return json({ ok: false }, 200);
-          const latest = builds[0];
-          const origin = new URL(request.url).origin;
 
           return json({
             ok: true,
             min_version: cfgRes.data.min_version,
             force_update: cfgRes.data.force_update,
             update_message: cfgRes.data.update_message,
-            latest_version: latest?.runNumber ?? cfgRes.data.min_version,
-            latest_version_name: latest ? `1.0.${latest.runNumber}` : '',
-            apk_url: latest ? `${origin}/api/public/download-apk/${latest.runNumber}` : '',
+            latest_version: cfgRes.data.latest_version,
+            latest_version_name: cfgRes.data.latest_version_name,
+            apk_url: cfgRes.data.apk_url,
             updated_at: cfgRes.data.updated_at,
           }, 200);
         } catch {
