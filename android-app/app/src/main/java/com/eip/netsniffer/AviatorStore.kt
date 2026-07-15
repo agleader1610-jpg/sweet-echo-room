@@ -34,6 +34,10 @@ data class AviatorState(
     val lastWaitDurationMs: Long = 0L,    // gap between crash and next takeoff (betting window)
     val cycleCount: Int = 0,               // full crash→crash cycles observed
 
+    // Hard timestamps — the ONLY source of truth for bet/fly durations.
+    val lastCrashAt: Long = 0L,           // when the last CRASH event was received
+    val lastTakeoffAt: Long = 0L,         // when the first FLY tick after that crash arrived
+
     val lastCommand: String? = null,
     val lastSourceUrl: String? = null,
     val updatedAt: Long = 0L,
@@ -71,11 +75,17 @@ object AviatorStore {
         val incomingOpen = (payload["openBetsCount"] as? Number)?.toInt()
 
         // ── PHASE TRANSITIONS ──────────────────────────────────────────
+        // Real cycle: CRASH → BET window → TAKEOFF (fly) → CRASH → …
+        //   betDuration = takeoffAt - crashAt
+        //   flyDuration = crashAt(new) - takeoffAt
+        // We rely on hard timestamps (lastCrashAt / lastTakeoffAt) so that
+        // stray "maxMultiplier" ticks during the post-crash animation do
+        // NOT get counted as flight time.
         if (incomingCrash != null) {
-            // Plane crashed for this roundId. Fly duration = now - flyStart.
-            val flyStart = if (snap.phase == AviatorPhase.FLYING) snap.phaseSince else snap.phaseSince
-            val flyMs = if (snap.phase == AviatorPhase.FLYING && snap.phaseSince > 0)
-                now - snap.phaseSince else snap.lastFlyDurationMs
+            // Plane crashed. Fly duration = now - lastTakeoffAt (if a takeoff
+            // was recorded AFTER the previous crash).
+            val flyMs = if (snap.lastTakeoffAt > snap.lastCrashAt && snap.lastTakeoffAt > 0)
+                now - snap.lastTakeoffAt else snap.lastFlyDurationMs
             snap = snap.copy(
                 prevRoundId = incomingRoundId ?: snap.roundId,
                 prevCrashX = incomingCrash,
@@ -83,6 +93,7 @@ object AviatorStore {
                 liveMultiplier = incomingCrash,
                 phase = AviatorPhase.CRASHED,
                 phaseSince = now,
+                lastCrashAt = now,
                 lastFlyDurationMs = flyMs,
                 cycleCount = snap.cycleCount + 1,
             )
@@ -93,18 +104,21 @@ object AviatorStore {
             while (newRounds.size > MAX_HISTORY) newRounds.removeAt(newRounds.size - 1)
             rounds.postValue(newRounds)
         } else if (incomingMax != null) {
-            // Multiplier ticking → plane is FLYING.
-            if (snap.phase != AviatorPhase.FLYING) {
-                // We just took off. If previous phase was CRASHED/BETTING, record wait window.
-                val waitMs = if (snap.phaseSince > 0 &&
-                    (snap.phase == AviatorPhase.CRASHED || snap.phase == AviatorPhase.BETTING))
-                    now - snap.phaseSince else snap.lastWaitDurationMs
+            // Multiplier ticking. Treat as TAKEOFF only the FIRST tick after
+            // the most recent crash — subsequent ticks just update the number.
+            val isFirstTickAfterCrash = snap.lastTakeoffAt <= snap.lastCrashAt
+            if (isFirstTickAfterCrash) {
+                val betMs = if (snap.lastCrashAt > 0) now - snap.lastCrashAt
+                            else snap.lastWaitDurationMs
                 snap = snap.copy(
                     phase = AviatorPhase.FLYING,
                     phaseSince = now,
-                    lastWaitDurationMs = waitMs,
-                    crashX = null, // clear the just-ended crash marker once new flight starts
+                    lastTakeoffAt = now,
+                    lastWaitDurationMs = betMs,
+                    crashX = null,
                 )
+            } else if (snap.phase != AviatorPhase.FLYING) {
+                snap = snap.copy(phase = AviatorPhase.FLYING, phaseSince = snap.lastTakeoffAt)
             }
             snap = snap.copy(
                 roundId = incomingRoundId ?: snap.roundId,
@@ -112,7 +126,6 @@ object AviatorStore {
             )
         } else if (incomingRoundId != null && incomingRoundId != snap.roundId) {
             // New round id with no multiplier and no crash → BETTING window.
-            val waitBaseline = snap.phaseSince
             snap = snap.copy(
                 prevRoundId = snap.roundId,
                 roundId = incomingRoundId,
@@ -120,10 +133,9 @@ object AviatorStore {
                 phaseSince = now,
                 crashX = null,
                 liveMultiplier = null,
-                lastWaitDurationMs = if (waitBaseline > 0 && snap.phase == AviatorPhase.CRASHED)
-                    now - waitBaseline else snap.lastWaitDurationMs,
             )
         }
+
 
         if (incomingOpen != null) snap = snap.copy(openBetsCount = incomingOpen)
 
