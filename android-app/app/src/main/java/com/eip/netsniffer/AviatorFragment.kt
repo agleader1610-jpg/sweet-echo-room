@@ -62,7 +62,7 @@ class AviatorFragment : Fragment() {
         }
         b.emptyText.visibility = View.GONE
         b.phaseCard.visibility = View.VISIBLE
-        b.analysisCard.visibility = View.VISIBLE
+        b.analysisCard.visibility = View.GONE  // simplified per request
 
         val (label, color) = when (st.phase) {
             AviatorPhase.FLYING   -> "FLYING"    to 0xFFFFB74D.toInt()
@@ -81,26 +81,25 @@ class AviatorFragment : Fragment() {
         b.liveMultiplier.text = if (big != null) "%.2fx".format(big) else "—"
         b.liveMultiplier.setTextColor(color)
 
-        // Derive current round: after CRASH the new roundId may not have arrived yet.
-        // If the latest known roundId matches the crashed prevRoundId, next round = prev + 1.
-        val displayCurrent: Long? = when {
-            st.phase == AviatorPhase.CRASHED && st.prevRoundId != null -> st.prevRoundId + 1
-            st.phase == AviatorPhase.BETTING && st.roundId != null -> st.roundId
-            st.phase == AviatorPhase.FLYING && st.roundId != null -> st.roundId
-            st.roundId != null && st.prevRoundId != null && st.roundId == st.prevRoundId -> st.roundId + 1
-            else -> st.roundId
+        // Derive the round the user is watching RIGHT NOW.
+        // - BETTING/FLYING: server-supplied roundId is the running round
+        // - CRASHED: crash event's roundId is the round that just ended,
+        //   so the NEXT running round = prevRoundId + 1
+        val displayCurrent: Long? = when (st.phase) {
+            AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId?.plus(1)
+            AviatorPhase.BETTING, AviatorPhase.FLYING -> st.roundId
+            AviatorPhase.IDLE -> st.roundId
         }
-        val prevShown = st.prevRoundId ?: (displayCurrent?.minus(1))
         b.roundLine.text = buildString {
-            append("current #${displayCurrent ?: "-"}")
-            if (prevShown != null) append("   • prev #$prevShown")
-            if (st.prevCrashX != null) append(" → %.2fx".format(st.prevCrashX))
-            if (st.openBetsCount != null) append("   • bets: ${st.openBetsCount}")
+            append("running #${displayCurrent ?: "-"}")
+            if (st.prevRoundId != null && st.prevCrashX != null)
+                append("   • prev #${st.prevRoundId} → %.2fx".format(st.prevCrashX))
         }
 
         b.cyclesText.text = st.cycleCount.toString()
-        b.flyMsText.text  = fmtMs(st.lastFlyDurationMs)
-        b.waitMsText.text = fmtMs(st.lastWaitDurationMs)
+        // BET tile = betting-window duration (wait), FLY tile = flight duration
+        b.flyMsText.text  = fmtMs(st.lastWaitDurationMs)
+        b.waitMsText.text = fmtMs(st.lastFlyDurationMs)
     }
 
     private fun renderTimers() {
