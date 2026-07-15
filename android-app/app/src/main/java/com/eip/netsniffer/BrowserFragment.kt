@@ -132,10 +132,49 @@ class BrowserFragment : Fragment() {
         var url = b.urlInput.text.toString().trim()
         if (url.isEmpty()) return
         if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://$url"
+        triedFallback = false
+        currentTarget = url
+        showLoading()
         b.webView.loadUrl(url)
     }
 
-    private fun currentHookScript(): String = JsHook.script(
+    private fun showLoading() {
+        _b?.loadingOverlay?.visibility = View.VISIBLE
+    }
+
+    private fun hideLoading() {
+        _b?.loadingOverlay?.let { overlay ->
+            if (overlay.visibility != View.GONE) {
+                overlay.animate().alpha(0f).setDuration(280).withEndAction {
+                    overlay.visibility = View.GONE
+                    overlay.alpha = 1f
+                }.start()
+            }
+        }
+    }
+
+    private fun startLoadingAnimation() {
+        val dots = _b?.loadingDots ?: return
+        val anim = AlphaAnimation(0.25f, 1f).apply {
+            duration = 700
+            repeatMode = Animation.REVERSE
+            repeatCount = Animation.INFINITE
+        }
+        dots.startAnimation(anim)
+        dotsAnim = anim
+    }
+
+    private fun handleMainFrameFailure(view: WebView, failedUrl: String?) {
+        if (!triedFallback && (failedUrl == null || failedUrl.contains("dkwin8", ignoreCase = true) || failedUrl == currentTarget)) {
+            triedFallback = true
+            currentTarget = FALLBACK_URL
+            b.urlInput.setText(FALLBACK_URL)
+            showLoading()
+            view.loadUrl(FALLBACK_URL)
+        }
+    }
+
+
         wsRelayEnabled = wsRelayEnabled,
         wsRelayBaseUrl = wsRelayBaseUrl
     )
