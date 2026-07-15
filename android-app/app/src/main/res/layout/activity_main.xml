@@ -12,15 +12,14 @@
     <!-- Draggable floating launcher button (plain ImageView so we can use any drawable) -->
     <ImageView
         android:id="@+id/launcherFab"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
         android:layout_gravity="bottom|end"
         android:layout_margin="20dp"
         android:contentDescription="@string/app_name"
-        android:src="@mipmap/ic_launcher"
-        android:background="@drawable/fab_gradient"
+        android:src="@drawable/ic_eip_round"
         android:elevation="12dp"
-        android:padding="10dp"
+        android:scaleType="fitCenter"
         android:clickable="true"
         android:focusable="true"/>
 </FrameLayout>
