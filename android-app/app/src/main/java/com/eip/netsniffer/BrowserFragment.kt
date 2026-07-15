@@ -100,6 +100,8 @@ class BrowserFragment : Fragment() {
             b.urlInput.setText(PRIMARY_URL)
             showLoading()
             wv.loadUrl(PRIMARY_URL)
+        } else {
+            hideLoading()
         }
 
 
