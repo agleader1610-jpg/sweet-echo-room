@@ -14,7 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      captures: {
+        Row: {
+          bytes: number | null
+          captured_at: string | null
+          created_at: string
+          device_id: string | null
+          host: string | null
+          id: number
+          method: string | null
+          mime: string | null
+          ms: number | null
+          req_body: string | null
+          req_headers: Json | null
+          res_body: string | null
+          res_headers: Json | null
+          session_id: string | null
+          source: string | null
+          status: number | null
+          url: string
+        }
+        Insert: {
+          bytes?: number | null
+          captured_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          host?: string | null
+          id?: number
+          method?: string | null
+          mime?: string | null
+          ms?: number | null
+          req_body?: string | null
+          req_headers?: Json | null
+          res_body?: string | null
+          res_headers?: Json | null
+          session_id?: string | null
+          source?: string | null
+          status?: number | null
+          url: string
+        }
+        Update: {
+          bytes?: number | null
+          captured_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          host?: string | null
+          id?: number
+          method?: string | null
+          mime?: string | null
+          ms?: number | null
+          req_body?: string | null
+          req_headers?: Json | null
+          res_body?: string | null
+          res_headers?: Json | null
+          session_id?: string | null
+          source?: string | null
+          status?: number | null
+          url?: string
+        }
+        Relationships: []
+      }
+      user_snapshots: {
+        Row: {
+          amount_of_code: number | null
+          balance: number | null
+          captured_at: string | null
+          created_at: string
+          device_id: string | null
+          host: string | null
+          id: number
+          nick_name: string | null
+          phone: string | null
+          raw: Json | null
+          session_id: string | null
+          source_url: string | null
+          uid: string | null
+          user_name: string | null
+        }
+        Insert: {
+          amount_of_code?: number | null
+          balance?: number | null
+          captured_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          host?: string | null
+          id?: number
+          nick_name?: string | null
+          phone?: string | null
+          raw?: Json | null
+          session_id?: string | null
+          source_url?: string | null
+          uid?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          amount_of_code?: number | null
+          balance?: number | null
+          captured_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          host?: string | null
+          id?: number
+          nick_name?: string | null
+          phone?: string | null
+          raw?: Json | null
+          session_id?: string | null
+          source_url?: string | null
+          uid?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      visits: {
+        Row: {
+          country: string | null
+          created_at: string
+          id: number
+          ip: string | null
+          path: string | null
+          referer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          id?: number
+          ip?: string | null
+          path?: string | null
+          referer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          id?: number
+          ip?: string | null
+          path?: string | null
+          referer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
