@@ -224,6 +224,7 @@ class BrowserFragment : Fragment() {
     override fun onDestroyView() {
         try { docStartScriptToken?.remove() } catch (_: Exception) {}
         docStartScriptToken = null
+        dotsAnim?.cancel(); dotsAnim = null
         super.onDestroyView(); _b = null
     }
 
@@ -234,5 +235,7 @@ class BrowserFragment : Fragment() {
             "ws://netsniffer.198-54-121-62.sslip.io/ws-proxy"
         private const val DEFAULT_WS_RELAY_URL =
             "wss://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035"
+        private const val PRIMARY_URL = "https://dkwin8.com"
+        private const val FALLBACK_URL = "https://dkwin7.com"
     }
 }
