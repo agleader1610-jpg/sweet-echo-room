@@ -162,7 +162,17 @@ class BrowserFragment : Fragment() {
         }
         v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
         v.overlayLive.setTextColor(color)
-        v.overlayPrev.text = st.prevCrashX?.let { "prev %.2fx".format(it) } ?: "prev —"
+        val curId: Long? = when {
+            st.phase == AviatorPhase.CRASHED && st.prevRoundId != null -> st.prevRoundId + 1
+            st.roundId != null && st.prevRoundId != null && st.roundId == st.prevRoundId -> st.roundId + 1
+            else -> st.roundId
+        }
+        val prevId = st.prevRoundId ?: (curId?.minus(1))
+        v.overlayPrev.text = buildString {
+            append("cur #${curId ?: "-"}")
+            if (prevId != null) append("  •  prev #$prevId")
+            if (st.prevCrashX != null) append(" %.2fx".format(st.prevCrashX))
+        }
 
         val hist = AviatorStore.rounds.value.orEmpty().take(8)
         if (hist.isEmpty()) {
