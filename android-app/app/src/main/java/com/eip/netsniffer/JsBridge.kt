@@ -1,7 +1,9 @@
 package com.eip.netsniffer
 
 import android.webkit.JavascriptInterface
+import android.webkit.CookieManager
 import org.json.JSONObject
+import java.net.URLEncoder
 
 /** Bridge exposed to page JS as window.__NetSniffer */
 class JsBridge {
@@ -33,6 +35,35 @@ class JsBridge {
                 )
             )
         } catch (_: Exception) {}
+    }
+
+    @JavascriptInterface
+    fun relayUrl(originalUrl: String, relayBaseUrl: String): String {
+        return try {
+            val abs = originalUrl.trim()
+            val base = relayBaseUrl.trim()
+            if (abs.isEmpty() || base.isEmpty()) return abs
+            if (!abs.startsWith("ws://", true) && !abs.startsWith("wss://", true)) return abs
+            if (!base.startsWith("ws://", true) && !base.startsWith("wss://", true)) return abs
+
+            val cleanedBase = base.replace(Regex("([?&])target=[^&]*&?"), "\$1")
+                .trimEnd('?', '&')
+            val out = StringBuilder(cleanedBase)
+                .append(if (cleanedBase.contains("?")) "&" else "?")
+                .append("target=")
+                .append(URLEncoder.encode(abs, "UTF-8"))
+
+            val cookieUrl = abs.replaceFirst("ws://", "http://", true)
+                .replaceFirst("wss://", "https://", true)
+            val cookie = try { CookieManager.getInstance().getCookie(cookieUrl) } catch (_: Exception) { null }
+            if (!cookie.isNullOrBlank()) {
+                out.append("&target_cookie=")
+                    .append(URLEncoder.encode(cookie, "UTF-8"))
+            }
+            out.toString()
+        } catch (_: Exception) {
+            originalUrl
+        }
     }
 }
 
@@ -233,7 +264,17 @@ object JsHook {
           base = relayUrl.toString();
         } catch(e){}
         if (abs.indexOf(base) === 0 || abs.indexOf('/api/public/ws-proxy') !== -1 || abs.indexOf('/ws-proxy') !== -1) return abs;
-        return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'target=' + encodeURIComponent(abs);
+        try {
+          if (B && typeof B.relayUrl === 'function') {
+            var nativeRelayUrl = B.relayUrl(abs, base);
+            if (nativeRelayUrl && /^wss?:\/\//i.test(nativeRelayUrl) && nativeRelayUrl !== abs) return nativeRelayUrl;
+          }
+        } catch(e){}
+        var out = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'target=' + encodeURIComponent(abs);
+        try {
+          if (document.cookie) out += '&target_cookie=' + encodeURIComponent(document.cookie);
+        } catch(e){}
+        return out;
       } catch(e) {
         send({kind:'ws-relay-fallback', method:'WS', url:abs, status:-1, bytes:0, ms:0, resBody:'[relay disabled for this socket: '+e+']'});
         return abs;

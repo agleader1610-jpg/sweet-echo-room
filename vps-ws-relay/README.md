@@ -9,7 +9,7 @@
 ```text
 Website WebSocket
    ↓ app rewrite করে
-Android app → wss://your-domain/ws-proxy?token=TOKEN&target=wss://real-server/ws
+Android app → ws://your-domain/ws-proxy?token=TOKEN&target=wss://real-server/ws
    ↓
 VPS relay log করে: client→server এবং server→client frame
    ↓
@@ -19,7 +19,7 @@ Real WebSocket server
 App-এ এখন default public relay URL দেওয়া আছে:
 
 ```text
-wss://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035
+ws://netsniffer.198-54-121-62.sslip.io/ws-proxy?token=ns-android-2026-relay-4d184ca9-2578-4035
 ```
 
 `target=` app নিজে automatically যোগ করে। তাই user-কে original WebSocket URL লিখতে হবে না।
@@ -64,6 +64,8 @@ VPS_RELAY_TOKEN
 Default domain/token Android app-এর default URL-এর সাথে match করে।
 
 ## Domain + HTTPS/WSS
+
+বর্তমান default relay `ws://netsniffer.198-54-121-62.sslip.io/...` ব্যবহার করে, কারণ এই VPS-এর `netsniffer...` host-এ valid TLS certificate নেই। `wss://netsniffer...` দিলে Android/WebView WebSocket close code `1006` দেখায়।
 
 Android app-এ WebSocket relay URL হিসেবে সাধারণত `wss://...` দরকার। তাই domain-টা VPS IP-তে point করে Caddy/Nginx দিয়ে HTTPS terminate করুন। Caddy সবচেয়ে সহজ:
 
