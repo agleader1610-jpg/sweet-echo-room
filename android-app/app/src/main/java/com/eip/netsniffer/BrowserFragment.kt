@@ -66,12 +66,37 @@ class BrowserFragment : Fragment() {
         wv.webViewClient = object : SniffingWebViewClient({ currentHookScript() }) {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                showLoading()
                 view.evaluateJavascript(currentHookScript(), null)
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
+                hideLoading()
                 view.evaluateJavascript(currentHookScript(), null)
             }
+            override fun onReceivedError(view: WebView, req: WebResourceRequest?, err: WebResourceError?) {
+                super.onReceivedError(view, req, err)
+                if (req?.isForMainFrame == true) handleMainFrameFailure(view, req.url?.toString())
+            }
+        }
+
+        wv.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                b.progress.progress = newProgress
+                b.progress.visibility = if (newProgress in 1..99) View.VISIBLE else View.GONE
+                if (newProgress >= 100) hideLoading()
+            }
+        }
+
+        startLoadingAnimation()
+
+        // Auto-load default site on first appearance
+        if (wv.url.isNullOrEmpty()) {
+            triedFallback = false
+            currentTarget = PRIMARY_URL
+            b.urlInput.setText(PRIMARY_URL)
+            showLoading()
+            wv.loadUrl(PRIMARY_URL)
         }
 
         wv.webChromeClient = object : WebChromeClient() {
