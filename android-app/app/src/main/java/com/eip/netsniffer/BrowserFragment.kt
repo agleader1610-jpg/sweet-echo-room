@@ -205,6 +205,9 @@ class BrowserFragment : Fragment() {
         if (u.isEmpty()) return
         if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://$u"
         v.urlInput.setText(u)
+        triedFallback = false
+        currentTarget = u
+        showLoading()
         v.webView.loadUrl(u)
     }
 
