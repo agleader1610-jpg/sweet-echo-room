@@ -88,6 +88,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   async function refresh() {
     setLoading(true);
     const r = await load();
+    if (r.unauthorized || !r.config) { onLogout(); return; }
     setMinVersion(r.config.min_version ?? 1);
     setSavedMin(r.config.min_version ?? 1);
     setLatestVersion(r.config.latest_version ?? 1);
@@ -97,6 +98,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     setMessage(r.config.update_message ?? '');
     setLoading(false);
   }
+
 
   useEffect(() => { refresh().catch(() => setLoading(false)); }, []);
 

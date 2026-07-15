@@ -48,7 +48,8 @@ export const adminStatus = createServerFn({ method: 'GET' }).handler(async () =>
 });
 
 export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async () => {
-  await requireUnlocked();
+  const session = await useSession<GateSession>(sessionConfig());
+  if (!session.data.unlocked) return { unauthorized: true as const };
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
   const { data, error } = await supabaseAdmin
     .from('app_config')
@@ -57,6 +58,7 @@ export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async
     .maybeSingle();
   if (error) throw error;
   return {
+    unauthorized: false as const,
     config: data ?? {
       min_version: 1,
       latest_version: 1,
@@ -68,6 +70,7 @@ export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async
     },
   };
 });
+
 
 export const publishUpdate = createServerFn({ method: 'POST' })
   .inputValidator((d: {
