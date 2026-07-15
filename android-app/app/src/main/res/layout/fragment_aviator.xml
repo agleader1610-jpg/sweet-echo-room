@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B1220">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/emptyText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="24dp"
+            android:gravity="center"
+            android:textSize="14sp"
+            android:textColor="#90A4AE"
+            android:text="Aviator detector idle. Open the Aviator game in the Browser tab…"
+            android:visibility="visible"/>
+
+        <!-- ═══════════ PHASE DETECTOR ═══════════ -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/phaseCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:cardBackgroundColor="#111A2E"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
+
+                <TextView
+                    android:id="@+id/phaseBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="IDLE"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:textColor="#FFFFFF"
+                    android:background="#455A64"/>
+
+                <TextView
+                    android:id="@+id/liveMultiplier"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textSize="56sp"
+                    android:textStyle="bold"
+                    android:textColor="#E53935"
+                    android:text="—"/>
+
+                <TextView
+                    android:id="@+id/phaseTimer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textSize="13sp"
+                    android:textColor="#B0BEC5"
+                    android:fontFamily="monospace"/>
+
+                <TextView
+                    android:id="@+id/roundLine"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textSize="13sp"
+                    android:textColor="#90A4AE"
+                    android:fontFamily="monospace"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ═══════════ TIMING DETECTOR ═══════════ -->
+        <LinearLayout
+            android:id="@+id/timingRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp"
+            android:visibility="gone"
+            android:weightSum="3">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:background="#111A2E">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BET"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#4CAF50"
+                    android:letterSpacing="0.2"/>
+                <TextView
+                    android:id="@+id/flyMsText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#ECEFF1"
+                    android:fontFamily="monospace"
+                    android:text="—"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:background="#111A2E">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FLY"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFB74D"
+                    android:letterSpacing="0.2"/>
+                <TextView
+                    android:id="@+id/waitMsText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#ECEFF1"
+                    android:fontFamily="monospace"
+                    android:text="—"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:background="#111A2E">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CYCLES"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#64B5F6"
+                    android:letterSpacing="0.2"/>
+                <TextView
+                    android:id="@+id/cyclesText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#ECEFF1"
+                    android:fontFamily="monospace"
+                    android:text="0"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ═══════════ HISTORY ═══════════ -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="HISTORY"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#78909C"
+            android:letterSpacing="0.15"/>
+
+        <TextView
+            android:id="@+id/roundsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:padding="12dp"
+            android:background="#111A2E"
+            android:fontFamily="monospace"
+            android:textSize="13sp"
+            android:textColor="#ECEFF1"
+            android:text="(none)"/>
+
+        <Button
+            android:id="@+id/clearBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_gravity="end"
+            android:text="Clear"/>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

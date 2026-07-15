@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">EIP TEAM</string>
+    <string name="hint_url">https://example.com</string>
+    <string name="tab_browser">Browser</string>
+    <string name="tab_network">Network</string>
+    <string name="tab_profile">Profile</string>
+    <string name="tab_aviator">Aviator</string>
+
+    <string name="btn_go">Go</string>
+    <string name="btn_clear">Clear</string>
+    <string name="ws_relay">Auto WS Proxy</string>
+    <string name="hint_ws_relay">Built-in relay is ready</string>
+    <string name="cloud_upload">Save to Cloud</string>
+    <string name="hint_cloud_token">Cloud ingest token</string>
+</resources>

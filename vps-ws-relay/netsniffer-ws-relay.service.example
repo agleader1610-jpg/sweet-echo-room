@@ -1,0 +1,21 @@
+[Unit]
+Description=NetSniffer WebSocket Relay Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/netsniffer/vps-ws-relay
+Environment=NODE_ENV=production
+Environment=PORT=8787
+Environment=RELAY_TOKEN=replace-with-a-long-random-token
+# Optional: comma-separated host allow-list, e.g. echo.websocket.events,example.com
+# Environment=ALLOWED_WS_HOSTS=echo.websocket.events,example.com
+ExecStart=/usr/bin/env node server.mjs
+Restart=always
+RestartSec=3
+User=netsniffer
+Group=netsniffer
+
+[Install]
+WantedBy=multi-user.target

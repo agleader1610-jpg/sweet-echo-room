@@ -9,38 +9,115 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StatRouteImport } from './routes/stat'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiStreamProxyRouteImport } from './routes/api/stream/proxy'
+import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-proxy'
+import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
+import { Route as ApiStreamPlaylistChannelIdRouteImport } from './routes/api/stream/playlist.$channelId'
 
+const StatRoute = StatRouteImport.update({
+  id: '/stat',
+  path: '/stat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStreamProxyRoute = ApiStreamProxyRouteImport.update({
+  id: '/api/stream/proxy',
+  path: '/api/stream/proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWsProxyRoute = ApiPublicWsProxyRouteImport.update({
+  id: '/api/public/ws-proxy',
+  path: '/api/public/ws-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCapturesIngestRoute = ApiPublicCapturesIngestRouteImport.update({
+  id: '/api/public/captures-ingest',
+  path: '/api/public/captures-ingest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStreamPlaylistChannelIdRoute =
+  ApiStreamPlaylistChannelIdRouteImport.update({
+    id: '/api/stream/playlist/$channelId',
+    path: '/api/stream/playlist/$channelId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/stat': typeof StatRoute
+  '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
+  '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
+  '/api/stream/proxy': typeof ApiStreamProxyRoute
+  '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/stat': typeof StatRoute
+  '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
+  '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
+  '/api/stream/proxy': typeof ApiStreamProxyRoute
+  '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/stat': typeof StatRoute
+  '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
+  '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
+  '/api/stream/proxy': typeof ApiStreamProxyRoute
+  '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/stat'
+    | '/api/public/captures-ingest'
+    | '/api/public/ws-proxy'
+    | '/api/stream/proxy'
+    | '/api/stream/playlist/$channelId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/stat'
+    | '/api/public/captures-ingest'
+    | '/api/public/ws-proxy'
+    | '/api/stream/proxy'
+    | '/api/stream/playlist/$channelId'
+  id:
+    | '__root__'
+    | '/'
+    | '/stat'
+    | '/api/public/captures-ingest'
+    | '/api/public/ws-proxy'
+    | '/api/stream/proxy'
+    | '/api/stream/playlist/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  StatRoute: typeof StatRoute
+  ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
+  ApiPublicWsProxyRoute: typeof ApiPublicWsProxyRoute
+  ApiStreamProxyRoute: typeof ApiStreamProxyRoute
+  ApiStreamPlaylistChannelIdRoute: typeof ApiStreamPlaylistChannelIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/stat': {
+      id: '/stat'
+      path: '/stat'
+      fullPath: '/stat'
+      preLoaderRoute: typeof StatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +125,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stream/proxy': {
+      id: '/api/stream/proxy'
+      path: '/api/stream/proxy'
+      fullPath: '/api/stream/proxy'
+      preLoaderRoute: typeof ApiStreamProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ws-proxy': {
+      id: '/api/public/ws-proxy'
+      path: '/api/public/ws-proxy'
+      fullPath: '/api/public/ws-proxy'
+      preLoaderRoute: typeof ApiPublicWsProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/captures-ingest': {
+      id: '/api/public/captures-ingest'
+      path: '/api/public/captures-ingest'
+      fullPath: '/api/public/captures-ingest'
+      preLoaderRoute: typeof ApiPublicCapturesIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stream/playlist/$channelId': {
+      id: '/api/stream/playlist/$channelId'
+      path: '/api/stream/playlist/$channelId'
+      fullPath: '/api/stream/playlist/$channelId'
+      preLoaderRoute: typeof ApiStreamPlaylistChannelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  StatRoute: StatRoute,
+  ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
+  ApiPublicWsProxyRoute: ApiPublicWsProxyRoute,
+  ApiStreamProxyRoute: ApiStreamProxyRoute,
+  ApiStreamPlaylistChannelIdRoute: ApiStreamPlaylistChannelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

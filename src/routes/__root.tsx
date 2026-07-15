@@ -4,13 +4,16 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { logVisit } from "@/lib/stats.functions";
 
 function NotFoundComponent() {
   return (
@@ -77,21 +80,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "FIFA World Cup 2026 Live — Cinema & News Channels" },
+      { name: "description", content: "Watch FIFA World Cup 2026 live streams, Bangladeshi news channels and Hollywood cinema — all in one place." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "FIFA World Cup 2026 Live — Cinema & News Channels" },
+      { property: "og:description", content: "Watch FIFA World Cup 2026 live streams, Bangladeshi news channels and Hollywood cinema — all in one place." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "FIFA World Cup 2026 Live — Cinema & News Channels" },
+      { name: "twitter:description", content: "Watch FIFA World Cup 2026 live streams, Bangladeshi news channels and Hollywood cinema — all in one place." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4c8c68d7-dfb4-4ef3-bf0e-9f96ede0995b/id-preview-232a0592--4d184ca9-2578-4035-8b23-aab3a3aa6222.lovable.app-1783186425814.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4c8c68d7-dfb4-4ef3-bf0e-9f96ede0995b/id-preview-232a0592--4d184ca9-2578-4035-8b23-aab3a3aa6222.lovable.app-1783186425814.png" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -116,6 +124,14 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const fireVisit = useServerFn(logVisit);
+
+  useEffect(() => {
+    // Don't log the admin dashboard itself.
+    if (pathname.startsWith("/stat")) return;
+    fireVisit({ data: { path: pathname } }).catch(() => {});
+  }, [pathname, fireVisit]);
 
   return (
     <QueryClientProvider client={queryClient}>
