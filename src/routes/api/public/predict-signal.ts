@@ -38,12 +38,15 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let source: 'ai' | 'local' = 'local';
         let aiModel: string | null = null;
         let aiError: string | null = null;
+        let aiRaw: string | null = null;
         try {
-          signal = await callAI(history);
+          const r = await callAI(history);
+          signal = r.signal;
+          aiRaw = r.raw;
           source = 'ai';
           aiModel = AI_MODEL;
         } catch (e: any) {
-          aiError = (e?.message ?? 'ai_failed').slice(0, 300);
+          aiError = (e?.message ?? 'ai_failed').slice(0, 500);
           signal = computeLocalSignal(history);
           source = 'local';
         }
@@ -62,13 +65,16 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           reasoning: signal.reasoning,
           ai_model: aiModel,
           latency_ms: latency,
-          raw: { history_len: history.length, ai_error: aiError },
+          raw: { history_len: history.length, ai_error: aiError, ai_raw: aiRaw },
         }).select('id').maybeSingle();
 
         return json({
           ok: true,
           prediction_id: ins.data?.id ?? null,
           round_id: runningRoundId,
+          history_newest_round_id: newest.round_id,
+          history_newest_multiplier: newest.multiplier,
+          history_len: history.length,
           target: signal.target,
           action: signal.action,
           confidence: signal.confidence,
@@ -76,13 +82,16 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           source,
           model: aiModel,
           latency_ms: latency,
+          ai_raw: aiRaw,
+          ai_error: aiError,
         }, 200);
       },
     },
   },
 });
 
-async function callAI(history: Array<{ round_id: number; multiplier: number }>): Promise<Signal> {
+async function callAI(history: Array<{ round_id: number; multiplier: number }>): Promise<{ signal: Signal; raw: string }> {
+
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error('no_ai_key');
   const controller = new AbortController();
@@ -124,11 +133,15 @@ async function callAI(history: Array<{ round_id: number; multiplier: number }>):
     if (!['BET', 'STRONG BET', 'SKIP'].includes(action)) throw new Error('ai_bad_action');
     if (target !== null && (!isFinite(target) || target < 1.01 || target > 100)) throw new Error('ai_bad_target');
     return {
-      action: action as Signal['action'],
-      target: action === 'SKIP' ? null : target,
-      confidence: (['LOW', 'MEDIUM', 'HIGH'].includes(confidence) ? confidence : 'MEDIUM') as Signal['confidence'],
-      reasoning: reasoning || 'AI analysis',
+      signal: {
+        action: action as Signal['action'],
+        target: action === 'SKIP' ? null : target,
+        confidence: (['LOW', 'MEDIUM', 'HIGH'].includes(confidence) ? confidence : 'MEDIUM') as Signal['confidence'],
+        reasoning: reasoning || 'AI analysis',
+      },
+      raw: String(content).slice(0, 2000),
     };
+
   } finally {
     clearTimeout(t);
   }

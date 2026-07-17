@@ -135,16 +135,67 @@ class AviatorFragment : Fragment() {
         b.predSource.text = "🤖 CONNECTING"
         b.predSource.setTextColor(0xFFFACC15.toInt())
 
+        // Debug: mark fetch dispatched
+        val expectPredictFor = newestRound + 1
+        b.debugStatus.text = "FETCHING…"
+        b.debugStatus.setTextColor(0xFFFACC15.toInt())
+        b.debugRoundLine.text = "#$newestRound → predicting #$expectPredictFor"
+        b.debugMatch.text = ""
+        b.debugFetchLog.text = "req sent • ${timeStamp()} • hist=${rounds.size}"
+
+        val t0 = System.currentTimeMillis()
         PredictionClient.fetchSignal(deviceId, rounds) { sig ->
             if (_b == null) return@fetchSignal
+            val roundTrip = System.currentTimeMillis() - t0
             if (sig == null) {
-                // Server unreachable → offline fallback
+                b.debugStatus.text = "OFFLINE"
+                b.debugStatus.setTextColor(0xFFF87171.toInt())
+                b.debugError.visibility = View.VISIBLE
+                b.debugError.text = "network failed — server unreachable. round-trip ${roundTrip}ms"
+                b.debugRawAi.text = "(no server response)"
                 renderOfflineFallback(rounds)
             } else {
+                b.debugError.visibility = if (sig.aiError.isNullOrBlank()) View.GONE else View.VISIBLE
+                if (!sig.aiError.isNullOrBlank()) b.debugError.text = "AI error: ${sig.aiError}"
                 renderRemoteSignal(sig, rounds)
+                renderDebug(sig, newestRound, roundTrip)
             }
         }
     }
+
+    private fun renderDebug(sig: PredictionClient.Signal, requestedNewest: Long, roundTrip: Long) {
+        val statusLabel = when (sig.source) {
+            "ai" -> "🤖 AI OK"
+            "local" -> "⚙ SERVER LOCAL"
+            else -> "📴 OFFLINE"
+        }
+        val statusColor = when (sig.source) {
+            "ai" -> 0xFF4ADE80.toInt()
+            "local" -> 0xFF60A5FA.toInt()
+            else -> 0xFFF87171.toInt()
+        }
+        b.debugStatus.text = statusLabel
+        b.debugStatus.setTextColor(statusColor)
+
+        val serverNewest = sig.historyNewestRoundId
+        val expected = requestedNewest + 1
+        b.debugRoundLine.text = "sent top #${serverNewest ?: "?"} → got signal for #${sig.roundId}"
+        val match = sig.roundId == expected && (serverNewest == null || serverNewest == requestedNewest)
+        b.debugMatch.text = if (match) "✓ ROUND MATCH — signal is for current running round" else "⚠ ROUND MISMATCH — expected #$expected"
+        b.debugMatch.setTextColor(if (match) 0xFF4ADE80.toInt() else 0xFFF87171.toInt())
+
+        b.debugModel.text = "${sig.source.uppercase()} / ${sig.model ?: "—"}"
+        b.debugLatencyId.text = "server ${sig.latencyMs}ms • rt ${roundTrip}ms • id=${sig.predictionId ?: "—"}"
+        b.debugReasoning.text = sig.reasoning.ifBlank { "(empty)" }
+        b.debugRawAi.text = sig.aiRaw ?: "(no AI raw — fallback used)"
+        b.debugFetchLog.text = "req ${timeStamp()} • hist_len=${sig.historyLen} • last_x=${sig.historyNewestMultiplier ?: "?"}"
+    }
+
+    private fun timeStamp(): String {
+        val d = java.util.Date()
+        return java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(d)
+    }
+
 
     private fun renderRemoteSignal(sig: PredictionClient.Signal, rounds: List<AviatorRound>) {
         val runningId = sig.roundId
@@ -233,7 +284,15 @@ class AviatorFragment : Fragment() {
             source = "offline",
             model = null,
             latencyMs = 0,
+            historyNewestRoundId = rounds.first().roundId,
+            historyNewestMultiplier = rounds.first().crashX,
+            historyLen = rounds.size,
+            aiRaw = null,
+            aiError = "offline_fallback",
+            httpStatus = 0,
+            requestedAt = System.currentTimeMillis(),
         )
+
         renderRemoteSignal(remote, rounds)
         b.predSource.text = "📴 OFFLINE"
         b.predSource.setTextColor(0xFFF87171.toInt())
