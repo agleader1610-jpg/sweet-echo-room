@@ -55,6 +55,7 @@ object LicenseGate {
         val message: String,
         val uid: String?,
         val invite: String?,
+        val tampered: Boolean = false,
     ) {
         val locked: Boolean get() = status != "LICENSED"
         val unknown: Boolean get() = status == "UNKNOWN"
@@ -71,20 +72,25 @@ object LicenseGate {
         // TamperGuard runs first — a tampered/rooted/hooked build is
         // permanently locked with a troll message, no server round-trip.
         if (TamperGuard.tampered) {
-            state.postValue(State("LOCKED", TamperGuard.trollMessage(), null, null))
+            state.postValue(State("LOCKED", TamperGuard.trollMessage(), null, null, tampered = true))
             return
         }
         val p = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val s = State(
+        val cached = State(
             status = p.getString(KEY_STATUS, "UNKNOWN") ?: "UNKNOWN",
             message = p.getString(KEY_MESSAGE, "") ?: "",
             uid = p.getString(KEY_UID, null),
             invite = p.getString(KEY_INVITE, null),
+            tampered = p.getBoolean(KEY_TAMPERED, false),
         )
-        state.postValue(s)
-        // Re-verify on start if we have cached credentials
-        if (s.uid != null || s.invite != null) {
-            verify(ctx, s.uid, s.invite)
+        state.postValue(cached)
+
+        val age = System.currentTimeMillis() - p.getLong(KEY_LAST_CHECK, 0L)
+        val fresh = cached.status == "LICENSED" && age in 0..CACHE_TTL_MS
+        // Fresh LICENSED cache → app opens INSTANTLY, no network wait.
+        // Otherwise, silently re-verify in the background (still no UI wait).
+        if (!fresh && (cached.uid != null || cached.invite != null)) {
+            verify(ctx, cached.uid, cached.invite)
         }
     }
 
