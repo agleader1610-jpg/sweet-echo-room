@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#070B18"
+    android:background="#060912"
     android:fillViewport="true">
 
     <LinearLayout
@@ -30,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="10dp"
-                android:text="EIP TEAM • AVIATOR"
+                android:text="EIP TEAM • AVIATOR PRO"
                 android:textColor="#FFD54F"
                 android:textSize="13sp"
                 android:textStyle="bold"
@@ -63,43 +63,15 @@
             android:text="Waiting for Aviator data…\nOpen the game in the DK Win tab."
             android:visibility="visible"/>
 
-        <!-- ═════════════ 1. PREVIOUS ROUNDS HISTORY ═════════════ -->
-        <TextView
-            android:id="@+id/historyLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="◂ PREVIOUS ROUNDS"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            android:textColor="#78909C"
-            android:letterSpacing="0.22"
-            android:visibility="gone"/>
-
-        <HorizontalScrollView
-            android:id="@+id/historyScroll"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:scrollbars="none"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/historyStrip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"/>
-        </HorizontalScrollView>
-
-        <!-- ═════════════ 2. CURRENT RUNNING ROUND (HERO) ═════════════ -->
+        <!-- ═════════════ HERO: PREDICTION SIGNAL (biggest, first) ═════════════ -->
         <androidx.cardview.widget.CardView
-            android:id="@+id/phaseCard"
+            android:id="@+id/predictionCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
             android:visibility="gone"
-            app:cardBackgroundColor="#0F172A"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="6dp">
+            app:cardBackgroundColor="#0A1428"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -107,194 +79,21 @@
                 android:orientation="vertical"
                 android:padding="18dp">
 
+                <!-- Signal header: which round -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
-
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="CURRENT ROUND"
-                        android:textColor="#94A3B8"
-                        android:textSize="10sp"
+                        android:text="⚡ EIP SIGNAL"
+                        android:textColor="#FFD54F"
+                        android:textSize="12sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.28"/>
-
-                    <TextView
-                        android:id="@+id/phaseBadge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:paddingTop="5dp"
-                        android:paddingBottom="5dp"
-                        android:text="IDLE"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.2"
-                        android:textColor="#FFFFFF"
-                        android:background="#455A64"/>
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/liveMultiplier"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:textSize="62sp"
-                    android:textStyle="bold"
-                    android:textColor="#E53935"
-                    android:text="—"/>
-
-                <TextView
-                    android:id="@+id/phaseTimer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="0dp"
-                    android:textSize="13sp"
-                    android:textColor="#B0BEC5"
-                    android:fontFamily="monospace"/>
-
-                <TextView
-                    android:id="@+id/roundLine"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textSize="12sp"
-                    android:textColor="#64748B"
-                    android:fontFamily="monospace"/>
-
-                <!-- BET / FLY / CYCLE tiles inside the hero -->
-                <LinearLayout
-                    android:id="@+id/timingRow"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="14dp"
-                    android:weightSum="3">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="BET TIME"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:textColor="#4ADE80"
-                            android:letterSpacing="0.22"/>
-                        <TextView
-                            android:id="@+id/flyMsText"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:textColor="#ECEFF1"
-                            android:fontFamily="monospace"
-                            android:text="—"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="FLY TIME"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:textColor="#FFB74D"
-                            android:letterSpacing="0.22"/>
-                        <TextView
-                            android:id="@+id/waitMsText"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:textColor="#ECEFF1"
-                            android:fontFamily="monospace"
-                            android:text="—"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="6dp"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="CYCLES"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:textColor="#64B5F6"
-                            android:letterSpacing="0.22"/>
-                        <TextView
-                            android:id="@+id/cyclesText"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:textColor="#ECEFF1"
-                            android:fontFamily="monospace"
-                            android:text="0"/>
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- ═════════════ PREDICTION SIGNAL ═════════════ -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/predictionCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:visibility="gone"
-            app:cardBackgroundColor="#08111F"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="8dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="⚡ EIP PRO SIGNAL"
-                        android:textColor="#FFD54F"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.24"/>
                     <TextView
                         android:id="@+id/predConfidence"
                         android:layout_width="wrap_content"
@@ -311,19 +110,48 @@
                         android:letterSpacing="0.18"/>
                 </LinearLayout>
 
+                <!-- "FOR ROUND #123456" -->
                 <TextView
-                    android:id="@+id/predSignal"
+                    android:id="@+id/predForRound"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:minHeight="86dp"
-                    android:padding="14dp"
-                    android:gravity="center"
+                    android:text="FOR ROUND #—"
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:fontFamily="monospace"/>
+
+                <!-- BIG TARGET (hero) — this is the ONE thing users look at -->
+                <TextView
+                    android:id="@+id/predTargetBig"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="—"
+                    android:textColor="#4ADE80"
+                    android:textSize="68sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="-0.02"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"/>
+
+                <!-- Action pill -->
+                <TextView
+                    android:id="@+id/predSignal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
                     android:text="ANALYZING…"
                     android:textColor="#FFFFFF"
-                    android:textSize="24sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    android:letterSpacing="0.1"
+                    android:letterSpacing="0.16"
                     android:background="#455A64"/>
 
                 <TextView
@@ -339,9 +167,168 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="14dp"
                     android:background="#1E293B"/>
 
+                <!-- WIN / LOSS score bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="14dp"
+                    android:weightSum="4">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="#0F2318">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WIN"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#4ADE80"
+                            android:letterSpacing="0.2"/>
+                        <TextView
+                            android:id="@+id/predWins"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="0"
+                            android:textColor="#4ADE80"
+                            android:textStyle="bold"
+                            android:textSize="20sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:layout_marginStart="3dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="#2A1414">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LOSS"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#F87171"
+                            android:letterSpacing="0.2"/>
+                        <TextView
+                            android:id="@+id/predLosses"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="0"
+                            android:textColor="#F87171"
+                            android:textStyle="bold"
+                            android:textSize="20sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:layout_marginStart="3dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="#2A2410">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ACC"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#FACC15"
+                            android:letterSpacing="0.2"/>
+                        <TextView
+                            android:id="@+id/predAccuracy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="—"
+                            android:textColor="#FACC15"
+                            android:textStyle="bold"
+                            android:textSize="20sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:layout_marginStart="3dp"
+                        android:background="#1E1A2E">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="STREAK"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#A78BFA"
+                            android:letterSpacing="0.2"/>
+                        <TextView
+                            android:id="@+id/predStreak"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="—"
+                            android:textColor="#A78BFA"
+                            android:textStyle="bold"
+                            android:textSize="20sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Last result badge (compact) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="10dp">
+
+                    <TextView
+                        android:id="@+id/predResultBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="5dp"
+                        android:background="#1F2937"
+                        android:text="◌ WAITING"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.18"/>
+
+                    <TextView
+                        android:id="@+id/predResultDetail"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:text="—"
+                        android:textColor="#B0BEC5"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"/>
+                </LinearLayout>
+
+                <!-- Mini stats: 10x gap / low streak / heat -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -373,7 +360,7 @@
                             android:text="—"
                             android:textColor="#F87171"
                             android:textStyle="bold"
-                            android:textSize="15sp"
+                            android:textSize="14sp"
                             android:fontFamily="monospace"/>
                     </LinearLayout>
 
@@ -402,7 +389,7 @@
                             android:text="—"
                             android:textColor="#FBBF24"
                             android:textStyle="bold"
-                            android:textSize="15sp"
+                            android:textSize="14sp"
                             android:fontFamily="monospace"/>
                     </LinearLayout>
 
@@ -430,170 +417,7 @@
                             android:text="—"
                             android:textColor="#4ADE80"
                             android:textStyle="bold"
-                            android:textSize="15sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- ── WIN DETECTOR ── -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="12dp"
-                    android:background="#1E293B"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="12dp">
-
-                    <TextView
-                        android:id="@+id/predResultBadge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="5dp"
-                        android:paddingBottom="5dp"
-                        android:background="#1F2937"
-                        android:text="◌ WAITING"
-                        android:textColor="#94A3B8"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.18"/>
-
-                    <TextView
-                        android:id="@+id/predResultDetail"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="10dp"
-                        android:text="—"
-                        android:textColor="#B0BEC5"
-                        android:textSize="11sp"
-                        android:fontFamily="monospace"/>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="10dp"
-                    android:weightSum="4">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="WIN"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#4ADE80"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predWins"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#4ADE80"
-                            android:textStyle="bold"
-                            android:textSize="15sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="LOSS"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#F87171"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predLosses"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#F87171"
-                            android:textStyle="bold"
-                            android:textSize="15sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ACC"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#FACC15"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predAccuracy"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#FACC15"
-                            android:textStyle="bold"
-                            android:textSize="15sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginStart="3dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="STREAK"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#A78BFA"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predStreak"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#A78BFA"
-                            android:textStyle="bold"
-                            android:textSize="15sp"
+                            android:textSize="14sp"
                             android:fontFamily="monospace"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -609,265 +433,138 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-
-
-        <!-- ═════════════ 3. DEEP ANALYSIS ═════════════ -->
+        <!-- ═════════════ LAST CRASH (compact secondary card) ═════════════ -->
         <androidx.cardview.widget.CardView
-            android:id="@+id/analysisCard"
+            android:id="@+id/phaseCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:visibility="gone"
             app:cardBackgroundColor="#0F172A"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="12dp"
+            app:cardElevation="3dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="LAST CRASH"
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.28"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="bottom"
+                    android:layout_marginTop="2dp">
+
                     <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="ANALYSIS • LAST 20"
-                        android:textColor="#94A3B8"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.28"/>
-                    <TextView
-                        android:id="@+id/trendBadge"
+                        android:id="@+id/liveMultiplier"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:background="#1F2937"
-                        android:text="—"
-                        android:textColor="#E2E8F0"
-                        android:textSize="10sp"
+                        android:textSize="32sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.18"/>
-                </LinearLayout>
+                        android:textColor="#E53935"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:text="—"/>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="12dp"
-                    android:weightSum="3">
-
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/roundLine"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginEnd="6dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="AVG"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#94A3B8"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/statAvg"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#FACC15"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="MAX"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#94A3B8"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/statMax"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#A78BFA"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="6dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="MIN"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#94A3B8"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/statMin"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#F87171"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="10dp"
-                    android:weightSum="3">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginEnd="6dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="LOW &lt;2x"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#F87171"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/statLowCount"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#ECEFF1"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="MID 2-10x"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#4ADE80"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/statMidCount"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#ECEFF1"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="6dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="HIGH ≥10x"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#A78BFA"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/statHighCount"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#ECEFF1"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
+                        android:layout_marginStart="12dp"
+                        android:layout_marginBottom="6dp"
+                        android:textSize="11sp"
+                        android:textColor="#64748B"
+                        android:fontFamily="monospace"/>
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/streakText"
+                    android:id="@+id/phaseTimer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:padding="10dp"
-                    android:background="#111C33"
-                    android:textColor="#E2E8F0"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
+                    android:textColor="#78909C"
                     android:fontFamily="monospace"
-                    android:text="—"/>
+                    android:visibility="gone"/>
 
-                <!-- Legacy history (kept for detail) -->
                 <TextView
-                    android:id="@+id/roundsText"
+                    android:id="@+id/phaseBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"/>
+
+                <LinearLayout
+                    android:id="@+id/timingRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:padding="10dp"
-                    android:background="#0B1428"
-                    android:fontFamily="monospace"
-                    android:textSize="12sp"
-                    android:textColor="#94A3B8"
-                    android:text="(none)"/>
+                    android:visibility="gone">
+                    <TextView android:id="@+id/flyMsText"  android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                    <TextView android:id="@+id/waitMsText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                    <TextView android:id="@+id/cyclesText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ═════════════ HISTORY (secondary) ═════════════ -->
+        <TextView
+            android:id="@+id/historyLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="◂ RECENT ROUNDS"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#78909C"
+            android:letterSpacing="0.22"
+            android:visibility="gone"/>
+
+        <HorizontalScrollView
+            android:id="@+id/historyScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/historyStrip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"/>
+        </HorizontalScrollView>
+
+        <!-- Hidden analysis card (kept for binding refs, not shown) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/analysisCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:cardBackgroundColor="#0F172A"
+            app:cardCornerRadius="12dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:id="@+id/trendBadge"    android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/statAvg"       android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/statMax"       android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/statMin"       android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/statLowCount"  android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/statMidCount"  android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/statHighCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/streakText"    android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/roundsText"    android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -904,7 +601,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Show compact current + previous round on the game screen"
+                        android:text="Show live signal card on the game screen"
                         android:textColor="#94A3B8"
                         android:textSize="11sp"/>
                 </LinearLayout>
