@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#060912"
+    android:background="#05060A"
     android:fillViewport="true">
 
     <LinearLayout
@@ -23,7 +23,7 @@
             <View
                 android:layout_width="4dp"
                 android:layout_height="22dp"
-                android:background="#FFD54F"/>
+                android:background="#22D3EE"/>
 
             <TextView
                 android:layout_width="0dp"
@@ -31,7 +31,7 @@
                 android:layout_weight="1"
                 android:layout_marginStart="10dp"
                 android:text="EIP TEAM • AVIATOR PRO"
-                android:textColor="#FFD54F"
+                android:textColor="#22D3EE"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.28"/>
@@ -69,7 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
-            app:cardBackgroundColor="#0A1428"
+            app:cardBackgroundColor="#0A0F1E"
             app:cardCornerRadius="16dp"
             app:cardElevation="10dp">
 
@@ -87,14 +87,14 @@
                     <View
                         android:layout_width="3dp"
                         android:layout_height="14dp"
-                        android:background="#FFD54F"/>
+                        android:background="#22D3EE"/>
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
                         android:text="EIP SIGNAL"
-                        android:textColor="#FFD54F"
+                        android:textColor="#22D3EE"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.3"/>
@@ -224,7 +224,7 @@
                     android:paddingTop="8dp"
                     android:paddingStart="2dp"
                     android:paddingEnd="2dp"
-                    android:background="#0F1E36">
+                    android:background="#111A2E">
                     <TextView
                         android:id="@+id/predDrought"
                         android:layout_width="0dp"
@@ -263,7 +263,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:background="#0F1E36"
+                    android:background="#111A2E"
                     android:paddingBottom="6dp">
                     <TextView
                         android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -288,7 +288,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:layout_marginTop="10dp"
-                    android:background="#0B1A33"
+                    android:background="#0A0F1E"
                     android:padding="10dp">
 
                     <LinearLayout
@@ -328,11 +328,11 @@
                         android:orientation="vertical" android:gravity="center">
                         <TextView android:id="@+id/predAccuracy"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="0%" android:textColor="#FFD54F"
+                            android:text="0%" android:textColor="#22D3EE"
                             android:textSize="20sp" android:textStyle="bold"
                             android:fontFamily="sans-serif-black"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="ACC" android:textColor="#FFD54F"
+                            android:text="ACC" android:textColor="#22D3EE"
                             android:textSize="8sp" android:textStyle="bold"
                             android:letterSpacing="0.2"/>
                     </LinearLayout>
@@ -740,7 +740,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="BROWSER TAB OVERLAY"
-                        android:textColor="#FFD54F"
+                        android:textColor="#22D3EE"
                         android:textStyle="bold"
                         android:textSize="12sp"
                         android:letterSpacing="0.2"/>
