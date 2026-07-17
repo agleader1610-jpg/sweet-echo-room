@@ -1,11 +1,8 @@
 package com.eip.netsniffer
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -15,18 +12,18 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.eip.netsniffer.databinding.FragmentAviatorBinding
-import kotlin.math.roundToInt
 
+/**
+ * EIP Aviator tab — signal-first UI.
+ * Phase labels (BET/FLYING) were removed because live phase detection is
+ * unreliable across the source stream. Everything below is derived purely
+ * from confirmed crash history:
+ *   next running round = last completed round + 1
+ *   signal = statistical prediction against that next round
+ */
 class AviatorFragment : Fragment() {
     private var _b: FragmentAviatorBinding? = null
     private val b get() = _b!!
-    private val ticker = Handler(Looper.getMainLooper())
-    private val tickRunnable = object : Runnable {
-        override fun run() {
-            renderTimers()
-            ticker.postDelayed(this, 100)
-        }
-    }
     private val prefs by lazy { requireContext().getSharedPreferences("net_sniffer", Context.MODE_PRIVATE) }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
@@ -37,7 +34,6 @@ class AviatorFragment : Fragment() {
     override fun onViewCreated(view: View, s: Bundle?) {
         AviatorStore.state.observe(viewLifecycleOwner) { renderState(it) }
         AviatorStore.rounds.observe(viewLifecycleOwner) { list ->
-            // Resolve the most recent armed prediction against the newest crash
             list.firstOrNull()?.let { PredictionTracker.resolve(it) }
             renderRounds(list)
         }
@@ -55,14 +51,10 @@ class AviatorFragment : Fragment() {
         }
     }
 
-    override fun onResume() { super.onResume(); ticker.post(tickRunnable) }
-    override fun onPause()  { super.onPause();  ticker.removeCallbacks(tickRunnable) }
-
     private fun renderState(st: AviatorState?) {
         if (st == null || st.updatedAt == 0L) {
             b.emptyText.visibility = View.VISIBLE
             b.phaseCard.visibility = View.GONE
-            b.analysisCard.visibility = View.GONE
             b.predictionCard.visibility = View.GONE
             b.historyLabel.visibility = View.GONE
             b.historyScroll.visibility = View.GONE
@@ -70,144 +62,43 @@ class AviatorFragment : Fragment() {
         }
         b.emptyText.visibility = View.GONE
         b.phaseCard.visibility = View.VISIBLE
-        b.analysisCard.visibility = View.GONE  // simplified per request
 
+        // Last confirmed crash — this is a fact, not a phase guess
+        val lastX = st.prevCrashX ?: st.crashX
+        b.liveMultiplier.text = if (lastX != null) "%.2fx".format(lastX) else "—"
+        b.liveMultiplier.setTextColor(
+            when {
+                lastX == null -> 0xFF64748B.toInt()
+                lastX >= 10.0 -> 0xFFA78BFA.toInt()
+                lastX >= 2.0  -> 0xFF4ADE80.toInt()
+                else          -> 0xFFEF4444.toInt()
+            }
+        )
 
-        // Phase semantics:
-        //  • CRASHED / BETTING = plane just crashed → this is the BET WINDOW
-        //    (user places bet now, signal is valid for the NEXT round)
-        //  • FLYING = plane is in the air, multiplier climbing
-        val (label, color) = when (st.phase) {
-            AviatorPhase.FLYING   -> "✈ FLYING"   to 0xFFFFB74D.toInt()
-            AviatorPhase.CRASHED  -> "🎯 BET TIME" to 0xFF16A34A.toInt()
-            AviatorPhase.BETTING  -> "🎯 BET TIME" to 0xFF16A34A.toInt()
-            AviatorPhase.IDLE     -> "IDLE"       to 0xFF455A64.toInt()
-        }
-        b.phaseBadge.text = label
-        b.phaseBadge.background = roundedBg(color, 8f)
-
-        val big = when (st.phase) {
-            AviatorPhase.CRASHED -> st.crashX ?: st.prevCrashX
-            AviatorPhase.FLYING  -> st.liveMultiplier
-            else                 -> st.prevCrashX
-        }
-        b.liveMultiplier.text = if (big != null) "%.2fx".format(big) else "—"
-        b.liveMultiplier.setTextColor(color)
-
-        // Derive the round the user is watching RIGHT NOW.
-        // - BETTING/FLYING: server-supplied roundId is the running round
-        // - CRASHED: crash event's roundId is the round that just ended,
-        //   so the NEXT running round = prevRoundId + 1
-        val displayCurrent: Long? = when (st.phase) {
-            AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId?.plus(1)
-            AviatorPhase.BETTING, AviatorPhase.FLYING -> st.roundId
-            AviatorPhase.IDLE -> st.roundId
-        }
-        b.roundLine.text = buildString {
-            append(if (st.phase == AviatorPhase.FLYING) "flying #" else "bet round #")
-            append(displayCurrent ?: "-")
-            if (st.prevRoundId != null && st.prevCrashX != null)
-                append("   • last #${st.prevRoundId} → %.2fx".format(st.prevCrashX))
-        }
-
-        b.cyclesText.text = st.cycleCount.toString()
-        // BET tile (id=flyMsText) = betting-window duration
-        // FLY tile (id=waitMsText) = flight duration
-        b.flyMsText.text  = fmtMs(st.lastWaitDurationMs)
-        b.waitMsText.text = fmtMs(st.lastFlyDurationMs)
-    }
-
-    private fun renderTimers() {
-        val st = AviatorStore.state.value ?: return
-        if (st.phaseSince == 0L) return
-        val elapsed = System.currentTimeMillis() - st.phaseSince
-        val phaseName = when (st.phase) {
-            AviatorPhase.FLYING              -> "flying for"
-            AviatorPhase.CRASHED,
-            AviatorPhase.BETTING             -> "bet time open"
-            AviatorPhase.IDLE                -> "idle"
-        }
-        b.phaseTimer.text = "$phaseName ${fmtMs(elapsed)}"
+        val lastId = st.prevRoundId ?: st.roundId
+        val nextId = lastId?.plus(1)
+        b.roundLine.text = "#${lastId ?: "-"}  →  next running #${nextId ?: "-"}"
     }
 
     private fun renderRounds(list: List<AviatorRound>) {
-        // History strip (previous rounds)
         b.historyStrip.removeAllViews()
         if (list.isEmpty()) {
             b.historyLabel.visibility = View.GONE
             b.historyScroll.visibility = View.GONE
             b.predictionCard.visibility = View.GONE
-            b.roundsText.text = "(none)"
-            b.streakText.text = "—"
-            b.statAvg.text = "—"; b.statMax.text = "—"; b.statMin.text = "—"
-            b.statLowCount.text = "0"; b.statMidCount.text = "0"; b.statHighCount.text = "0"
-            b.trendBadge.text = "—"
             return
         }
-
         b.historyLabel.visibility = View.VISIBLE
         b.historyScroll.visibility = View.VISIBLE
 
         val ctx = requireContext()
-        list.take(30).forEach { r ->
-            b.historyStrip.addView(makeChip(ctx, r.crashX))
-        }
+        list.take(30).forEach { r -> b.historyStrip.addView(makeChip(ctx, r.crashX)) }
 
-        // ── EIP PREDICTION SIGNAL ──
-        renderPrediction(list.map { it.crashX })
-
-        // Compact legacy line
-        b.roundsText.text = list.take(30).joinToString("  ") { "%.2fx".format(it.crashX) }
-
-
-
-        // Analysis over last 20
-        val sample = list.take(20).map { it.crashX }
-        val avg = sample.average()
-        val max = sample.max()
-        val min = sample.min()
-        val low = sample.count { it < 2.0 }
-        val mid = sample.count { it >= 2.0 && it < 10.0 }
-        val high = sample.count { it >= 10.0 }
-        b.statAvg.text = "%.2fx".format(avg)
-        b.statMax.text = "%.2fx".format(max)
-        b.statMin.text = "%.2fx".format(min)
-        b.statLowCount.text = low.toString()
-        b.statMidCount.text = mid.toString()
-        b.statHighCount.text = high.toString()
-
-        // Streak: consecutive from the newest side of the same category
-        val newest = sample.first()
-        val cat = category(newest)
-        val streak = sample.takeWhile { category(it) == cat }.size
-        val catLabel = when (cat) { 0 -> "LOW <2x"; 1 -> "MID 2-10x"; else -> "HIGH ≥10x" }
-        val sinceHighIdx = sample.indexOfFirst { it >= 10.0 }
-        val sinceHigh = if (sinceHighIdx < 0) "20+" else sinceHighIdx.toString()
-        b.streakText.text = "streak: $streak× $catLabel   •   rounds since ≥10x: $sinceHigh"
-
-        // Trend badge (compare first-half avg vs second-half avg of the 20)
-        if (sample.size >= 6) {
-            val half = sample.size / 2
-            val recent = sample.take(half).average()
-            val older = sample.drop(half).average()
-            val (t, col) = when {
-                recent > older * 1.15 -> "▲ HOT" to 0xFF4ADE80.toInt()
-                recent < older * 0.85 -> "▼ COLD" to 0xFFF87171.toInt()
-                else -> "◆ STABLE" to 0xFF94A3B8.toInt()
-            }
-            b.trendBadge.text = t
-            b.trendBadge.setTextColor(col)
-        } else {
-            b.trendBadge.text = "—"
-        }
+        renderPrediction(list)
     }
 
-    /**
-     * EIP prediction — simplified into 3 clear ACTIONS: STRONG BET, BET, SKIP.
-     * The card header shows exactly WHICH round this signal is for; the WIN
-     * detector below shows exactly WHICH round it was scored against.
-     */
-    private fun renderPrediction(all: List<Double>) {
+    private fun renderPrediction(rounds: List<AviatorRound>) {
+        val all = rounds.map { it.crashX }
         if (all.size < 5) {
             b.predictionCard.visibility = View.GONE
             return
@@ -224,9 +115,9 @@ class AviatorFragment : Fragment() {
 
         data class Sig(
             val action: String,      // "BET" / "STRONG BET" / "SKIP"
-            val emoji: String,
             val bg: Int,
-            val cashout: String,     // "cash out @1.5x" etc.
+            val targetColor: Int,
+            val cashout: String,
             val reason: String,
             val conf: String,
             val confCol: Int,
@@ -235,63 +126,61 @@ class AviatorFragment : Fragment() {
         )
         val sig = when {
             drought >= 20 || lowStreak >= 7 -> Sig(
-                "STRONG BET", "🔥", 0xFFDC2626.toInt(),
+                "STRONG BET", 0xFFDC2626.toInt(), 0xFF4ADE80.toInt(),
                 "Cash out at 1.5x", "Big multiplier long overdue.",
                 "HIGH", 0xFF4ADE80.toInt(), 1.5, { it >= 1.5 },
             )
             drought >= 12 || lowStreak >= 5 -> Sig(
-                "BET", "⚡", 0xFF16A34A.toInt(),
+                "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
                 "Cash out at 1.5x", "Recovery round likely.",
                 "MEDIUM", 0xFFFBBF24.toInt(), 1.5, { it >= 1.5 },
             )
             lastRound >= 10.0 -> Sig(
-                "SKIP", "❄", 0xFF3B82F6.toInt(),
+                "SKIP", 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt(),
                 "Wait 1–2 rounds", "Big spike just landed, cool-down expected.",
                 "MEDIUM", 0xFFFBBF24.toInt(), null, { it < 2.0 },
             )
             avg10 < 1.6 && heat <= 3 -> Sig(
-                "BET", "◈", 0xFF16A34A.toInt(),
+                "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
                 "Cash out at 1.3x", "Cold market — quick small wins.",
                 "MEDIUM", 0xFFFBBF24.toInt(), 1.3, { it >= 1.3 },
             )
             heat >= 7 -> Sig(
-                "SKIP", "▲", 0xFF9333EA.toInt(),
+                "SKIP", 0xFF9333EA.toInt(), 0xFFC084FC.toInt(),
                 "Crash-back near", "Hot streak — momentum fading.",
                 "MEDIUM", 0xFFFBBF24.toInt(), null, { it < 2.0 },
             )
             else -> Sig(
-                "BET", "◆", 0xFF64748B.toInt(),
+                "BET", 0xFF64748B.toInt(), 0xFF94A3B8.toInt(),
                 "Cash out at 1.5x", "Normal range — conservative play.",
                 "LOW", 0xFF94A3B8.toInt(), 1.5, { it >= 1.5 },
             )
         }
 
-        // Signal is always generated from completed history for the NEXT round.
-        // This avoids arming the already-crashed round when LiveData posts
-        // history before the latest phase snapshot reaches the UI.
-        val runningId: Long? = AviatorStore.rounds.value.orEmpty().firstOrNull()?.roundId?.plus(1)
+        // Next running round id = last completed + 1
+        val runningId: Long? = rounds.firstOrNull()?.roundId?.plus(1)
             ?: AviatorStore.state.value?.roundId
 
-        val signalLabel = if (sig.targetX == null) {
-            "${sig.emoji} SKIP ROUND"
-        } else {
-            "${sig.emoji} ${sig.action} %.2fx".format(sig.targetX)
-        }
-        b.predSignal.text = if (sig.targetX == null) {
-            "${sig.emoji} SKIP ROUND\nNO BET"
-        } else {
-            "${sig.emoji} ${sig.action}\nTARGET %.2fx".format(sig.targetX)
-        }
-        b.predSignal.background = roundedBg(sig.bg, 12f)
-        b.predSuggestion.text = "ACTIVE: BET TIME  •  RESULT: AFTER CRASH\n${sig.cashout} — ${sig.reason}"
-        b.predConfidence.text = "ROUND #${runningId ?: "-"}  •  ${sig.conf}"
+        val signalLabel = if (sig.targetX == null) "SKIP"
+                          else "%.2fx".format(sig.targetX)
+
+        // HERO: big target
+        b.predTargetBig.text = if (sig.targetX == null) "SKIP" else "%.2fx".format(sig.targetX)
+        b.predTargetBig.setTextColor(sig.targetColor)
+
+        b.predForRound.text = "FOR ROUND #${runningId ?: "—"}"
+
+        b.predSignal.text = sig.action
+        b.predSignal.background = roundedBg(sig.bg, 8f)
+
+        b.predSuggestion.text = "${sig.cashout} — ${sig.reason}"
+        b.predConfidence.text = sig.conf
         b.predConfidence.setTextColor(sig.confCol)
 
         b.predDrought.text = if (droughtIdx < 0) "${all.size}+" else drought.toString()
         b.predLowStreak.text = lowStreak.toString()
         b.predHeat.text = "$heat/10"
 
-        // Arm the WIN detector so we score THIS signal against runningId.
         PredictionTracker.arm(runningId, signalLabel, sig.test)
     }
 
@@ -321,15 +210,8 @@ class AviatorFragment : Fragment() {
                 b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
             }
             b.predResultDetail.text = "${last.label}  •  #${last.roundId} → %.2fx".format(last.crashX)
+        }
     }
-    }
-
-    private fun category(x: Double): Int = when {
-        x < 2.0 -> 0
-        x < 10.0 -> 1
-        else -> 2
-    }
-
 
     private fun makeChip(ctx: Context, x: Double): View {
         val tv = TextView(ctx)
@@ -368,12 +250,6 @@ class AviatorFragment : Fragment() {
         shape = GradientDrawable.RECTANGLE
         cornerRadius = dp(requireContext(), radiusDp)
         setColor(color)
-    }
-
-    private fun fmtMs(ms: Long): String {
-        if (ms <= 0) return "—"
-        val s = ms / 1000.0
-        return if (s < 60) "%.1fs".format(s) else "%dm %02ds".format((s/60).toInt(), (s%60).toInt())
     }
 
     override fun onDestroyView() { super.onDestroyView(); _b = null }

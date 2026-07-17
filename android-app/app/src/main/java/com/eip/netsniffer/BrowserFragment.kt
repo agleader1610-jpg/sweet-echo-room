@@ -196,68 +196,58 @@ class BrowserFragment : Fragment() {
         updateOverlayVisibility()
         val st = AviatorStore.state.value ?: return
 
-        // BET TIME = post-crash betting window (CRASHED or BETTING phase)
-        // FLYING  = plane in the air
-        val (label, color) = when (st.phase) {
-            AviatorPhase.FLYING              -> "✈ FLYING"   to 0xFFFFB74D.toInt()
-            AviatorPhase.CRASHED,
-            AviatorPhase.BETTING             -> "🎯 BET TIME" to 0xFF16A34A.toInt()
-            AviatorPhase.IDLE                -> "IDLE"       to 0xFF455A64.toInt()
-        }
-        v.overlayPhase.text = label
-        v.overlayPhase.setBackgroundColor(color)
+        // Signal-first: derive everything from confirmed crash history.
+        val rounds = AviatorStore.rounds.value.orEmpty()
+        val lastRound = rounds.firstOrNull()
+        val lastId = lastRound?.roundId ?: st.prevRoundId ?: st.roundId
+        val lastX = lastRound?.crashX ?: st.prevCrashX ?: st.crashX
+        val nextId = lastId?.plus(1)
 
-        val big = when (st.phase) {
-            AviatorPhase.FLYING  -> st.liveMultiplier
-            AviatorPhase.CRASHED -> st.crashX ?: st.prevCrashX
-            else -> st.prevCrashX
-        }
-        v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
-        v.overlayLive.setTextColor(color)
-
-        val curId: Long? = AviatorStore.rounds.value.orEmpty().firstOrNull()?.roundId?.plus(1)
-            ?: when (st.phase) {
-                AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId
-                else -> st.roundId
-            }
-        v.overlayPrev.text = if (st.prevRoundId != null && st.prevCrashX != null)
-            "LAST #${st.prevRoundId} • %.2fx   |   NEXT #${curId ?: "-"}".format(st.prevCrashX)
-        else
-            "NEXT #${curId ?: "-"}"
-
-        // Marquee history — right→left, most recent first.
-        val hist = AviatorStore.rounds.value.orEmpty().take(30)
-        if (hist.isEmpty()) {
-            v.overlayHistory.text = ""
-        } else {
-            val sb = StringBuilder("  ")
-            hist.forEach { r ->
-                val c = when {
-                    r.crashX >= 10.0 -> "🟪"
-                    r.crashX >= 2.0  -> "🟩"
-                    else             -> "🟥"
-                }
-                sb.append(c).append(" %.2fx   ".format(r.crashX))
-            }
-            v.overlayHistory.text = sb.toString()
-            v.overlayHistory.isSelected = true  // required to start marquee
-        }
-
-        // Prediction signal + WIN detector in overlay
+        val armed = PredictionTracker.currentArmed()
         val stats = PredictionTracker.stats.value
         val last = stats?.lastResult
 
-        // Show the signal armed for the CURRENT running round (if any),
-        // else fall back to the last resolved label.
-        val armed = PredictionTracker.currentArmed()
-        v.overlaySignal.text = when {
-            armed != null -> "SIGNAL #${armed.roundId} • ${armed.label}"
-            last != null -> "LAST SIGNAL • ${last.label}"
-            st.phase == AviatorPhase.FLYING -> "SIGNAL LOCKED • WAIT CRASH"
-            else -> "SIGNAL • ANALYZING BET TIME"
+        // HERO target: parse from armed label ("1.50x" or "SKIP")
+        val armedLabel = armed?.label ?: last?.label
+        val isSkip = armedLabel?.equals("SKIP", ignoreCase = true) == true
+        val target = armedLabel
+            ?.removeSuffix("x")?.removeSuffix("X")
+            ?.toDoubleOrNull()
+
+        v.overlayLive.text = when {
+            armed == null && last == null -> "—"
+            isSkip -> "SKIP"
+            target != null -> "%.2fx".format(target)
+            else -> "—"
         }
-        v.overlaySignal.setTextColor(0xFFFACC15.toInt())
-        v.overlaySignal.setBackgroundColor(if (armed != null) 0xFF173A25.toInt() else 0xFF1F2937.toInt())
+        val targetCol = when {
+            isSkip -> 0xFF60A5FA.toInt()
+            target != null -> 0xFF4ADE80.toInt()
+            else -> 0xFF64748B.toInt()
+        }
+        v.overlayLive.setTextColor(targetCol)
+
+        v.overlayPhase.text = "SIGNAL • FOR #${nextId ?: "—"}"
+        v.overlayPhase.setTextColor(0xFF94A3B8.toInt())
+
+        v.overlaySignal.text = when {
+            armed != null && isSkip -> "SKIP ROUND"
+            armed != null -> "BET NOW"
+            last != null -> "AWAITING NEXT"
+            else -> "ANALYZING"
+        }
+        v.overlaySignal.setBackgroundColor(
+            when {
+                armed != null && isSkip -> 0xFF3B82F6.toInt()
+                armed != null -> 0xFF16A34A.toInt()
+                else -> 0xFF455A64.toInt()
+            }
+        )
+        v.overlaySignal.setTextColor(0xFFFFFFFF.toInt())
+
+        v.overlayPrev.text = if (lastId != null && lastX != null)
+            "LAST #%d → %.2fx".format(lastId, lastX)
+        else "LAST —"
 
         if (last == null) {
             v.overlayResult.text = "◌ WAIT"
@@ -276,9 +266,25 @@ class BrowserFragment : Fragment() {
         val l = stats?.losses ?: 0
         val acc = if ((w + l) == 0) "—" else "${(w * 100) / (w + l)}%"
         v.overlayScore.text = "W $w  L $l  $acc"
-        v.overlayScore.setTextColor(
-            if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt()
-        )
+        v.overlayScore.setTextColor(if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt())
+
+        // Marquee history — right→left, most recent first.
+        val hist = rounds.take(30)
+        if (hist.isEmpty()) {
+            v.overlayHistory.text = ""
+        } else {
+            val sb = StringBuilder("  ")
+            hist.forEach { r ->
+                val c = when {
+                    r.crashX >= 10.0 -> "🟪"
+                    r.crashX >= 2.0  -> "🟩"
+                    else             -> "🟥"
+                }
+                sb.append(c).append(" %.2fx   ".format(r.crashX))
+            }
+            v.overlayHistory.text = sb.toString()
+            v.overlayHistory.isSelected = true
+        }
     }
 
     private fun loadFromInput() {
