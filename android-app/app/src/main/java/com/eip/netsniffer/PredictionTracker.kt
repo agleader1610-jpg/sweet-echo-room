@@ -54,6 +54,9 @@ object PredictionTracker {
     fun clearArmed() { armed = null }
 
     @Synchronized
+    fun currentArmedLabel(): String? = armed?.label
+
+    @Synchronized
     fun resolve(newest: AviatorRound) {
         val a = armed ?: return
         if (a.roundId != newest.roundId) return
