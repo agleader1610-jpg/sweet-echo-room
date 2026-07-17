@@ -518,6 +518,7 @@ class BrowserFragment : Fragment() {
         try { docStartScriptToken?.remove() } catch (_: Exception) {}
         docStartScriptToken = null
         dotsAnim?.cancel(); dotsAnim = null
+        ui.removeCallbacks(wingoTicker)
         super.onDestroyView(); _b = null
     }
 
