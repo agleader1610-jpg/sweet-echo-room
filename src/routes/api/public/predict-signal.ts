@@ -99,7 +99,10 @@ export const Route = createFileRoute('/api/public/predict-signal')({
   },
 });
 
-async function callAI(history: Array<{ round_id: number; multiplier: number }>): Promise<{ signal: Signal; raw: string }> {
+async function callAI(
+  history: Array<{ round_id: number; multiplier: number }>,
+  priors: Array<{ round_id: number; target_multiplier: number | null; actual_multiplier: number; outcome: string }>,
+): Promise<{ signal: Signal; raw: string }> {
 
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error('no_ai_key');
@@ -107,8 +110,24 @@ async function callAI(history: Array<{ round_id: number; multiplier: number }>):
   const t = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   const recent = history.slice(0, 20);
   const compact = recent.map(r => `#${r.round_id}:${r.multiplier.toFixed(2)}x`).join(', ');
-  const sys = 'You are an Aviator crash-game analyst. Given the last rounds (newest first), predict the NEXT round. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Base analysis on: streaks of low (<2x) or high crashes, drought since 10x+, momentum, average trend. Be decisive but conservative — targets typically 1.3-3.5, occasionally 5+ if long drought.';
-  const user = `Recent rounds (newest first): ${compact}. Predict next.`;
+
+  // Build prior-predictions memory string + streak stats
+  const priorStr = priors.length
+    ? priors.map(p => {
+        const tag = p.outcome === 'win' ? 'WIN' : p.outcome === 'loss' ? 'LOSS' : p.outcome === 'skip_win' ? 'SKIP✓' : 'SKIP✗';
+        const tgt = p.target_multiplier == null ? 'SKIP' : `T${p.target_multiplier.toFixed(2)}x`;
+        return `#${p.round_id}[${tgt}→${p.actual_multiplier.toFixed(2)}x=${tag}]`;
+      }).join(', ')
+    : 'none';
+  let lossStreak = 0;
+  for (const p of priors) { if (p.outcome === 'loss') lossStreak++; else break; }
+  const wins = priors.filter(p => p.outcome === 'win').length;
+  const losses = priors.filter(p => p.outcome === 'loss').length;
+  const acc = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+
+  const sys = 'You are an Aviator crash-game analyst with MEMORY of your own past predictions. Given (a) recent crash rounds and (b) your last 10 predictions with outcomes, predict the NEXT round. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Adapt to your recent performance: if you have a loss streak, lower targets (1.3-1.6) and boost confidence for safer plays; if winning, you can stay in your successful range. Analyze: crash streaks (<2x pinks, >=2x greens), drought since 10x+, momentum, average trend, and your recent hit-rate. Targets typically 1.3-3.5, occasionally 5+ only on long droughts.';
+  const user = `Recent crashes (newest first): ${compact}.\nYour last predictions [target→actual=result]: ${priorStr}.\nCurrent loss streak: ${lossStreak}. Recent accuracy: ${acc}% (${wins}W/${losses}L). Predict next round.`;
+
   try {
     const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
