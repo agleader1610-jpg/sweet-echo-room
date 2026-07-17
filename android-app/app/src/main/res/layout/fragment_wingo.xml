@@ -175,17 +175,20 @@
                     android:id="@+id/predPick"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="8dp"
                     android:gravity="center"
-                    android:paddingTop="18dp"
-                    android:paddingBottom="18dp"
+                    android:paddingTop="26dp"
+                    android:paddingBottom="26dp"
                     android:text="—"
                     android:textColor="#FFFFFF"
-                    android:textSize="34sp"
+                    android:textSize="44sp"
                     android:textStyle="bold"
                     android:fontFamily="@font/orbitron"
-                    android:letterSpacing="0.05"
-                    android:background="#334155"/>
+                    android:letterSpacing="0.08"
+                    android:shadowColor="#66000000"
+                    android:shadowDx="0" android:shadowDy="2" android:shadowRadius="8"
+                    android:background="@drawable/hero_neutral_gradient"
+                    android:elevation="6dp"/>
 
                 <TextView
                     android:id="@+id/predReasoning"
