@@ -203,10 +203,8 @@ class BrowserFragment : Fragment() {
         val sig = WinGoStore.currentSignal.value
         val target = WinGoStore.currentTargetIssue.value
         val last = WinGoStore.lastResult.value
-        val (w, l) = WinGoStore.score.value ?: (0 to 0)
-
-        v.wingoOverlayScore.text = "$w / $l"
-        v.wingoOverlayScore.setTextColor(if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt())
+        // W/L score hidden from overlay header per user request.
+        v.wingoOverlayScore.visibility = View.GONE
         v.wingoOverlayPeriod.text = "PERIOD  #${target?.takeLast(6) ?: "—"}"
 
         if (sig == null) {
@@ -217,8 +215,8 @@ class BrowserFragment : Fragment() {
             val (color, label) = when (sig.pick) {
                 "RED" -> 0xFFDC2626.toInt() to "RED"
                 "GREEN" -> 0xFF16A34A.toInt() to "GREEN"
-                "BIG" -> 0xFFF59E0B.toInt() to "BIG (5-9)"
-                "SMALL" -> 0xFF3B82F6.toInt() to "SMALL (0-4)"
+                "BIG" -> 0xFFF59E0B.toInt() to "BIG"
+                "SMALL" -> 0xFF3B82F6.toInt() to "SMALL"
                 else -> 0xFF64748B.toInt() to sig.pick
             }
             v.wingoOverlayPick.text = label
