@@ -95,7 +95,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           aiModel = AI_MODEL;
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
-          signal = computeLocalSignal(history);
+          signal = applyMemoryToLocal(computeLocalSignal(history), memory);
           source = 'local';
         }
 
@@ -193,7 +193,7 @@ async function callAI(
     return {
       signal: {
         action: action as Signal['action'],
-        target: action === 'SKIP' ? null : target,
+        target: action === 'SKIP' ? null : (target ?? 1.5),
         confidence: (['LOW', 'MEDIUM', 'HIGH'].includes(confidence) ? confidence : 'MEDIUM') as Signal['confidence'],
         reasoning: reasoning || 'AI analysis',
       },
@@ -203,6 +203,22 @@ async function callAI(
   } finally {
     clearTimeout(t);
   }
+}
+
+function applyMemoryToLocal(signal: Signal, memory: MemoryStats): Signal {
+  if (memory.lossStreak >= 2) {
+    return {
+      ...signal,
+      action: signal.action === 'SKIP' ? 'SKIP' : 'BET',
+      target: signal.action === 'SKIP' ? null : Math.min(signal.target ?? 1.5, 1.5),
+      confidence: signal.confidence === 'HIGH' ? 'MEDIUM' : signal.confidence,
+      reasoning: `memory: ${memory.lossStreak} losses — safer target.`,
+    };
+  }
+  if (memory.lossStreak === 1 && signal.target != null && signal.target > 1.8) {
+    return { ...signal, target: 1.6, reasoning: 'memory: last signal lost — reduced target.' };
+  }
+  return signal;
 }
 
 function normalizeOutcome(v: unknown): string {
