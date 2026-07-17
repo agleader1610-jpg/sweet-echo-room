@@ -37,6 +37,13 @@ object WinGoStore {
 
     val history = MutableLiveData<List<WinGoRound>>(emptyList())
     val live = MutableLiveData<WinGoLive?>(null)
+    val overlayEnabled = MutableLiveData(false)
+    /** Live signal + target period, updated by WinGoFragment for the browser overlay. */
+    val currentSignal = MutableLiveData<WinGoLogic.Signal?>(null)
+    val currentTargetIssue = MutableLiveData<String?>(null)
+    data class LastResult(val issue: String, val win: Boolean, val number: Int, val colors: List<String>, val pick: String)
+    val lastResult = MutableLiveData<LastResult?>(null)
+    val score = MutableLiveData(0 to 0) // wins to losses
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(6, TimeUnit.SECONDS)
