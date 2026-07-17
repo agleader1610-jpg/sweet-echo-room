@@ -74,11 +74,15 @@ class AviatorFragment : Fragment() {
         b.analysisCard.visibility = View.GONE  // simplified per request
 
 
+        // Phase semantics:
+        //  • CRASHED / BETTING = plane just crashed → this is the BET WINDOW
+        //    (user places bet now, signal is valid for the NEXT round)
+        //  • FLYING = plane is in the air, multiplier climbing
         val (label, color) = when (st.phase) {
-            AviatorPhase.FLYING   -> "FLYING"    to 0xFFFFB74D.toInt()
-            AviatorPhase.CRASHED  -> "CRASHED"   to 0xFFE53935.toInt()
-            AviatorPhase.BETTING  -> "BET OPEN"  to 0xFF4CAF50.toInt()
-            AviatorPhase.IDLE     -> "IDLE"      to 0xFF455A64.toInt()
+            AviatorPhase.FLYING   -> "✈ FLYING"   to 0xFFFFB74D.toInt()
+            AviatorPhase.CRASHED  -> "🎯 BET NOW" to 0xFF4CAF50.toInt()
+            AviatorPhase.BETTING  -> "🎯 BET NOW" to 0xFF4CAF50.toInt()
+            AviatorPhase.IDLE     -> "IDLE"       to 0xFF455A64.toInt()
         }
         b.phaseBadge.text = label
         b.phaseBadge.background = ColorDrawable(color)
