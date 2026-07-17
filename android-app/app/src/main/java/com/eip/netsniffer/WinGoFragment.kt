@@ -187,7 +187,9 @@ class WinGoFragment : Fragment() {
         }
         b.predPick.text = label
         b.predPick.setBackgroundResource(heroBg)
-        b.predCategory.text = "BET ON SIZE"
+        val muted = VoicePlayer.isMuted(requireContext())
+        b.predCategory.text = if (muted) "BET ON SIZE  🔇 (long-press to unmute)"
+                              else "BET ON SIZE  🔊 (long-press to mute)"
         b.predForIssue.text = "PERIOD  #${forIssue.takeLast(6)}"
         b.predConfidence.text = sig.confidence
         val confCol = when (sig.confidence) {
@@ -197,6 +199,22 @@ class WinGoFragment : Fragment() {
         }
         b.predConfidence.setTextColor(confCol)
         b.predReasoning.text = sig.reasoning
+
+        // Speak BIG/SMALL once per period, respecting mute pref.
+        VoicePlayer.speakForIssue(requireContext(), forIssue, sig.pick)
+
+        // Long-press the signal card to toggle mute.
+        b.signalCard.setOnLongClickListener {
+            val nowMuted = VoicePlayer.toggleMuted(requireContext())
+            android.widget.Toast.makeText(
+                requireContext(),
+                if (nowMuted) "🔇 Voice muted" else "🔊 Voice on",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            b.predCategory.text = if (nowMuted) "BET ON SIZE  🔇 (long-press to unmute)"
+                                  else "BET ON SIZE  🔊 (long-press to mute)"
+            true
+        }
     }
 
     private fun renderHistoryStrip(list: List<WinGoRound>) {

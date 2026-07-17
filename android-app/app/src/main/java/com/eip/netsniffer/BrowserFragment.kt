@@ -224,6 +224,18 @@ class BrowserFragment : Fragment() {
             }
             v.wingoOverlayConfidence.text = "${sig.category} • ${sig.confidence}"
             v.wingoOverlayConfidence.setTextColor(confCol)
+            // Speak the pick once per target period (respects mute pref).
+            target?.let { VoicePlayer.speakForIssue(requireContext(), it, sig.pick) }
+        }
+        // Long-press overlay pick to toggle mute globally.
+        v.wingoOverlayPick.setOnLongClickListener {
+            val nowMuted = VoicePlayer.toggleMuted(requireContext())
+            android.widget.Toast.makeText(
+                requireContext(),
+                if (nowMuted) "🔇 Voice muted" else "🔊 Voice on",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            true
         }
 
         if (last == null) {
