@@ -313,9 +313,7 @@ class AviatorFragment : Fragment() {
                 b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
             }
             b.predResultDetail.text = "${last.label}  •  #${last.roundId} → %.2fx".format(last.crashX)
-        }
-            b.predResultDetail.text = "#${last.roundId} → %.2fx".format(last.crashX)
-        }
+    }
     }
 
     private fun category(x: Double): Int = when {
