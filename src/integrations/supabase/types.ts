@@ -107,6 +107,119 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_results: {
+        Row: {
+          actual_multiplier: number
+          created_at: string
+          device_id: string | null
+          id: number
+          outcome: string
+          prediction_id: number | null
+          round_id: number
+          target_multiplier: number | null
+        }
+        Insert: {
+          actual_multiplier: number
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          outcome: string
+          prediction_id?: number | null
+          round_id: number
+          target_multiplier?: number | null
+        }
+        Update: {
+          actual_multiplier?: number
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          outcome?: string
+          prediction_id?: number | null
+          round_id?: number
+          target_multiplier?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_results_prediction_id_fkey"
+            columns: ["prediction_id"]
+            isOneToOne: false
+            referencedRelation: "predictions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      predictions: {
+        Row: {
+          action: string
+          ai_model: string | null
+          confidence: string | null
+          created_at: string
+          device_id: string | null
+          id: number
+          latency_ms: number | null
+          raw: Json | null
+          reasoning: string | null
+          round_id: number
+          source: string
+          target_multiplier: number | null
+        }
+        Insert: {
+          action: string
+          ai_model?: string | null
+          confidence?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          latency_ms?: number | null
+          raw?: Json | null
+          reasoning?: string | null
+          round_id: number
+          source: string
+          target_multiplier?: number | null
+        }
+        Update: {
+          action?: string
+          ai_model?: string | null
+          confidence?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          latency_ms?: number | null
+          raw?: Json | null
+          reasoning?: string | null
+          round_id?: number
+          source?: string
+          target_multiplier?: number | null
+        }
+        Relationships: []
+      }
+      round_history: {
+        Row: {
+          crashed_at: string
+          created_at: string
+          device_id: string | null
+          id: number
+          multiplier: number
+          round_id: number
+        }
+        Insert: {
+          crashed_at?: string
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          multiplier: number
+          round_id: number
+        }
+        Update: {
+          crashed_at?: string
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          multiplier?: number
+          round_id?: number
+        }
+        Relationships: []
+      }
       user_snapshots: {
         Row: {
           amount_of_code: number | null
