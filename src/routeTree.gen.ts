@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamProxyRouteImport } from './routes/api/stream/proxy'
 import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-proxy'
+import { Route as ApiPublicVerifyResultRouteImport } from './routes/api/public/verify-result'
 import { Route as ApiPublicPredictSignalRouteImport } from './routes/api/public/predict-signal'
 import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
 import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
@@ -42,6 +43,11 @@ const ApiStreamProxyRoute = ApiStreamProxyRouteImport.update({
 const ApiPublicWsProxyRoute = ApiPublicWsProxyRouteImport.update({
   id: '/api/public/ws-proxy',
   path: '/api/public/ws-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicVerifyResultRoute = ApiPublicVerifyResultRouteImport.update({
+  id: '/api/public/verify-result',
+  path: '/api/public/verify-result',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPredictSignalRoute = ApiPublicPredictSignalRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
+  '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
+  '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
+  '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/predict-signal'
+    | '/api/public/verify-result'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
     | '/api/stream/playlist/$channelId'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/predict-signal'
+    | '/api/public/verify-result'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
     | '/api/stream/playlist/$channelId'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/predict-signal'
+    | '/api/public/verify-result'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
     | '/api/stream/playlist/$channelId'
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
   ApiPublicPredictSignalRoute: typeof ApiPublicPredictSignalRoute
+  ApiPublicVerifyResultRoute: typeof ApiPublicVerifyResultRoute
   ApiPublicWsProxyRoute: typeof ApiPublicWsProxyRoute
   ApiStreamProxyRoute: typeof ApiStreamProxyRoute
   ApiStreamPlaylistChannelIdRoute: typeof ApiStreamPlaylistChannelIdRoute
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWsProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/verify-result': {
+      id: '/api/public/verify-result'
+      path: '/api/public/verify-result'
+      fullPath: '/api/public/verify-result'
+      preLoaderRoute: typeof ApiPublicVerifyResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/predict-signal': {
       id: '/api/public/predict-signal'
       path: '/api/public/predict-signal'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
   ApiPublicPredictSignalRoute: ApiPublicPredictSignalRoute,
+  ApiPublicVerifyResultRoute: ApiPublicVerifyResultRoute,
   ApiPublicWsProxyRoute: ApiPublicWsProxyRoute,
   ApiStreamProxyRoute: ApiStreamProxyRoute,
   ApiStreamPlaylistChannelIdRoute: ApiStreamPlaylistChannelIdRoute,
