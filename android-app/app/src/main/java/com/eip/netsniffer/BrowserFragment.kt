@@ -516,6 +516,26 @@ class BrowserFragment : Fragment() {
 
     fun currentUrl(): String = _b?.urlInput?.text?.toString().orEmpty()
 
+    /**
+     * Nukes cookies, WebView cache, HTML5 storage and form data, then loads
+     * the given URL fresh. Used by the license lock's "Register Now" flow so
+     * a brand-new account (not the old logged-in one) is created.
+     */
+    fun clearAllDataAndNavigate(url: String) {
+        val v = _b ?: return
+        try {
+            val cm = android.webkit.CookieManager.getInstance()
+            cm.removeAllCookies(null)
+            cm.flush()
+            v.webView.clearCache(true)
+            v.webView.clearHistory()
+            v.webView.clearFormData()
+            android.webkit.WebStorage.getInstance().deleteAllData()
+        } catch (_: Throwable) {}
+        navigateTo(url)
+    }
+
+
     fun setRelay(enabled: Boolean, url: String) {
         val v = _b ?: return
         v.relayToggle.isChecked = enabled
