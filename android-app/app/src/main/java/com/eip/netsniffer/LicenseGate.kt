@@ -64,6 +64,12 @@ object LicenseGate {
 
     fun init(ctx: Context, deviceId: String?) {
         this.deviceId = deviceId
+        // TamperGuard runs first — a tampered/rooted/hooked build is
+        // permanently locked with a troll message, no server round-trip.
+        if (TamperGuard.tampered) {
+            state.postValue(State("LOCKED", TamperGuard.trollMessage(), null, null))
+            return
+        }
         val p = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val s = State(
             status = p.getString(KEY_STATUS, "UNKNOWN") ?: "UNKNOWN",
@@ -77,6 +83,7 @@ object LicenseGate {
             verify(ctx, s.uid, s.invite)
         }
     }
+
 
     fun isLocked(): Boolean = state.value?.locked != false
 
