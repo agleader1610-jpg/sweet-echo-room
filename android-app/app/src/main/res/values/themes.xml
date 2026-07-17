@@ -10,11 +10,16 @@
         <item name="android:navigationBarColor">@color/bg</item>
         <item name="android:textColorPrimary">@color/text</item>
         <item name="android:textColorSecondary">@color/muted</item>
+        <!-- Global modern typography (Rajdhani) -->
+        <item name="android:fontFamily">@font/rajdhani</item>
+        <item name="fontFamily">@font/rajdhani</item>
     </style>
 
     <style name="Theme.NetSniffer.BottomSheet" parent="Theme.MaterialComponents.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/NetSniffer.BottomSheet.Modal</item>
         <item name="android:navigationBarColor">#05060A</item>
+        <item name="android:fontFamily">@font/rajdhani</item>
+        <item name="fontFamily">@font/rajdhani</item>
     </style>
 
     <style name="NetSniffer.BottomSheet.Modal" parent="Widget.MaterialComponents.BottomSheet.Modal">
