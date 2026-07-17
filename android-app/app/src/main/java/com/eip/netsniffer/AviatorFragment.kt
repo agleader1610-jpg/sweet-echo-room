@@ -284,7 +284,15 @@ class AviatorFragment : Fragment() {
             source = "offline",
             model = null,
             latencyMs = 0,
+            historyNewestRoundId = rounds.first().roundId,
+            historyNewestMultiplier = rounds.first().crashX,
+            historyLen = rounds.size,
+            aiRaw = null,
+            aiError = "offline_fallback",
+            httpStatus = 0,
+            requestedAt = System.currentTimeMillis(),
         )
+
         renderRemoteSignal(remote, rounds)
         b.predSource.text = "📴 OFFLINE"
         b.predSource.setTextColor(0xFFF87171.toInt())
