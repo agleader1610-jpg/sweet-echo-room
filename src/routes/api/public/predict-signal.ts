@@ -101,6 +101,7 @@ async function callAI(history: Array<{ round_id: number; multiplier: number }>):
       },
       body: JSON.stringify({
         model: AI_MODEL,
+        service_tier: 'priority',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
