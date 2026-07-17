@@ -58,119 +58,157 @@
         </LinearLayout>
 
         <!-- Section: Tabs -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="MODULES"
-            android:textColor="@color/muted"
-            android:textSize="10sp"
-            android:letterSpacing="0.2"
-            android:paddingBottom="10dp"/>
-
-        <LinearLayout
-            android:id="@+id/tabToggle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
-
-            <Button
-                android:id="@+id/tabBrowserBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="76dp"
-                android:layout_marginEnd="8dp"
-                android:text="🎯\nDK WIN"
-                android:textAllCaps="false"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.14"
-                android:lineSpacingExtra="2dp"
-                android:background="@drawable/tab_chip_bg"
-                android:textColor="@color/tab_chip_text"
-                android:stateListAnimator="@null"
-                android:minWidth="0dp"/>
-            <Button
-                android:id="@+id/tabAviatorBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="76dp"
-                android:text="✈\nAVIATOR"
-                android:textAllCaps="false"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.14"
-                android:lineSpacingExtra="2dp"
-                android:background="@drawable/tab_chip_bg"
-                android:textColor="@color/tab_chip_text"
-                android:stateListAnimator="@null"
-                android:minWidth="0dp"/>
-            <Button
-                android:id="@+id/tabWinGoBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="76dp"
-                android:layout_marginStart="8dp"
-                android:text="🎲\nWIN GO"
-                android:textAllCaps="false"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.14"
-                android:lineSpacingExtra="2dp"
-                android:background="@drawable/tab_chip_bg"
-                android:textColor="@color/tab_chip_text"
-                android:stateListAnimator="@null"
-                android:minWidth="0dp"/>
-            <Button
-                android:id="@+id/tabProfileBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="52dp"
-                android:visibility="gone"
-                android:text="@string/tab_profile"
-                android:background="@drawable/tab_chip_bg"
-                android:textColor="@color/tab_chip_text"
-                android:stateListAnimator="@null"
-                android:minWidth="0dp"/>
-            <Button
-                android:id="@+id/tabNetworkBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="76dp"
-                android:layout_marginStart="8dp"
-                android:text="📡\nNETWORK"
-                android:textAllCaps="false"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.14"
-                android:lineSpacingExtra="2dp"
-                android:background="@drawable/tab_chip_bg"
-                android:textColor="@color/tab_chip_text"
-                android:stateListAnimator="@null"
-                android:minWidth="0dp"/>
-        </LinearLayout>
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="10dp"
-            android:paddingBottom="2dp">
-            <View
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:background="@color/accent"/>
+            android:paddingBottom="10dp">
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="EIP engine online • signals streaming"
+                android:text="MODULES"
                 android:textColor="@color/muted"
                 android:textSize="10sp"
-                android:letterSpacing="0.1"/>
+                android:letterSpacing="0.24"/>
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/status_dot_live"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="3 ONLINE"
+                android:textColor="#22D3EE"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.24"/>
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/module_card_bg"
+            android:padding="10dp">
+
+            <LinearLayout
+                android:id="@+id/tabToggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+
+                <Button
+                    android:id="@+id/tabBrowserBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="84dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="🎯\nDK WIN"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.16"
+                    android:lineSpacingExtra="3dp"
+                    android:background="@drawable/tab_chip_bg"
+                    android:textColor="@color/tab_chip_text"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"/>
+                <Button
+                    android:id="@+id/tabAviatorBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="84dp"
+                    android:text="✈\nAVIATOR"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.16"
+                    android:lineSpacingExtra="3dp"
+                    android:background="@drawable/tab_chip_bg"
+                    android:textColor="@color/tab_chip_text"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"/>
+                <Button
+                    android:id="@+id/tabWinGoBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="84dp"
+                    android:layout_marginStart="8dp"
+                    android:text="🎲\nWIN GO"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.16"
+                    android:lineSpacingExtra="3dp"
+                    android:background="@drawable/tab_chip_bg"
+                    android:textColor="@color/tab_chip_text"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"/>
+                <Button
+                    android:id="@+id/tabProfileBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="52dp"
+                    android:visibility="gone"
+                    android:text="@string/tab_profile"
+                    android:background="@drawable/tab_chip_bg"
+                    android:textColor="@color/tab_chip_text"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"/>
+                <Button
+                    android:id="@+id/tabNetworkBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="84dp"
+                    android:layout_marginStart="8dp"
+                    android:text="📡\nNETWORK"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.16"
+                    android:lineSpacingExtra="3dp"
+                    android:background="@drawable/tab_chip_bg"
+                    android:textColor="@color/tab_chip_text"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"/>
+            </LinearLayout>
+
+            <!-- Live status strip -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="12dp"
+                android:paddingBottom="2dp">
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/status_dot_live"/>
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="EIP CLOUD  •  SIGNALS STREAMING"
+                    android:textColor="#22D3EE"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="v1.0"
+                    android:textColor="@color/muted"
+                    android:textSize="9sp"
+                    android:fontFamily="@font/roboto_mono"/>
+            </LinearLayout>
+        </LinearLayout>
+
 
         <!-- Section: URL -->
         <TextView
