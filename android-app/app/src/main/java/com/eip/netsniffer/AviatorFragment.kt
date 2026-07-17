@@ -73,6 +73,13 @@ class AviatorFragment : Fragment() {
         b.overlaySwitch.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(PREF_OVERLAY, checked).apply()
             AviatorStore.overlayEnabled.postValue(checked)
+            if (checked) {
+                prefs.edit().putBoolean("wingo_overlay_on", false).apply()
+                WinGoStore.overlayEnabled.postValue(false)
+            }
+        }
+        AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
+            if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
     }
 
