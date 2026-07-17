@@ -134,6 +134,7 @@ class BrowserFragment : Fragment() {
         }
         AviatorStore.state.observe(viewLifecycleOwner) { renderOverlay() }
         AviatorStore.rounds.observe(viewLifecycleOwner) { renderOverlay() }
+        PredictionTracker.stats.observe(viewLifecycleOwner) { renderOverlay() }
         setupOverlayDrag()
         b.overlayClose.setOnClickListener {
             AviatorStore.overlayEnabled.postValue(false)
