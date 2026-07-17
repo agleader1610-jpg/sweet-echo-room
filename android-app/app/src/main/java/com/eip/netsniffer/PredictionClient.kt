@@ -37,7 +37,15 @@ object PredictionClient {
         val source: String, // "ai" | "local" | "offline"
         val model: String?,
         val latencyMs: Int,
+        val historyNewestRoundId: Long?,
+        val historyNewestMultiplier: Double?,
+        val historyLen: Int,
+        val aiRaw: String?,
+        val aiError: String?,
+        val httpStatus: Int,
+        val requestedAt: Long,
     )
+
 
     fun fetchSignal(
         deviceId: String,
