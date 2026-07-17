@@ -105,6 +105,10 @@ class WinGoFragment : Fragment() {
                 b.lastResultDetail.text =
                     "#${match.issue.takeLast(6)} → ${match.number} ${match.colors.joinToString("+")} " +
                     "• bet ${armed.pick}"
+                WinGoStore.lastResult.postValue(
+                    WinGoStore.LastResult(match.issue, win, match.number, match.colors, armed.pick)
+                )
+                WinGoStore.score.postValue(wins to losses)
                 armedIssue = null; armedSignal = null
                 renderScoreboard()
             }
