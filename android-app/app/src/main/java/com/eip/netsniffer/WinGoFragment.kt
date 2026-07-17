@@ -180,13 +180,13 @@ class WinGoFragment : Fragment() {
 
     private fun renderSignal(sig: WinGoLogic.Signal, forIssue: String) {
         b.signalCard.visibility = View.VISIBLE
-        val (color, label) = when (sig.pick) {
-            "BIG" -> 0xFFF59E0B.toInt() to "BIG"
-            "SMALL" -> 0xFF3B82F6.toInt() to "SMALL"
-            else -> 0xFF64748B.toInt() to sig.pick
+        val (color, label, heroBg) = when (sig.pick) {
+            "BIG" -> Triple(0xFFF59E0B.toInt(), "BIG", R.drawable.hero_big_gradient)
+            "SMALL" -> Triple(0xFF3B82F6.toInt(), "SMALL", R.drawable.hero_small_gradient)
+            else -> Triple(0xFF64748B.toInt(), sig.pick, R.drawable.hero_neutral_gradient)
         }
         b.predPick.text = label
-        b.predPick.background = bg(color, 12f)
+        b.predPick.setBackgroundResource(heroBg)
         b.predCategory.text = "BET ON SIZE"
         b.predForIssue.text = "PERIOD  #${forIssue.takeLast(6)}"
         b.predConfidence.text = sig.confidence

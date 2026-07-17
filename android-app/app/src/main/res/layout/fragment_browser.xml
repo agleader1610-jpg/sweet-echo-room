@@ -124,7 +124,7 @@
                     android:textColor="#4ADE80"
                     android:textSize="10sp"
                     android:textStyle="bold"
-                    android:fontFamily="monospace"/>
+                    android:fontFamily="@font/roboto_mono"/>
                 <TextView
                     android:id="@+id/overlayClose"
                     android:layout_width="wrap_content"
@@ -148,7 +148,7 @@
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.22"
-                android:fontFamily="monospace"/>
+                android:fontFamily="@font/roboto_mono"/>
 
             <!-- BIG TARGET multiplier (hero) -->
             <TextView
@@ -159,7 +159,7 @@
                 android:textColor="#4ADE80"
                 android:textSize="40sp"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-black"
+                android:fontFamily="@font/orbitron"
                 android:includeFontPadding="false"
                 android:letterSpacing="-0.02"/>
 
@@ -189,7 +189,7 @@
                 android:text="LAST —"
                 android:textColor="#94A3B8"
                 android:textSize="11sp"
-                android:fontFamily="monospace"/>
+                android:fontFamily="@font/roboto_mono"/>
 
             <!-- Last result -->
             <TextView
@@ -221,7 +221,7 @@
                 android:background="#0B1220"
                 android:text=""
                 android:textSize="11sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/roboto_mono"
                 android:singleLine="true"
                 android:ellipsize="marquee"
                 android:marqueeRepeatLimit="marquee_forever"
@@ -277,7 +277,7 @@
                     android:textColor="#4ADE80"
                     android:textSize="10sp"
                     android:textStyle="bold"
-                    android:fontFamily="monospace"/>
+                    android:fontFamily="@font/roboto_mono"/>
                 <TextView
                     android:id="@+id/wingoOverlayClose"
                     android:layout_width="wrap_content"
@@ -303,7 +303,7 @@
                     android:text="#—"
                     android:textColor="#94A3B8"
                     android:textSize="11sp"
-                    android:fontFamily="monospace"
+                    android:fontFamily="@font/roboto_mono"
                     android:textStyle="bold"/>
                 <TextView
                     android:id="@+id/wingoOverlayCountdown"
@@ -316,7 +316,7 @@
                     android:textColor="#4ADE80"
                     android:textSize="13sp"
                     android:textStyle="bold"
-                    android:fontFamily="monospace"/>
+                    android:fontFamily="@font/roboto_mono"/>
             </LinearLayout>
 
             <TextView
@@ -331,7 +331,7 @@
                 android:textColor="#FFFFFF"
                 android:textSize="28sp"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-black"
+                android:fontFamily="@font/orbitron"
                 android:letterSpacing="0.05"
                 android:background="#334155"/>
 
@@ -370,7 +370,7 @@
                 android:background="#0B1220"
                 android:text=""
                 android:textSize="11sp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/roboto_mono"
                 android:singleLine="true"
                 android:ellipsize="marquee"
                 android:marqueeRepeatLimit="marquee_forever"

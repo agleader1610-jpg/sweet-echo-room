@@ -209,18 +209,16 @@ class BrowserFragment : Fragment() {
 
         if (sig == null) {
             v.wingoOverlayPick.text = "—"
-            v.wingoOverlayPick.setBackgroundColor(0xFF334155.toInt())
+            v.wingoOverlayPick.setBackgroundResource(R.drawable.hero_neutral_gradient)
             v.wingoOverlayConfidence.text = "ANALYZING…"
         } else {
-            val (color, label) = when (sig.pick) {
-                "RED" -> 0xFFDC2626.toInt() to "RED"
-                "GREEN" -> 0xFF16A34A.toInt() to "GREEN"
-                "BIG" -> 0xFFF59E0B.toInt() to "BIG"
-                "SMALL" -> 0xFF3B82F6.toInt() to "SMALL"
-                else -> 0xFF64748B.toInt() to sig.pick
+            val (color, label, heroBg) = when (sig.pick) {
+                "BIG" -> Triple(0xFFF59E0B.toInt(), "BIG", R.drawable.hero_big_gradient)
+                "SMALL" -> Triple(0xFF3B82F6.toInt(), "SMALL", R.drawable.hero_small_gradient)
+                else -> Triple(0xFF64748B.toInt(), sig.pick, R.drawable.hero_neutral_gradient)
             }
             v.wingoOverlayPick.text = label
-            v.wingoOverlayPick.setBackgroundColor(color)
+            v.wingoOverlayPick.setBackgroundResource(heroBg)
             val confCol = when (sig.confidence) {
                 "HIGH" -> 0xFF4ADE80.toInt(); "MEDIUM" -> 0xFFFBBF24.toInt(); else -> 0xFF94A3B8.toInt()
             }
