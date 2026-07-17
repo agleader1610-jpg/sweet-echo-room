@@ -120,31 +120,14 @@ object WinGoLogic {
         if (rounds.size < 5) return null
         val recent = rounds.take(20)
 
-        // ---- COLOR signal (RED vs GREEN, ignore violet-only which never happens) ----
-        val colorSeq = recent.mapNotNull {
-            when {
-                it.colors.contains("red") && !it.colors.contains("green") -> "RED"
-                it.colors.contains("green") && !it.colors.contains("red") -> "GREEN"
-                else -> null // pure-violet edge (0 or 5) counted as neutral
-            }
-        }
-        val cStreak = streak(colorSeq)
-        val cRedCount = colorSeq.count { it == "RED" }
-        val cGreenCount = colorSeq.count { it == "GREEN" }
-
-        // ---- SIZE signal (BIG=5..9, SMALL=0..4) ----
+        // SIZE-only signal (BIG=5..9, SMALL=0..4). Colour picks disabled per product spec.
         val sizeSeq = recent.map { if (it.number >= 5) "BIG" else "SMALL" }
         val sStreak = streak(sizeSeq)
         val sBig = sizeSeq.count { it == "BIG" }
         val sSmall = sizeSeq.count { it == "SMALL" }
-
-        // Score = which category gives strongest anti-streak / imbalance signal
-        val colorScore = cStreak.second + kotlin.math.abs(cRedCount - cGreenCount)
-        val sizeScore = sStreak.second + kotlin.math.abs(sBig - sSmall)
-
-        return if (sizeScore >= colorScore) sizePick(sStreak, sBig, sSmall, sizeSeq.size)
-        else colorPick(cStreak, cRedCount, cGreenCount, colorSeq.size)
+        return sizePick(sStreak, sBig, sSmall, sizeSeq.size)
     }
+
 
     private fun sizePick(streak: Pair<String, Int>, big: Int, small: Int, total: Int): Signal {
         val (last, len) = streak
