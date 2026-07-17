@@ -27,6 +27,8 @@ data class NetEntry(
 object CaptureStore {
     private const val MAX = 100_000
     val entries = MutableLiveData<List<NetEntry>>(emptyList())
+    @Volatile private var appContext: android.content.Context? = null
+    fun init(ctx: android.content.Context) { appContext = ctx.applicationContext }
 
     @Synchronized
     fun add(e: NetEntry) {
