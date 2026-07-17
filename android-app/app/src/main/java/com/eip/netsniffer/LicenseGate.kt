@@ -32,8 +32,19 @@ object LicenseGate {
     private const val KEY_INVITE = "invite"
     private const val KEY_LAST_CHECK = "last_check"
 
-    private const val ENDPOINT =
-        "https://sweet-echo-room.lovable.app/api/public/verify-license"
+    // Endpoint assembled at runtime from fragments — makes a plain `grep`
+    // through the decompiled APK for "verify-license" or the full host
+    // return nothing. Combined with server-side signature check, editing
+    // the URL to a fake server won't unlock the app.
+    private val ENDPOINT: String by lazy {
+        buildString {
+            append("htt"); append("ps://")
+            append("sweet-"); append("echo-"); append("room")
+            append(".lov"); append("able."); append("app")
+            append("/a"); append("pi/"); append("pub"); append("lic/")
+            append("ver"); append("ify-"); append("licen"); append("se")
+        }
+    }
 
     data class State(
         val status: String,     // "LICENSED" | "LOCKED" | "UNKNOWN"
@@ -44,6 +55,7 @@ object LicenseGate {
         val locked: Boolean get() = status != "LICENSED"
         val unknown: Boolean get() = status == "UNKNOWN"
     }
+
 
     val state = MutableLiveData(State("UNKNOWN", "", null, null))
     private val exec = Executors.newSingleThreadExecutor()
