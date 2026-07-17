@@ -141,8 +141,13 @@ class AviatorFragment : Fragment() {
             b.historyStrip.addView(makeChip(ctx, r.crashX))
         }
 
+        // ── EIP PREDICTION SIGNAL ──
+        renderPrediction(list.map { it.crashX })
+
         // Compact legacy line
         b.roundsText.text = list.take(30).joinToString("  ") { "%.2fx".format(it.crashX) }
+
+
 
         // Analysis over last 20
         val sample = list.take(20).map { it.crashX }
