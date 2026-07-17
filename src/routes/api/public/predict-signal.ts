@@ -2,8 +2,10 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, type Signal } from '@/lib/local-prediction-logic';
 
-const AI_MODEL = 'google/gemini-3-flash-preview';
-const AI_TIMEOUT_MS = 4500;
+// Upgraded to GPT-5.4 with priority tier — best reasoning + low latency.
+// Fast mode (service_tier: priority) supported per ai-models-chat catalog.
+const AI_MODEL = 'openai/gpt-5.4';
+const AI_TIMEOUT_MS = 8000;
 
 interface Body {
   device_id?: string;
@@ -99,6 +101,7 @@ async function callAI(history: Array<{ round_id: number; multiplier: number }>):
       },
       body: JSON.stringify({
         model: AI_MODEL,
+        service_tier: 'priority',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
