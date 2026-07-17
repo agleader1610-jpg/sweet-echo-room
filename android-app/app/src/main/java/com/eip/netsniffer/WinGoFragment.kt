@@ -66,7 +66,7 @@ class WinGoFragment : Fragment() {
             WinGoStore.overlayEnabled.postValue(checked)
             if (checked) {
                 // Kill the aviator overlay to keep only one active.
-                prefs.edit().putBoolean("aviator_overlay_on", false).apply()
+                prefs.edit().putBoolean("vip_overlay_enabled", false).apply()
                 AviatorStore.overlayEnabled.postValue(false)
             }
         }
