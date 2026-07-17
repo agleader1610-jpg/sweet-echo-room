@@ -346,6 +346,11 @@ class AviatorFragment : Fragment() {
             b.predResultBadge.setTextColor(0xFF94A3B8.toInt())
             b.predResultBadge.background = roundedBg(0xFF1F2937.toInt(), 6f)
             b.predResultDetail.text = ""
+        } else if (r.skipped) {
+            b.predResultBadge.text = "◌ SKIPPED"
+            b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
+            b.predResultBadge.background = roundedBg(0xFF3B82F6.toInt(), 6f)
+            b.predResultDetail.text = "#${r.roundId} • skipped • crashed %.2fx".format(r.crashX)
         } else {
             b.predResultBadge.text = if (r.win) "✓ WIN" else "✗ LOSS"
             b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
