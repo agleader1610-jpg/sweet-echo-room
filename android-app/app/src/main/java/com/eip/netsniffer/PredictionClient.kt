@@ -103,7 +103,15 @@ object PredictionClient {
             source = obj.optString("source", "local"),
             model = if (obj.isNull("model")) null else obj.optString("model"),
             latencyMs = obj.optInt("latency_ms", 0),
+            historyNewestRoundId = if (obj.isNull("history_newest_round_id")) null else obj.optLong("history_newest_round_id"),
+            historyNewestMultiplier = if (obj.isNull("history_newest_multiplier")) null else obj.optDouble("history_newest_multiplier"),
+            historyLen = obj.optInt("history_len", 0),
+            aiRaw = if (obj.isNull("ai_raw")) null else obj.optString("ai_raw"),
+            aiError = if (obj.isNull("ai_error")) null else obj.optString("ai_error"),
+            httpStatus = 200,
+            requestedAt = System.currentTimeMillis(),
         )
+
     }
 
     private fun postJson(endpoint: String, json: String): String? {
