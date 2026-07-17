@@ -219,8 +219,35 @@ class AviatorFragment : Fragment() {
     }
 
     private fun renderTrackerStats(s: PredictionTracker.Stats) {
-        // W/L stats intentionally hidden from top UI per user request.
-        // Tracker still runs for internal accuracy tracking.
+        b.predWins.text = s.wins.toString()
+        b.predLosses.text = s.losses.toString()
+        b.predAccuracy.text = "${s.accuracy}%"
+        val streakLabel = when {
+            s.streak > 0 -> "W${s.streak}"
+            s.streak < 0 -> "L${-s.streak}"
+            else -> "0"
+        }
+        b.predStreak.text = streakLabel
+        b.predStreak.setTextColor(
+            when {
+                s.streak > 0 -> 0xFF4ADE80.toInt()
+                s.streak < 0 -> 0xFFF87171.toInt()
+                else -> 0xFFE2E8F0.toInt()
+            }
+        )
+        val r = s.lastResult
+        if (r == null) {
+            b.predResultBadge.text = "—"
+            b.predResultBadge.setTextColor(0xFF94A3B8.toInt())
+            b.predResultBadge.background = roundedBg(0xFF1F2937.toInt(), 6f)
+            b.predResultDetail.text = ""
+        } else {
+            b.predResultBadge.text = if (r.win) "✓ WIN" else "✗ LOSS"
+            b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
+            b.predResultBadge.background =
+                roundedBg(if (r.win) 0xFF16A34A.toInt() else 0xFFDC2626.toInt(), 6f)
+            b.predResultDetail.text = "#${r.roundId} • target ${r.label} • crashed %.2fx".format(r.crashX)
+        }
     }
 
     private fun makeChip(ctx: Context, x: Double): View {
