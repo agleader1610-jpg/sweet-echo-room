@@ -46,7 +46,7 @@ object PredictionTracker {
     fun arm(roundId: Long?, label: String, test: (Double) -> Boolean) {
         if (roundId == null) return
         val cur = armed
-        if (cur != null && cur.roundId == roundId && cur.label == label) return
+        if (cur != null && cur.roundId == roundId) return
         armed = Armed(roundId, label, test)
     }
 
@@ -55,6 +55,9 @@ object PredictionTracker {
 
     @Synchronized
     fun currentArmedLabel(): String? = armed?.label
+
+    @Synchronized
+    fun currentArmed(): Armed? = armed
 
     @Synchronized
     fun resolve(newest: AviatorRound) {

@@ -49,6 +49,7 @@ object AviatorStore {
     val cashoutFeed = MutableLiveData<List<AviatorCashout>>(emptyList())
     val overlayEnabled = MutableLiveData(false)
     private const val MAX_HISTORY = 200
+    private const val MIN_BET_LOCK_MS = 1500L
 
     @Synchronized
     fun ingestFromEntry(entry: NetEntry) {
@@ -82,12 +83,15 @@ object AviatorStore {
         // stray "maxMultiplier" ticks during the post-crash animation do
         // NOT get counted as flight time.
         if (incomingCrash != null) {
+            val endedRoundId = incomingRoundId ?: snap.roundId
+            val nextRoundId = endedRoundId?.plus(1)
             // Plane crashed. Fly duration = now - lastTakeoffAt (if a takeoff
             // was recorded AFTER the previous crash).
             val flyMs = if (snap.lastTakeoffAt > snap.lastCrashAt && snap.lastTakeoffAt > 0)
                 now - snap.lastTakeoffAt else snap.lastFlyDurationMs
             snap = snap.copy(
-                prevRoundId = incomingRoundId ?: snap.roundId,
+                roundId = nextRoundId ?: snap.roundId,
+                prevRoundId = endedRoundId,
                 prevCrashX = incomingCrash,
                 crashX = incomingCrash,
                 liveMultiplier = incomingCrash,
@@ -97,13 +101,23 @@ object AviatorStore {
                 lastFlyDurationMs = flyMs,
                 cycleCount = snap.cycleCount + 1,
             )
-            val rid = incomingRoundId ?: snap.roundId ?: 0L
+            val rid = endedRoundId ?: 0L
             val newRounds = ArrayList<AviatorRound>(MAX_HISTORY + 1)
             newRounds.add(AviatorRound(rid, incomingCrash))
             newRounds.addAll(rounds.value.orEmpty())
             while (newRounds.size > MAX_HISTORY) newRounds.removeAt(newRounds.size - 1)
             rounds.postValue(newRounds)
         } else if (incomingMax != null) {
+            val isOldRoundTick = snap.prevRoundId != null && incomingRoundId == snap.prevRoundId
+            val isTooSoonAfterCrash = snap.phase == AviatorPhase.CRASHED &&
+                snap.lastCrashAt > 0L &&
+                now - snap.lastCrashAt < MIN_BET_LOCK_MS &&
+                incomingRoundId == null
+            if (isOldRoundTick || isTooSoonAfterCrash) {
+                // Some feeds echo maxMultiplier immediately after crash for the
+                // round that already ended. Keep this as BET TIME, not FLYING.
+                snap = snap.copy(liveMultiplier = snap.crashX ?: snap.prevCrashX)
+            } else {
             // Multiplier ticking. Treat as TAKEOFF only the FIRST tick after
             // the most recent crash — subsequent ticks just update the number.
             val isFirstTickAfterCrash = snap.lastTakeoffAt <= snap.lastCrashAt
@@ -124,6 +138,7 @@ object AviatorStore {
                 roundId = incomingRoundId ?: snap.roundId,
                 liveMultiplier = incomingMax,
             )
+            }
         } else if (incomingRoundId != null && incomingRoundId != snap.roundId) {
             // New round id with no multiplier and no crash → BETTING window.
             snap = snap.copy(
