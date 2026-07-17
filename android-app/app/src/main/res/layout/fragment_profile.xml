@@ -99,7 +99,7 @@
                     android:textSize="11sp"
                     android:textColor="#90A4AE"
                     android:layout_marginTop="8dp"
-                    android:fontFamily="monospace"/>
+                    android:fontFamily="@font/roboto_mono"/>
 
                 <TextView
                     android:id="@+id/updatedText"
@@ -148,7 +148,7 @@
             android:layout_marginTop="8dp"
             android:padding="12dp"
             android:background="#FFFFFF"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/roboto_mono"
             android:textSize="11sp"
             android:textColor="#37474F"/>
     </LinearLayout>

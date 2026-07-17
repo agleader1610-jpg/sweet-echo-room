@@ -74,7 +74,7 @@
                         android:textColor="#E2E8F0"
                         android:textSize="22sp"
                         android:textStyle="bold"
-                        android:fontFamily="monospace"/>
+                        android:fontFamily="@font/roboto_mono"/>
                 </LinearLayout>
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -98,7 +98,7 @@
                         android:textColor="#4ADE80"
                         android:textSize="36sp"
                         android:textStyle="bold"
-                        android:fontFamily="sans-serif-black"
+                        android:fontFamily="@font/orbitron"
                         android:includeFontPadding="false"/>
                 </LinearLayout>
             </LinearLayout>
@@ -158,7 +158,7 @@
                     android:text="PERIOD  #—"
                     android:textColor="#64748B"
                     android:textSize="10sp"
-                    android:fontFamily="monospace"/>
+                    android:fontFamily="@font/roboto_mono"/>
 
                 <TextView
                     android:id="@+id/predCategory"
@@ -183,7 +183,7 @@
                     android:textColor="#FFFFFF"
                     android:textSize="34sp"
                     android:textStyle="bold"
-                    android:fontFamily="sans-serif-black"
+                    android:fontFamily="@font/orbitron"
                     android:letterSpacing="0.05"
                     android:background="#334155"/>
 
@@ -211,7 +211,7 @@
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="0" android:textColor="#4ADE80"
                             android:textSize="22sp" android:textStyle="bold"
-                            android:fontFamily="sans-serif-black"/>
+                            android:fontFamily="@font/orbitron"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="WINS" android:textColor="#4ADE80"
                             android:textSize="8sp" android:textStyle="bold"
@@ -225,7 +225,7 @@
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="0" android:textColor="#F87171"
                             android:textSize="22sp" android:textStyle="bold"
-                            android:fontFamily="sans-serif-black"/>
+                            android:fontFamily="@font/orbitron"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="LOSS" android:textColor="#F87171"
                             android:textSize="8sp" android:textStyle="bold"
@@ -239,7 +239,7 @@
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="0%" android:textColor="#22D3EE"
                             android:textSize="22sp" android:textStyle="bold"
-                            android:fontFamily="sans-serif-black"/>
+                            android:fontFamily="@font/orbitron"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="ACC" android:textColor="#22D3EE"
                             android:textSize="8sp" android:textStyle="bold"
@@ -274,7 +274,7 @@
                         android:text=""
                         android:textColor="#94A3B8"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"/>
+                        android:fontFamily="@font/roboto_mono"/>
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -308,7 +308,7 @@
             android:text="BIG = 5-9   •   SMALL = 0-4"
             android:textColor="#546A85"
             android:textSize="9sp"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/roboto_mono"
             android:gravity="center"/>
 
         <!-- Signal log (local only — stored in device SharedPreferences) -->
