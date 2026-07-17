@@ -129,6 +129,8 @@ class WinGoFragment : Fragment() {
             armedIssue = armIssue
             armedSignal = sig
         }
+        WinGoStore.currentSignal.postValue(sig)
+        WinGoStore.currentTargetIssue.postValue(armIssue)
         renderSignal(sig, armIssue)
     }
 
