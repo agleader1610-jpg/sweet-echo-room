@@ -120,31 +120,38 @@ object WinGoLogic {
         if (rounds.size < 5) return null
         val recent = rounds.take(20)
 
-        // SIZE-only signal (BIG=5..9, SMALL=0..4). Colour picks disabled per product spec.
+        // SIZE-only. BIG = 5..9, SMALL = 0..4.
         val sizeSeq = recent.map { if (it.number >= 5) "BIG" else "SMALL" }
-        val sStreak = streak(sizeSeq)
-        val sBig = sizeSeq.count { it == "BIG" }
-        val sSmall = sizeSeq.count { it == "SMALL" }
-        return sizePick(sStreak, sBig, sSmall, sizeSeq.size)
+        val (last, len) = streak(sizeSeq)
+        val big = sizeSeq.count { it == "BIG" }
+        val small = sizeSeq.count { it == "SMALL" }
+        val total = sizeSeq.size
+
+        // Weighted BIG probability starts neutral at 0.5, nudged by heuristics.
+        var pBig = 0.5
+
+        // Mean reversion after long streak (soft, not hard).
+        if (len >= 4) pBig += if (last == "BIG") -0.20 else 0.20
+        else if (len >= 2) pBig += if (last == "BIG") 0.08 else -0.08  // mild trend follow on short streaks
+
+        // Frequency correction — dominant side gets small negative weight.
+        val diff = (big - small).toDouble() / total   // -1..+1
+        pBig -= diff * 0.15
+
+        // Small jitter so identical states don't always produce identical pick.
+        pBig += (Math.random() - 0.5) * 0.20
+        pBig = pBig.coerceIn(0.05, 0.95)
+
+        val pick = if (Math.random() < pBig) "BIG" else "SMALL"
+        val conf = when {
+            kotlin.math.abs(pBig - 0.5) >= 0.25 -> "HIGH"
+            kotlin.math.abs(pBig - 0.5) >= 0.12 -> "MEDIUM"
+            else -> "LOW"
+        }
+        val reason = "streak=$len $last · big/small=$big/$small · pBig=${"%.2f".format(pBig)}"
+        return Signal(pick, "SIZE", conf, reason)
     }
 
-
-    private fun sizePick(streak: Pair<String, Int>, big: Int, small: Int, total: Int): Signal {
-        val (last, len) = streak
-        // strong anti-streak
-        if (len >= 4) return Signal(
-            pick = if (last == "BIG") "SMALL" else "BIG",
-            category = "SIZE",
-            confidence = if (len >= 6) "HIGH" else "MEDIUM",
-            reasoning = "$len consecutive $last → reversal due.",
-        )
-        // frequency lean
-        if (big - small >= 4) return Signal("SMALL", "SIZE", "MEDIUM", "BIG dominating ($big/$total) — SMALL catch-up.")
-        if (small - big >= 4) return Signal("BIG", "SIZE", "MEDIUM", "SMALL dominating ($small/$total) — BIG catch-up.")
-        // mild — follow current streak (2-3 same)
-        if (len >= 2) return Signal(last, "SIZE", "LOW", "$last streak of $len — follow the trend.")
-        return Signal(if (big <= small) "BIG" else "SMALL", "SIZE", "LOW", "balanced market — mild lean.")
-    }
 
     private fun colorPick(streak: Pair<String, Int>, red: Int, green: Int, total: Int): Signal {
         val (last, len) = streak
