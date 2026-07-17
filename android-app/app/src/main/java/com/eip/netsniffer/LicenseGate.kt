@@ -153,7 +153,7 @@ object LicenseGate {
     fun verify(ctx: Context, uid: String?, invite: String?) {
         // Tampered builds never talk to the server — permanent troll lock.
         if (TamperGuard.tampered) {
-            state.postValue(State("LOCKED", TamperGuard.trollMessage(), uid, invite))
+            state.postValue(State("LOCKED", TamperGuard.trollMessage(), uid, invite, tampered = true))
             return
         }
         val appCtx = ctx.applicationContext
@@ -163,7 +163,6 @@ object LicenseGate {
                     put("device_id", deviceId ?: "unknown")
                     put("uid", uid ?: JSONObject.NULL)
                     put("parent_invite_code", invite ?: JSONObject.NULL)
-                    // Integrity fingerprint — server can enforce an allowlist.
                     put("pkg", TamperGuard.packageName)
                     put("sig_sha256", TamperGuard.signatureSha256)
                     put("tamper_flags", TamperGuard.reasons.joinToString(","))
@@ -172,6 +171,7 @@ object LicenseGate {
                 val res = JSONObject(text)
                 val licensed = res.optBoolean("licensed", false)
                 val message = res.optString("message", "")
+                val tampered = res.optBoolean("tampered", false)
                 val status = if (licensed) "LICENSED" else "LOCKED"
                 appCtx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
                     putString(KEY_STATUS, status)
@@ -179,15 +179,15 @@ object LicenseGate {
                     if (uid != null) putString(KEY_UID, uid)
                     if (invite != null) putString(KEY_INVITE, invite)
                     putLong(KEY_LAST_CHECK, System.currentTimeMillis())
+                    putBoolean(KEY_TAMPERED, tampered)
                     apply()
                 }
-                state.postValue(State(status, message, uid, invite))
-                Log.d(TAG, "verify → $status ($message)")
+                state.postValue(State(status, message, uid, invite, tampered = tampered))
+                Log.d(TAG, "verify → $status tampered=$tampered ($message)")
             } catch (t: Throwable) {
                 Log.w(TAG, "verify failed: ${t.message}")
             }
         }
-
     }
 
     fun refresh(ctx: Context) {
