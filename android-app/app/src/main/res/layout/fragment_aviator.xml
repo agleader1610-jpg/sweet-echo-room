@@ -264,6 +264,189 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- ═════════════ PREDICTION SIGNAL ═════════════ -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/predictionCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="#0F172A"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="◈ EIP PREDICTION SIGNAL"
+                        android:textColor="#FFD54F"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.24"/>
+                    <TextView
+                        android:id="@+id/predConfidence"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:background="#1F2937"
+                        android:text="—"
+                        android:textColor="#E2E8F0"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.18"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/predSignal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:padding="14dp"
+                    android:gravity="center"
+                    android:text="ANALYZING…"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:background="#455A64"/>
+
+                <TextView
+                    android:id="@+id/predSuggestion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="#B0BEC5"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"
+                    android:text=""/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="12dp"
+                    android:background="#1E293B"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp"
+                    android:weightSum="3">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:layout_marginEnd="4dp"
+                        android:background="#111C33">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="DROUGHT"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#94A3B8"
+                            android:letterSpacing="0.18"/>
+                        <TextView
+                            android:id="@+id/predDrought"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="—"
+                            android:textColor="#F87171"
+                            android:textStyle="bold"
+                            android:textSize="15sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="2dp"
+                        android:background="#111C33">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LOW STREAK"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#94A3B8"
+                            android:letterSpacing="0.18"/>
+                        <TextView
+                            android:id="@+id/predLowStreak"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="—"
+                            android:textColor="#FBBF24"
+                            android:textStyle="bold"
+                            android:textSize="15sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:layout_marginStart="4dp"
+                        android:background="#111C33">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="HEAT"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="#94A3B8"
+                            android:letterSpacing="0.18"/>
+                        <TextView
+                            android:id="@+id/predHeat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="—"
+                            android:textColor="#4ADE80"
+                            android:textStyle="bold"
+                            android:textSize="15sp"
+                            android:fontFamily="monospace"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="⚠ Prediction is a statistical hint from history, not a guarantee. Play responsibly."
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:fontStyle="italic"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+
+
         <!-- ═════════════ 3. DEEP ANALYSIS ═════════════ -->
         <androidx.cardview.widget.CardView
             android:id="@+id/analysisCard"
