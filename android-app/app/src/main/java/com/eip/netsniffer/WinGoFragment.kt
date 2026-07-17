@@ -1,6 +1,7 @@
 package com.eip.netsniffer
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -15,6 +16,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.eip.netsniffer.databinding.FragmentWingoBinding
+import org.json.JSONArray
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class WinGoFragment : Fragment() {
     private var _b: FragmentWingoBinding? = null
@@ -25,6 +31,9 @@ class WinGoFragment : Fragment() {
     private var wins = 0
     private var losses = 0
     private val resolvedIssues = HashSet<String>()
+
+    private lateinit var prefs: SharedPreferences
+    private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.US)
 
     private val ui = Handler(Looper.getMainLooper())
     private val ticker = object : Runnable {
@@ -40,14 +49,30 @@ class WinGoFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, s: Bundle?) {
+        prefs = requireContext().getSharedPreferences("net_sniffer", Context.MODE_PRIVATE)
+
+        // Restore persisted score + resolved issues so counts survive app restart.
+        wins = prefs.getInt(PREF_WINS, 0)
+        losses = prefs.getInt(PREF_LOSSES, 0)
+        loadResolvedIssues()
+        renderScoreboard()
+        renderLog()
+        WinGoStore.score.postValue(wins to losses)
+
         WinGoStore.start()
         WinGoStore.history.observe(viewLifecycleOwner) { onHistory(it) }
         WinGoStore.live.observe(viewLifecycleOwner) { renderCountdown() }
         ui.post(ticker)
+
         b.clearBtn.setOnClickListener {
             wins = 0; losses = 0
             resolvedIssues.clear()
             armedIssue = null; armedSignal = null
+            prefs.edit()
+                .putInt(PREF_WINS, 0)
+                .putInt(PREF_LOSSES, 0)
+                .remove(PREF_RESOLVED)
+                .apply()
             renderScoreboard()
             b.lastResultBadge.text = "—"
             b.lastResultBadge.setTextColor(0xFF94A3B8.toInt())
@@ -56,27 +81,35 @@ class WinGoFragment : Fragment() {
             WinGoStore.lastResult.postValue(null)
             WinGoStore.score.postValue(0 to 0)
         }
+        b.logClearBtn.setOnClickListener {
+            prefs.edit().remove(PREF_LOG).apply()
+            renderLog()
+        }
 
         // Browser-tab overlay toggle (mutually exclusive with Aviator overlay).
-        val prefs = requireContext().getSharedPreferences("net_sniffer", Context.MODE_PRIVATE)
         b.overlaySwitch.isChecked = prefs.getBoolean(PREF_WINGO_OVERLAY, false)
         WinGoStore.overlayEnabled.postValue(b.overlaySwitch.isChecked)
         b.overlaySwitch.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(PREF_WINGO_OVERLAY, checked).apply()
             WinGoStore.overlayEnabled.postValue(checked)
             if (checked) {
-                // Kill the aviator overlay to keep only one active.
                 prefs.edit().putBoolean("vip_overlay_enabled", false).apply()
                 AviatorStore.overlayEnabled.postValue(false)
             }
         }
-        // Reflect external changes (Aviator toggling on) back into our switch.
         WinGoStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
             if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
     }
 
-    companion object { private const val PREF_WINGO_OVERLAY = "wingo_overlay_on" }
+    companion object {
+        private const val PREF_WINGO_OVERLAY = "wingo_overlay_on"
+        private const val PREF_WINS = "wingo_wins"
+        private const val PREF_LOSSES = "wingo_losses"
+        private const val PREF_LOG = "wingo_signal_log"
+        private const val PREF_RESOLVED = "wingo_resolved_issues"
+        private const val LOG_CAP = 60
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -97,13 +130,19 @@ class WinGoFragment : Fragment() {
                 val win = WinGoLogic.didWin(armed, match)
                 if (win) wins++ else losses++
                 resolvedIssues.add(armedId)
+                prefs.edit()
+                    .putInt(PREF_WINS, wins)
+                    .putInt(PREF_LOSSES, losses)
+                    .apply()
+                saveResolvedIssues()
+                resolveLogEntry(armedId, win, match)
                 b.lastResultBadge.text = if (win) "✓ WIN" else "✗ LOSS"
                 b.lastResultBadge.setTextColor(0xFFFFFFFF.toInt())
                 b.lastResultBadge.background = bg(
                     if (win) 0xFF16A34A.toInt() else 0xFFDC2626.toInt(), 6f
                 )
                 b.lastResultDetail.text =
-                    "#${match.issue.takeLast(6)} → ${match.number} ${match.colors.joinToString("+")} " +
+                    "#${match.issue.takeLast(6)} → ${match.number} " +
                     "• bet ${armed.pick}"
                 WinGoStore.lastResult.postValue(
                     WinGoStore.LastResult(match.issue, win, match.number, match.colors, armed.pick)
@@ -111,16 +150,16 @@ class WinGoFragment : Fragment() {
                 WinGoStore.score.postValue(wins to losses)
                 armedIssue = null; armedSignal = null
                 renderScoreboard()
+                renderLog()
             }
         }
 
         // 2) Render history strip
         renderHistoryStrip(list)
 
-        // 3) Compute next signal (arm for the round *after* newest, i.e. currently-running)
+        // 3) Compute next signal
         val sig = WinGoLogic.predict(list) ?: return
         val runningId = WinGoStore.live.value?.currentIssue
-        // Only arm if that current running issue isn't already the newest history entry
         val armIssue = when {
             runningId != null && runningId != newest.issue -> runningId
             else -> nextIssueOf(newest.issue)
@@ -128,6 +167,8 @@ class WinGoFragment : Fragment() {
         if (armIssue != armedIssue) {
             armedIssue = armIssue
             armedSignal = sig
+            appendPendingLog(armIssue, sig)
+            renderLog()
         }
         WinGoStore.currentSignal.postValue(sig)
         WinGoStore.currentTargetIssue.postValue(armIssue)
@@ -137,15 +178,13 @@ class WinGoFragment : Fragment() {
     private fun renderSignal(sig: WinGoLogic.Signal, forIssue: String) {
         b.signalCard.visibility = View.VISIBLE
         val (color, label) = when (sig.pick) {
-            "RED" -> 0xFFDC2626.toInt() to "RED"
-            "GREEN" -> 0xFF16A34A.toInt() to "GREEN"
             "BIG" -> 0xFFF59E0B.toInt() to "BIG (5-9)"
             "SMALL" -> 0xFF3B82F6.toInt() to "SMALL (0-4)"
             else -> 0xFF64748B.toInt() to sig.pick
         }
         b.predPick.text = label
         b.predPick.background = bg(color, 12f)
-        b.predCategory.text = "BET ON ${sig.category}"
+        b.predCategory.text = "BET ON SIZE"
         b.predForIssue.text = "PERIOD  #${forIssue.takeLast(6)}"
         b.predConfidence.text = sig.confidence
         val confCol = when (sig.confidence) {
@@ -186,14 +225,163 @@ class WinGoFragment : Fragment() {
         )
     }
 
+    // ---------------------------------------------------------------------
+    // Local signal log (SharedPreferences — never uploaded)
+    // ---------------------------------------------------------------------
+
+    private fun readLog(): JSONArray = try {
+        JSONArray(prefs.getString(PREF_LOG, "[]") ?: "[]")
+    } catch (_: Throwable) { JSONArray() }
+
+    private fun writeLog(arr: JSONArray) {
+        prefs.edit().putString(PREF_LOG, arr.toString()).apply()
+    }
+
+    private fun appendPendingLog(issue: String, sig: WinGoLogic.Signal) {
+        val arr = readLog()
+        // dedupe: if same issue already logged as pending, skip
+        for (i in 0 until arr.length()) {
+            if (arr.optJSONObject(i)?.optString("issue") == issue) return
+        }
+        val o = JSONObject().apply {
+            put("issue", issue)
+            put("pick", sig.pick)
+            put("conf", sig.confidence)
+            put("ts", System.currentTimeMillis())
+            put("status", "PENDING")
+        }
+        // newest first
+        val next = JSONArray().put(o)
+        for (i in 0 until arr.length()) {
+            if (next.length() >= LOG_CAP) break
+            next.put(arr.get(i))
+        }
+        writeLog(next)
+    }
+
+    private fun resolveLogEntry(issue: String, win: Boolean, match: WinGoRound) {
+        val arr = readLog()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            if (o.optString("issue") == issue) {
+                o.put("status", if (win) "WIN" else "LOSS")
+                o.put("number", match.number)
+                break
+            }
+        }
+        writeLog(arr)
+    }
+
+    private fun renderLog() {
+        val ctx = context ?: return
+        val binding = _b ?: return
+        binding.signalLog.removeAllViews()
+        val arr = readLog()
+        if (arr.length() == 0) {
+            val tv = TextView(ctx)
+            tv.text = "No signals yet — waiting for first round."
+            tv.setTextColor(0xFF546A85.toInt())
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            tv.setPadding(0, dp(ctx, 6f).toInt(), 0, dp(ctx, 6f).toInt())
+            binding.signalLog.addView(tv)
+            return
+        }
+        val show = minOf(arr.length(), 30)
+        for (i in 0 until show) {
+            val o = arr.optJSONObject(i) ?: continue
+            binding.signalLog.addView(makeLogRow(ctx, o))
+        }
+    }
+
+    private fun makeLogRow(ctx: Context, o: JSONObject): View {
+        val row = LinearLayout(ctx)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val padV = dp(ctx, 7f).toInt()
+        val padH = dp(ctx, 10f).toInt()
+        row.setPadding(padH, padV, padH, padV)
+        row.background = bg(0xFF0A1428.toInt(), 8f)
+        val lpRow = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        )
+        lpRow.topMargin = dp(ctx, 4f).toInt()
+        row.layoutParams = lpRow
+
+        val ts = TextView(ctx)
+        ts.text = timeFmt.format(Date(o.optLong("ts")))
+        ts.setTextColor(0xFF64748B.toInt())
+        ts.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        ts.typeface = android.graphics.Typeface.MONOSPACE
+        row.addView(ts)
+
+        val issue = TextView(ctx)
+        issue.text = "  #${o.optString("issue").takeLast(6)}"
+        issue.setTextColor(0xFF94A3B8.toInt())
+        issue.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+        issue.typeface = android.graphics.Typeface.MONOSPACE
+        row.addView(issue)
+
+        val spacer = View(ctx)
+        val sp = LinearLayout.LayoutParams(0, 1, 1f)
+        spacer.layoutParams = sp
+        row.addView(spacer)
+
+        val pick = TextView(ctx)
+        val pickStr = o.optString("pick")
+        pick.text = pickStr
+        pick.setTextColor(Color.WHITE)
+        pick.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        pick.setTypeface(pick.typeface, android.graphics.Typeface.BOLD)
+        val pickPadH = dp(ctx, 8f).toInt()
+        val pickPadV = dp(ctx, 3f).toInt()
+        pick.setPadding(pickPadH, pickPadV, pickPadH, pickPadV)
+        pick.background = bg(
+            if (pickStr == "BIG") 0xFFF59E0B.toInt() else 0xFF3B82F6.toInt(), 6f
+        )
+        row.addView(pick)
+
+        val status = TextView(ctx)
+        val st = o.optString("status")
+        val (bgCol, txt) = when (st) {
+            "WIN" -> 0xFF16A34A.toInt() to "✓ WIN · ${o.optInt("number", -1)}"
+            "LOSS" -> 0xFFDC2626.toInt() to "✗ LOSS · ${o.optInt("number", -1)}"
+            else -> 0xFF334155.toInt() to "PENDING"
+        }
+        status.text = txt
+        status.setTextColor(Color.WHITE)
+        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        status.setTypeface(status.typeface, android.graphics.Typeface.BOLD)
+        status.setPadding(pickPadH, pickPadV, pickPadH, pickPadV)
+        status.background = bg(bgCol, 6f)
+        val lpSt = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        )
+        lpSt.marginStart = dp(ctx, 6f).toInt()
+        status.layoutParams = lpSt
+        row.addView(status)
+
+        return row
+    }
+
+    private fun loadResolvedIssues() {
+        resolvedIssues.clear()
+        val s = prefs.getString(PREF_RESOLVED, "") ?: ""
+        if (s.isNotEmpty()) resolvedIssues.addAll(s.split(",").filter { it.isNotEmpty() })
+    }
+
+    private fun saveResolvedIssues() {
+        // keep only newest 200 to avoid unbounded growth
+        val trimmed = resolvedIssues.toList().takeLast(200)
+        prefs.edit().putString(PREF_RESOLVED, trimmed.joinToString(",")).apply()
+    }
+
     private fun makeChip(ctx: Context, r: WinGoRound): View {
         val tv = TextView(ctx)
         val color = when {
-            r.colors.contains("red") && r.colors.contains("violet") -> 0xFF7C3AED.toInt()
-            r.colors.contains("green") && r.colors.contains("violet") -> 0xFF7C3AED.toInt()
-            r.colors.contains("red") -> 0xFFDC2626.toInt()
-            r.colors.contains("green") -> 0xFF16A34A.toInt()
-            else -> 0xFF64748B.toInt()
+            r.number >= 5 -> 0xFFF59E0B.toInt()   // BIG
+            else -> 0xFF3B82F6.toInt()             // SMALL
         }
         tv.background = bg(color, 10f)
         tv.text = r.number.toString()
@@ -210,7 +398,6 @@ class WinGoFragment : Fragment() {
     }
 
     private fun nextIssueOf(issue: String): String {
-        // issueNumber is a monotonically increasing numeric string
         return try {
             val big = java.math.BigInteger(issue)
             big.add(java.math.BigInteger.ONE).toString()
@@ -226,3 +413,4 @@ class WinGoFragment : Fragment() {
         setColor(color)
     }
 }
+
