@@ -195,14 +195,18 @@ class BrowserFragment : Fragment() {
         val v = _b ?: return
         updateOverlayVisibility()
         val st = AviatorStore.state.value ?: return
+
+        // BET NOW = post-crash bet window (CRASHED or BETTING phase)
+        // FLYING  = plane in the air
         val (label, color) = when (st.phase) {
-            AviatorPhase.FLYING  -> "FLYING"   to 0xFFFFB74D.toInt()
-            AviatorPhase.CRASHED -> "CRASHED"  to 0xFFE53935.toInt()
-            AviatorPhase.BETTING -> "BET"      to 0xFF4CAF50.toInt()
-            AviatorPhase.IDLE    -> "IDLE"     to 0xFF455A64.toInt()
+            AviatorPhase.FLYING              -> "✈ FLYING"  to 0xFFFFB74D.toInt()
+            AviatorPhase.CRASHED,
+            AviatorPhase.BETTING             -> "🎯 BET NOW" to 0xFF4CAF50.toInt()
+            AviatorPhase.IDLE                -> "IDLE"       to 0xFF455A64.toInt()
         }
         v.overlayPhase.text = label
         v.overlayPhase.setBackgroundColor(color)
+
         val big = when (st.phase) {
             AviatorPhase.FLYING  -> st.liveMultiplier
             AviatorPhase.CRASHED -> st.crashX ?: st.prevCrashX
@@ -210,55 +214,69 @@ class BrowserFragment : Fragment() {
         }
         v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
         v.overlayLive.setTextColor(color)
+
         val curId: Long? = when (st.phase) {
             AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId?.plus(1)
             else -> st.roundId
         }
-        v.overlayPrev.text = buildString {
-            append("run #${curId ?: "-"}")
-            if (st.prevRoundId != null && st.prevCrashX != null)
-                append("  • prev #${st.prevRoundId} %.2fx".format(st.prevCrashX))
-        }
+        v.overlayPrev.text = if (st.prevRoundId != null && st.prevCrashX != null)
+            "prev #${st.prevRoundId} → %.2fx  •  next #${curId ?: "-"}".format(st.prevCrashX)
+        else
+            "next #${curId ?: "-"}"
 
-        val hist = AviatorStore.rounds.value.orEmpty().take(8)
+        // Marquee history — right→left, most recent first.
+        val hist = AviatorStore.rounds.value.orEmpty().take(30)
         if (hist.isEmpty()) {
             v.overlayHistory.text = ""
         } else {
-            val sb = StringBuilder()
+            val sb = StringBuilder("  ")
             hist.forEach { r ->
                 val c = when {
                     r.crashX >= 10.0 -> "🟪"
                     r.crashX >= 2.0  -> "🟩"
                     else             -> "🟥"
                 }
-                sb.append(c).append("%.2f ".format(r.crashX))
+                sb.append(c).append(" %.2fx   ".format(r.crashX))
             }
-            v.overlayHistory.text = sb.toString().trim()
+            v.overlayHistory.text = sb.toString()
+            v.overlayHistory.isSelected = true  // required to start marquee
         }
 
         // Prediction signal + WIN detector in overlay
         val stats = PredictionTracker.stats.value
         val last = stats?.lastResult
-        v.overlaySignal.text = last?.label ?: "◈ ANALYZING…"
+
+        // Show the signal armed for the CURRENT running round (if any),
+        // else fall back to the last resolved label.
+        val armedLabel = PredictionTracker.currentArmedLabel()
+        v.overlaySignal.text = when {
+            armedLabel != null && curId != null ->
+                "▶ #${curId} · $armedLabel"
+            last != null -> "◈ ${last.label}"
+            else -> "◈ ANALYZING…"
+        }
         v.overlaySignal.setTextColor(0xFFFACC15.toInt())
 
-        if (stats == null || last == null) {
+        if (last == null) {
             v.overlayResult.text = "◌ WAIT"
             v.overlayResult.setBackgroundColor(0xFF1F2937.toInt())
             v.overlayResult.setTextColor(0xFF94A3B8.toInt())
         } else if (last.win) {
-            v.overlayResult.text = "✓ WIN"
+            v.overlayResult.text = "✓ WIN #${last.roundId} → %.2fx".format(last.crashX)
             v.overlayResult.setBackgroundColor(0xFF16A34A.toInt())
             v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
         } else {
-            v.overlayResult.text = "✗ LOSS"
+            v.overlayResult.text = "✗ LOSS #${last.roundId} → %.2fx".format(last.crashX)
             v.overlayResult.setBackgroundColor(0xFFDC2626.toInt())
             v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
         }
         val w = stats?.wins ?: 0
         val l = stats?.losses ?: 0
         val acc = if ((w + l) == 0) "—" else "${(w * 100) / (w + l)}%"
-        v.overlayScore.text = "${w}W-${l}L  •  $acc"
+        v.overlayScore.text = "${w}W-${l}L · $acc"
+        v.overlayScore.setTextColor(
+            if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt()
+        )
     }
 
     private fun loadFromInput() {
