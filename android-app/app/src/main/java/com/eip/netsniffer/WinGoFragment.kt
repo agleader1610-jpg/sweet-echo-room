@@ -157,22 +157,25 @@ class WinGoFragment : Fragment() {
         // 2) Render history strip
         renderHistoryStrip(list)
 
-        // 3) Compute next signal
-        val sig = WinGoLogic.predict(list) ?: return
+        // 3) Lock one signal per target period. Do not recalculate/randomize while
+        // the same period is still running, otherwise the prediction flips.
         val runningId = WinGoStore.live.value?.currentIssue
         val armIssue = when {
             runningId != null && runningId != newest.issue -> runningId
             else -> nextIssueOf(newest.issue)
         }
-        if (armIssue != armedIssue) {
+        if (armIssue != armedIssue || armedSignal == null) {
+            val sig = readPendingLogSignal(armIssue) ?: (WinGoLogic.predict(list) ?: return)
             armedIssue = armIssue
             armedSignal = sig
             appendPendingLog(armIssue, sig)
             renderLog()
         }
-        WinGoStore.currentSignal.postValue(sig)
+
+        val lockedSignal = armedSignal ?: return
+        WinGoStore.currentSignal.postValue(lockedSignal)
         WinGoStore.currentTargetIssue.postValue(armIssue)
-        renderSignal(sig, armIssue)
+        renderSignal(lockedSignal, armIssue)
     }
 
     private fun renderSignal(sig: WinGoLogic.Signal, forIssue: String) {
@@ -239,14 +242,16 @@ class WinGoFragment : Fragment() {
 
     private fun appendPendingLog(issue: String, sig: WinGoLogic.Signal) {
         val arr = readLog()
-        // dedupe: if same issue already logged as pending, skip
+        // dedupe: if same issue already logged, keep that original locked signal
         for (i in 0 until arr.length()) {
             if (arr.optJSONObject(i)?.optString("issue") == issue) return
         }
         val o = JSONObject().apply {
             put("issue", issue)
             put("pick", sig.pick)
+            put("category", sig.category)
             put("conf", sig.confidence)
+            put("reasoning", sig.reasoning)
             put("ts", System.currentTimeMillis())
             put("status", "PENDING")
         }
@@ -257,6 +262,23 @@ class WinGoFragment : Fragment() {
             next.put(arr.get(i))
         }
         writeLog(next)
+    }
+
+    private fun readPendingLogSignal(issue: String): WinGoLogic.Signal? {
+        val arr = readLog()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            if (o.optString("issue") != issue) continue
+            if (o.optString("status", "PENDING") != "PENDING") return null
+            val pick = o.optString("pick").takeIf { it == "BIG" || it == "SMALL" } ?: return null
+            return WinGoLogic.Signal(
+                pick = pick,
+                category = o.optString("category", "SIZE"),
+                confidence = o.optString("conf", "LOW"),
+                reasoning = o.optString("reasoning", "locked signal for this period"),
+            )
+        }
+        return null
     }
 
     private fun resolveLogEntry(issue: String, win: Boolean, match: WinGoRound) {
