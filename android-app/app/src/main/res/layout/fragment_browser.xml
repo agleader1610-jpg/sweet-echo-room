@@ -74,26 +74,26 @@
             android:layout_weight="1"/>
     </LinearLayout>
 
-    <!-- ═════ EIP compact overlay pinned to top of Browser tab ═════ -->
+    <!-- ═════ EIP signal overlay pinned to top of Browser tab ═════ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/vipOverlay"
-        android:layout_width="270dp"
+        android:layout_width="280dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_marginTop="10dp"
         android:layout_marginEnd="10dp"
         android:visibility="gone"
-        app:cardBackgroundColor="#F00B1220"
+        app:cardBackgroundColor="#F00A1226"
         app:cardCornerRadius="14dp"
-        app:cardElevation="8dp">
+        app:cardElevation="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="11dp">
 
-            <!-- Header: brand + drag handle + close + W/L score -->
+            <!-- Header: brand + W/L score + close -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -104,7 +104,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="⚡ EIP TEAM • LIVE"
+                    android:text="⚡ EIP TEAM"
                     android:textColor="#FFD54F"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -115,10 +115,10 @@
                     android:id="@+id/overlayScore"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:paddingTop="1dp"
-                    android:paddingBottom="1dp"
+                    android:paddingStart="7dp"
+                    android:paddingEnd="7dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:background="#1F2937"
                     android:text="W 0  L 0"
                     android:textColor="#4ADE80"
@@ -137,87 +137,70 @@
                     android:textStyle="bold"/>
             </LinearLayout>
 
-            <!-- Phase + big live multiplier -->
-            <LinearLayout
+            <!-- SIGNAL FOR ROUND #… -->
+            <TextView
+                android:id="@+id/overlayPhase"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="8dp">
-                <TextView
-                    android:id="@+id/overlayPhase"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="7dp"
-                    android:paddingEnd="7dp"
-                    android:paddingTop="3dp"
-                    android:paddingBottom="3dp"
-                    android:background="#4CAF50"
-                    android:text="BET TIME"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.16"/>
-                <TextView
-                    android:id="@+id/overlayLive"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:gravity="end"
-                    android:text="—"
-                    android:textColor="#FACC15"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:fontFamily="monospace"/>
-            </LinearLayout>
+                android:layout_marginTop="8dp"
+                android:text="SIGNAL • FOR #—"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.22"
+                android:fontFamily="monospace"/>
 
-            <!-- Previous round -->
+            <!-- BIG TARGET multiplier (hero) -->
+            <TextView
+                android:id="@+id/overlayLive"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#4ADE80"
+                android:textSize="40sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:includeFontPadding="false"
+                android:letterSpacing="-0.02"/>
+
+            <!-- Signal action pill -->
+            <TextView
+                android:id="@+id/overlaySignal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:background="#455A64"
+                android:text="ANALYZING"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"/>
+
+            <!-- Last round crash context -->
             <TextView
                 android:id="@+id/overlayPrev"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="7dp"
                 android:text="LAST —"
                 android:textColor="#94A3B8"
                 android:textSize="11sp"
                 android:fontFamily="monospace"/>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="7dp"
-                android:background="#1E293B"/>
-
-            <!-- Signal FOR next round -->
-            <TextView
-                android:id="@+id/overlaySignal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="#1F2937"
-                android:text="SIGNAL • ANALYZING"
-                android:textColor="#FACC15"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.1"
-                android:maxLines="2"
-                android:ellipsize="end"/>
-
-            <!-- Last resolved result -->
+            <!-- Last result -->
             <TextView
                 android:id="@+id/overlayResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:paddingStart="5dp"
-                android:paddingEnd="5dp"
-                android:paddingTop="1dp"
-                android:paddingBottom="1dp"
+                android:layout_marginTop="6dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:background="#1F2937"
                 android:text="◌ WAIT"
                 android:textColor="#94A3B8"
