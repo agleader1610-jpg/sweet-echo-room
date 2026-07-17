@@ -78,11 +78,14 @@
                 android:id="@+id/tabBrowserBtn"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="52dp"
-                android:layout_marginEnd="6dp"
-                android:text="@string/tab_browser"
+                android:layout_height="76dp"
+                android:layout_marginEnd="8dp"
+                android:text="🎯\nDK WIN"
                 android:textAllCaps="false"
-                android:textSize="12sp"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:lineSpacingExtra="2dp"
                 android:background="@drawable/tab_chip_bg"
                 android:textColor="@color/tab_chip_text"
                 android:stateListAnimator="@null"
@@ -91,28 +94,24 @@
                 android:id="@+id/tabAviatorBtn"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="52dp"
-                android:layout_marginEnd="6dp"
-                android:text="@string/tab_aviator"
+                android:layout_height="76dp"
+                android:text="✈\nAVIATOR"
                 android:textAllCaps="false"
-                android:textSize="12sp"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:lineSpacingExtra="2dp"
                 android:background="@drawable/tab_chip_bg"
                 android:textColor="@color/tab_chip_text"
                 android:stateListAnimator="@null"
                 android:minWidth="0dp"/>
-            <!-- Profile & Network tabs hidden for public release.
-                 Kept in tree (visibility=gone) so MainActivity references
-                 compile and can be re-enabled instantly by flipping visibility. -->
             <Button
                 android:id="@+id/tabProfileBtn"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="52dp"
-                android:layout_marginEnd="6dp"
                 android:visibility="gone"
                 android:text="@string/tab_profile"
-                android:textAllCaps="false"
-                android:textSize="12sp"
                 android:background="@drawable/tab_chip_bg"
                 android:textColor="@color/tab_chip_text"
                 android:stateListAnimator="@null"
@@ -124,12 +123,32 @@
                 android:layout_height="52dp"
                 android:visibility="gone"
                 android:text="@string/tab_network"
-                android:textAllCaps="false"
-                android:textSize="12sp"
                 android:background="@drawable/tab_chip_bg"
                 android:textColor="@color/tab_chip_text"
                 android:stateListAnimator="@null"
                 android:minWidth="0dp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="2dp">
+            <View
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:background="@color/accent"/>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="EIP engine online • signals streaming"
+                android:textColor="@color/muted"
+                android:textSize="10sp"
+                android:letterSpacing="0.1"/>
         </LinearLayout>
 
         <!-- Section: URL -->
