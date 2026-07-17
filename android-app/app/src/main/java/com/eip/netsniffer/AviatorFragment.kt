@@ -122,10 +122,10 @@ class AviatorFragment : Fragment() {
         if (st.phaseSince == 0L) return
         val elapsed = System.currentTimeMillis() - st.phaseSince
         val phaseName = when (st.phase) {
-            AviatorPhase.FLYING  -> "flying for"
-            AviatorPhase.CRASHED -> "crashed since"
-            AviatorPhase.BETTING -> "bet window"
-            AviatorPhase.IDLE    -> "idle"
+            AviatorPhase.FLYING              -> "flying for"
+            AviatorPhase.CRASHED,
+            AviatorPhase.BETTING             -> "bet window open"
+            AviatorPhase.IDLE                -> "idle"
         }
         b.phaseTimer.text = "$phaseName ${fmtMs(elapsed)}"
     }
