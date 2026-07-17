@@ -77,23 +77,22 @@
     <!-- ═════ EIP signal overlay pinned to top of Browser tab ═════ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/vipOverlay"
-        android:layout_width="280dp"
+        android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
         android:visibility="gone"
         app:cardBackgroundColor="#F00A1226"
-        app:cardCornerRadius="14dp"
-        app:cardElevation="10dp">
+        app:cardCornerRadius="10dp"
+        app:cardElevation="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="11dp">
+            android:padding="7dp">
 
-            <!-- Header: brand + W/L score + close -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -104,123 +103,106 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="⚡ EIP TEAM"
+                    android:text="⚡ EIP"
                     android:textColor="#22D3EE"
-                    android:textSize="11sp"
+                    android:textSize="9sp"
                     android:textStyle="bold"
-                    android:letterSpacing="0.24"
-                    android:shadowColor="#66FFD54F"
-                    android:shadowRadius="6"/>
+                    android:letterSpacing="0.2"/>
                 <TextView
                     android:id="@+id/overlayScore"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="7dp"
-                    android:paddingEnd="7dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
+                    android:paddingStart="5dp" android:paddingEnd="5dp"
                     android:background="#1F2937"
-                    android:text="W 0  L 0"
+                    android:text=""
                     android:textColor="#4ADE80"
-                    android:textSize="10sp"
+                    android:textSize="8sp"
                     android:textStyle="bold"
-                    android:fontFamily="@font/roboto_mono"/>
+                    android:fontFamily="@font/roboto_mono"
+                    android:visibility="gone"/>
                 <TextView
                     android:id="@+id/overlayClose"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="2dp"
+                    android:paddingStart="6dp"
                     android:text="✕"
                     android:textColor="#94A3B8"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     android:textStyle="bold"/>
             </LinearLayout>
 
-            <!-- SIGNAL FOR ROUND #… -->
             <TextView
                 android:id="@+id/overlayPhase"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="SIGNAL • FOR #—"
+                android:layout_marginTop="4dp"
+                android:text="SIGNAL • #—"
                 android:textColor="#94A3B8"
-                android:textSize="10sp"
+                android:textSize="8sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.22"
+                android:letterSpacing="0.18"
                 android:fontFamily="@font/roboto_mono"/>
 
-            <!-- BIG TARGET multiplier (hero) -->
             <TextView
                 android:id="@+id/overlayLive"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="—"
                 android:textColor="#4ADE80"
-                android:textSize="40sp"
+                android:textSize="26sp"
                 android:textStyle="bold"
                 android:fontFamily="@font/orbitron"
                 android:includeFontPadding="false"
                 android:letterSpacing="-0.02"/>
 
-            <!-- Signal action pill -->
             <TextView
                 android:id="@+id/overlaySignal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
+                android:paddingStart="7dp" android:paddingEnd="7dp"
+                android:paddingTop="2dp" android:paddingBottom="2dp"
                 android:background="#455A64"
                 android:text="ANALYZING"
                 android:textColor="#FFFFFF"
-                android:textSize="11sp"
+                android:textSize="9sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.14"/>
+                android:letterSpacing="0.12"/>
 
-            <!-- Last round crash context -->
             <TextView
                 android:id="@+id/overlayPrev"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="5dp"
                 android:text="LAST —"
                 android:textColor="#94A3B8"
-                android:textSize="11sp"
+                android:textSize="9sp"
                 android:fontFamily="@font/roboto_mono"/>
 
-            <!-- Last result -->
             <TextView
                 android:id="@+id/overlayResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="3dp"
-                android:paddingBottom="3dp"
+                android:layout_marginTop="4dp"
+                android:paddingStart="5dp" android:paddingEnd="5dp"
+                android:paddingTop="2dp" android:paddingBottom="2dp"
                 android:background="#1F2937"
                 android:text="◌ WAIT"
                 android:textColor="#94A3B8"
-                android:textSize="10sp"
+                android:textSize="8sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.14"/>
+                android:letterSpacing="0.12"/>
 
-            <!-- Scrolling history marquee -->
             <TextView
                 android:id="@+id/overlayHistory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
+                android:layout_marginTop="5dp"
+                android:paddingStart="5dp" android:paddingEnd="5dp"
+                android:paddingTop="3dp" android:paddingBottom="3dp"
                 android:background="#0B1220"
                 android:text=""
-                android:textSize="11sp"
+                android:textSize="9sp"
                 android:fontFamily="@font/roboto_mono"
                 android:singleLine="true"
                 android:ellipsize="marquee"
@@ -230,6 +212,7 @@
                 android:scrollHorizontally="true"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
 
     <!-- ═════ EIP WIN GO overlay (compact) ═════ -->
     <androidx.cardview.widget.CardView
