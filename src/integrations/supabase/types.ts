@@ -21,7 +21,9 @@ export type Database = {
           id: number
           latest_version: number
           latest_version_name: string
+          lock_message: string
           min_version: number
+          required_parent_invite_code: string
           update_message: string
           updated_at: string
         }
@@ -31,7 +33,9 @@ export type Database = {
           id?: number
           latest_version?: number
           latest_version_name?: string
+          lock_message?: string
           min_version?: number
+          required_parent_invite_code?: string
           update_message?: string
           updated_at?: string
         }
@@ -41,7 +45,9 @@ export type Database = {
           id?: number
           latest_version?: number
           latest_version_name?: string
+          lock_message?: string
           min_version?: number
+          required_parent_invite_code?: string
           update_message?: string
           updated_at?: string
         }
@@ -104,6 +110,24 @@ export type Database = {
           source?: string | null
           status?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      licensed_uids: {
+        Row: {
+          created_at: string
+          note: string | null
+          uid: string
+        }
+        Insert: {
+          created_at?: string
+          note?: string | null
+          uid: string
+        }
+        Update: {
+          created_at?: string
+          note?: string | null
+          uid?: string
         }
         Relationships: []
       }
