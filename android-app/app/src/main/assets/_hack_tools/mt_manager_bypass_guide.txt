@@ -1,0 +1,34 @@
+MT MANAGER · APKTOOL · JADX BYPASS GUIDE
+=========================================
+
+Step 1: Open classes.dex in JADX
+Step 2: Find LicenseGate.smali
+Step 3: Change "LICENSED" comparison
+Step 4: Recompile with apktool
+Step 5: Sign with debug key
+Step 6: ????
+Step 7: PROFIT!
+
+────────────────────────────────────────
+হাহাহাহাহা 😂
+
+শোন হ্যাকার সাহেব — তুই যেই মুহূর্তে APK recompile করবি,
+আমাদের TamperGuard signing certificate hash মিলাবে server-এ।
+Mismatch হইলেই permanent LOCK। তোর সব "hack" মুহূর্তেই বাল
+হয়ে যাবে।
+
+আর যদি ভাবিস signing check bypass করে ফেলবি — সেটাও ধরা
+পড়বে কারণ:
+  • Debuggable flag → detected
+  • Root/Magisk    → detected
+  • Frida gadget   → detected
+  • Xposed hooks   → detected
+  • Emulator       → detected
+  • Package rename → detected
+
+একটাও fail করলে চিরতরে LOCKED।
+
+তুই যত smart হবি, আমরা তার চেয়ে দশগুণ smart। এই টুকু বুঝলে
+সময় নষ্ট না করে আসল account বানিয়ে join হ। ধন্যবাদ।
+
+— EIP Anti-Reverse-Engineering Division
