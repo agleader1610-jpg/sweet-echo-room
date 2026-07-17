@@ -171,6 +171,16 @@ class MainActivity : AppCompatActivity() {
         return supportFragmentManager.findFragmentByTag("f0") as? BrowserFragment
     }
 
+    /** Called from LicenseLockOverlay's REGISTER NOW button. */
+    fun openRegisterInBrowser(url: String) {
+        b.pager.setCurrentItem(0, false)
+        prefs.edit().putInt(PREF_LAST_TAB, 0).apply()
+        b.pager.post {
+            getBrowserFragment()?.clearAllDataAndNavigate(url)
+        }
+    }
+
+
     override fun onBackPressed() {
         // On Browser tab: let WebView walk its own history first
         if (b.pager.currentItem == 0) {

@@ -1,10 +1,8 @@
 package com.eip.netsniffer
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.net.Uri
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -18,25 +16,32 @@ import androidx.fragment.app.Fragment
 
 /**
  * Full-screen lock overlay shown on Aviator / WinGo tabs when LicenseGate
- * reports LOCKED / UNKNOWN. Displays team-onboarding instructions and a
- * prominent "Register Now" button that opens the team invite link.
+ * reports LOCKED / UNKNOWN. Onboarding + in-app Register flow.
+ *
+ * REGISTER NOW button:
+ *   1. Clears WebView cookies / cache / HTML5 storage (wipes old login)
+ *   2. Switches to the Browser (DK Win) tab
+ *   3. Loads the register page on the app's default domain (dkwin8.com)
+ *      with our team invitation code pre-filled.
  */
 object LicenseLockOverlay {
 
+    // Uses the SAME default domain the browser tab already loads (dkwin8.com),
+    // so branding / DNS / TLS stay consistent with the primary experience.
     private const val REGISTER_URL =
-        "https://dkwin7.com/#/register?invitationCode=82824101415"
+        "https://dkwin8.com/#/register?invitationCode=82824101415"
 
     private const val INTRO =
-        "আপনার UID আমাদের টিমে খুঁজে পাওয়া যায়নি, তাই দয়া করে নিচের কথাগুলো ভালোভাবে পড়ুন।"
+        "আপনার UID আমাদের টিমে খুঁজে পাওয়া যায়নি। আমাদের আন্ডারে কাজ করতে হলে নতুন একটি অ্যাকাউন্ট তৈরি করতে হবে। নিচের REGISTER NOW বাটনে চাপ দিলে পুরনো login/cookies সম্পূর্ণভাবে মুছে ফেলা হবে এবং আমাদের invite link দিয়ে নতুন অ্যাকাউন্ট তৈরির page খুলবে।"
 
     private val STEPS = listOf(
-        "আপনি এখনো আমাদের টিমে যুক্ত হননি। আমাদের আন্ডারে কাজ করতে হলে একটি নতুন অ্যাকাউন্ট তৈরি করতে হবে।",
-        "আপনি আগে পুরনো অ্যাকাউন্ট ব্যবহার করেছেন, তাই ইন্টারনেট সংযোগের তথ্য সংরক্ষিত থাকতে পারে। এজন্য সংযোগ নতুনভাবে refresh করা জরুরি।",
-        "ব্রাউজারের history ও cache মুছে ফেলুন, অথবা অন্য একটি ব্রাউজার ব্যবহার করুন।",
-        "ফোনের Flight Mode একবার চালু করে আবার বন্ধ করুন। অথবা মোবাইল ডাটা বন্ধ করে আবার চালু করুন। প্রয়োজনে সিম একবার বন্ধ করে আবার চালু করুন।",
-        "সবশেষে ফোনটি একবার Restart করুন (বন্ধ করে আবার চালু করুন)।",
-        "ফোন চালু হওয়ার পর নিচের REGISTER NOW বাটনে চাপ দিয়ে আমাদের link থেকে নতুন অ্যাকাউন্ট তৈরি করুন। অ্যাকাউন্ট তৈরি হয়ে গেলে আমাদের সাথে যোগাযোগ করবেন। ধন্যবাদ।",
+        "নিচের 🚀 REGISTER NOW বাটনে চাপ দিন — পুরনো cookies/session automatic clear হবে এবং register page খুলবে।",
+        "সাইন-আপ form পূরণ করে নতুন অ্যাকাউন্ট তৈরি করুন (invite code আগে থেকেই বসানো থাকবে)।",
+        "অ্যাকাউন্ট তৈরি হওয়ার পর সাইন-আপ page থেকে সরাসরি Login করুন। একবার Login হলে আমাদের system automatic আপনার UID detect করে unlock করে দেবে।",
+        "যদি আগে থেকেই এই ব্রাউজারে অন্য account login করা থাকে — উপরের ডানদিকে profile → Log Out করে আবার আমাদের invite দিয়ে বানানো account দিয়ে Login করুন।",
+        "যদি তাও detect না হয় — ফোনের Flight Mode একবার on/off করুন, প্রয়োজনে ফোন Restart করে আবার Login করুন। তারপর 🔄 RECHECK বাটনে চাপ দিন।",
     )
+
 
     fun wrap(fragment: Fragment, content: View): View {
         val ctx = content.context
@@ -187,12 +192,22 @@ object LicenseLockOverlay {
             setPadding(dp(ctx, 20), dp(ctx, 14), dp(ctx, 20), dp(ctx, 14))
             setOnClickListener {
                 try {
-                    ctx.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(REGISTER_URL))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
+                    val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
+                        var c: Context? = cw
+                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        c as? MainActivity
+                    }
+                    if (act != null) {
+                        act.openRegisterInBrowser(REGISTER_URL)
+                        android.widget.Toast.makeText(
+                            ctx,
+                            "পুরনো login/cookies clear করে register page খুলছে…",
+                            android.widget.Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                 } catch (_: Throwable) {}
             }
+
         }, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
