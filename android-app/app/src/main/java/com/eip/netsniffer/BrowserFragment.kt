@@ -215,10 +215,11 @@ class BrowserFragment : Fragment() {
         v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
         v.overlayLive.setTextColor(color)
 
-        val curId: Long? = when (st.phase) {
-            AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId?.plus(1)
-            else -> st.roundId
-        }
+        val curId: Long? = AviatorStore.rounds.value.orEmpty().firstOrNull()?.roundId?.plus(1)
+            ?: when (st.phase) {
+                AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId
+                else -> st.roundId
+            }
         v.overlayPrev.text = if (st.prevRoundId != null && st.prevCrashX != null)
             "LAST #${st.prevRoundId} • %.2fx   |   NEXT #${curId ?: "-"}".format(st.prevCrashX)
         else

@@ -266,13 +266,11 @@ class AviatorFragment : Fragment() {
             )
         }
 
-        // Which round is this signal FOR?
-        val st = AviatorStore.state.value
-        val runningId: Long? = when (st?.phase) {
-            AviatorPhase.CRASHED -> (st.prevRoundId ?: st.roundId)?.plus(1)
-            AviatorPhase.BETTING, AviatorPhase.FLYING -> st.roundId
-            else -> null
-        }
+        // Signal is always generated from completed history for the NEXT round.
+        // This avoids arming the already-crashed round when LiveData posts
+        // history before the latest phase snapshot reaches the UI.
+        val runningId: Long? = AviatorStore.rounds.value.orEmpty().firstOrNull()?.roundId?.plus(1)
+            ?: AviatorStore.state.value?.roundId
 
         val signalLabel = if (sig.targetX == null) {
             "${sig.emoji} SKIP ROUND"
