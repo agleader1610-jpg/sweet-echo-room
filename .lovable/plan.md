@@ -1,79 +1,81 @@
-## সমস্যা এখন কী
+## লক্ষ্য
 
-বর্তমান system-এ আপনাকে `versionCode`, `min_version`, `latest_version` — এই সব number নিজে বসাতে হয়। এটা confusing এবং ভুল হওয়ার risk।
+Aviator round শেষে instant AI signal → app-এ real-time show → সব data database-এ save → AI credit শেষ হলে automatic local logic fallback।
 
-## নতুন সহজ System (proposed)
+## Architecture
 
-**মূল idea:** Number-এর বদলে **GitHub build number** automatic ব্যবহার করব। আপনি শুধু admin panel-এ **একটা button টিপবেন** — বাকি সব automatic।
+```text
+Android App (BrowserFragment/AviatorStore)
+   │  crash detect → POST /api/public/predict
+   ▼
+TanStack Server Route  ──► Supabase (round_history, predictions, session_stats)
+   │
+   ├─► Lovable AI Gateway (Gemini 3 Flash) ──► signal
+   │                                              │
+   └─► IF AI fails/402 → local logic engine ──────┤
+                                                  ▼
+   Response {signal, target, confidence, source: "ai"|"local", reasoning}
+                                                  │
+Android app displays instantly on AviatorFragment + BrowserFragment overlay
+```
 
-### কীভাবে কাজ করবে
+WebSocket not strictly needed — HTTPS POST after each crash detect হলে latency 300-800ms, যেটা next round শুরু হওয়ার আগেই signal দিয়ে দিবে। এতে existing STREAM_SECRET/relay infrastructure-এ ঝামেলা কম, cost কম, reliability বেশি।
 
-1. **APK build হওয়ার সময়:**
-   - GitHub Actions প্রতি build-এ automatic একটা unique number দেয় (run number: 1, 2, 3, 4...)
-   - এই number automatic APK-এর ভেতরে inject হয়ে যাবে (আপনার কিছু করতে হবে না)
-   - Build শেষ হলে GitHub Releases-এ automatic upload হবে — direct download link পাবেন
+## Model Choice
 
-2. **Admin Panel-এ আপনি যা দেখবেন:**
+**Gemini 3 Flash** (`google/gemini-3-flash-preview`) — fastest, cheapest, multimodal ভবিষ্যতে video analysis-ও করতে পারবে (তোমার mentioned "video analysis" plan-এর জন্য perfect)।
 
-   ```
-   ┌─────────────────────────────────────────┐
-   │ বর্তমান latest APK: Build #7            │
-   │ Download link: [auto-filled]           │
-   │                                         │
-   │ পুরনো user-দের জন্য minimum required:   │
-   │ [ Build #5 ▼ ]  ← dropdown              │
-   │                                         │
-   │ [ Force update চালু ]  ☑                │
-   │                                         │
-   │ [  🚀 Publish this update  ]            │
-   └─────────────────────────────────────────┘
-   ```
-   
-   কোনো number টাইপ করতে হবে না। শুধু dropdown থেকে select করবেন কোন build-এর নিচের user-দের update করতে বাধ্য করতে চান।
+## Database (নতুন 3 tables)
 
-3. **App-এ কী হবে:**
-   - App জানে সে Build #5, launch-এ server-কে জিজ্ঞেস করবে
-   - Server বলবে: "Latest #7, minimum #6 required, force ON"
-   - `5 < 6` → block screen: **"নতুন update আছে, download করুন"** + button
-   - Button টিপলে GitHub release-এর APK download শুরু
+1. **round_history** — প্রতি crash: `round_id, multiplier, crashed_at, device_id`
+2. **predictions** — প্রতি signal: `round_id, target, action, confidence, source(ai/local), reasoning, ai_model, created_at`
+3. **prediction_results** — verify হওয়ার পর: `prediction_id, actual_multiplier, outcome(win/loss/skip), profit_ratio`
 
-### আপনার Workflow (final)
+সব table-এ RLS: anon read+insert (device_id filter), service_role full।
 
-**যখন final version publish করবেন (এখন):**
-1. Code push → GitHub build হবে (ধরুন Build #7)
-2. Admin panel খুলবেন → দেখবেন "Latest: Build #7" auto-filled
-3. Minimum = Build #7 select করবেন
-4. **Publish** টিপবেন → done ✅
-5. এখন user-রা এই APK download করে ব্যবহার করবে
+## Server Route: `/api/public/predict-signal`
 
-**পরে যখন update দিতে চাইবেন:**
-1. Lovable-এ improvements করবেন, test করবেন (user-দের কিছুই হবে না)
-2. Ready হলে code push করবেন → GitHub Build #8 তৈরি হবে
-3. আপনি নিজে সেই APK install করে test করবেন
-4. সব ঠিক থাকলে → Admin panel → Latest দেখাবে "Build #8" → Minimum = #8 select → **Publish**
-5. সাথে সাথে পুরনো Build #7 user-রা block screen দেখবে → নতুন APK download করবে
+Input: `{ device_id, history: [{round_id, multiplier}...last 20] }`
 
-**Bug এলে (rollback):**
-- Admin panel-এ Minimum আবার Build #7-এ নামিয়ে দিলে block বন্ধ
+Flow:
+1. History save → `round_history` table
+2. AI call try করে (Gemini 3 Flash, 5s timeout, structured JSON output)
+3. AI fail/timeout/402 হলে → local logic engine (existing PredictionTracker logic port করা)
+4. Signal `predictions` table-এ save
+5. Return signal + `source` field
 
-### Technical Changes (সংক্ষেপে)
+Local logic engine: current Kotlin-এর 9 scenario logic TypeScript-এ port — heat detection, cold streak, 10x+ skip, recovery bet ইত্যাদি।
 
-1. **`android-build.yml`**: `versionCode = ${{ github.run_number }}` inject করব → APK-এর ভেতরে automatic build number বসবে
-2. **`app-version` API**: GitHub Releases API থেকে latest release-এর URL auto-fetch করে return করবে
-3. **Admin panel**: 
-   - "Latest APK" + download URL — auto-fetched, read-only
-   - Recent builds-এর dropdown (last 10 releases)
-   - শুধু "Minimum required build" dropdown + Force toggle + **Publish** button
-   - কোনো text input নেই, কোনো number টাইপ নেই
-4. **DB schema**: `min_version` field রাখব (integer, GitHub run number), `latest_version` / `apk_url` field remove (auto-fetch হবে)
-5. **APK-এর version check**: `BuildConfig.VERSION_CODE` = GitHub run number, তুলনা straightforward
+## Verification endpoint: `/api/public/verify-result`
 
-### যে সুবিধা পাবেন
+পরবর্তী crash-এর পর app call করবে — actual multiplier দিবে, `prediction_results` table update হবে, W/L stats accurate থাকবে।
 
-- ✅ কোনো number মনে রাখতে হবে না
-- ✅ APK link manual copy-paste করতে হবে না
-- ✅ Confusion-এর কোনো scope নেই — শুধু dropdown + button
-- ✅ Wrong number দেওয়ার risk নেই
-- ✅ Rollback সহজ (dropdown-এ পুরনো build select)
+## Android Changes
 
-এই plan-এ এগোবো?
+- **AviatorStore.kt**: crash detect হলে `PredictionClient.fetchSignal(history)` call → callback-এ AI/local signal UI-তে push
+- **PredictionClient.kt** (নতুন): OkHttp POST to server route, JSON parse, fallback to local `PredictionTracker` যদি network fail
+- **AviatorFragment.kt**: signal card-এ নতুন badge — "🤖 AI" (green) বা "⚙ LOGIC" (blue) source দেখাবে + AI reasoning text (2 lines)
+- **BrowserFragment.kt**: overlay-এ same signal source badge
+
+## Fallback Strategy
+
+Server side: AI 402/429/timeout → immediately local logic run → return with `source: "local"` (app কখনো blank signal পাবে না)।
+Client side: server unreachable → Kotlin-এর local `PredictionTracker` fallback → `source: "offline"`।
+
+তিন-layer resilience: AI → server logic → offline logic।
+
+## Files touched
+
+- Migration: 3 new tables + RLS + grants
+- New: `src/routes/api/public/predict-signal.ts`, `src/routes/api/public/verify-result.ts`, `src/lib/local-prediction-logic.ts`
+- Android new: `PredictionClient.kt`
+- Android edit: `AviatorStore.kt`, `AviatorFragment.kt`, `BrowserFragment.kt`, `fragment_aviator.xml` (source badge + reasoning text)
+- Version bump: **31**
+
+## Cost Estimate
+
+Gemini 3 Flash: প্রতি round ~500 input tokens + 100 output ≈ **0.03 credit/round**। ঘণ্টায় ~120 rounds = 3.6 credits/hour। Testing session (4 hours) ≈ 15 credits।
+
+## Confirmation
+
+শুরু করব? Approve করলে সব একসাথে ship করব — migration + server routes + Android update সহ v1.0.31 build।
