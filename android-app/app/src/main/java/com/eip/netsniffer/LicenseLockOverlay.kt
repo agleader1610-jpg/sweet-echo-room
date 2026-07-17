@@ -54,22 +54,136 @@ object LicenseLockOverlay {
             ),
         )
 
-        val overlay = buildOverlay(ctx)
-        overlay.visibility = View.GONE
-        fl.addView(
-            overlay,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
-        )
+        // Two overlays: normal "please register" screen + tamper shame screen.
+        val registerOverlay = buildOverlay(ctx).apply { visibility = View.GONE }
+        val shameOverlay = buildShameOverlay(ctx).apply { visibility = View.GONE }
+        fl.addView(registerOverlay, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+        ))
+        fl.addView(shameOverlay, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+        ))
 
-        LicenseGate.state.observe(fragment.viewLifecycleOwner) { st ->
+        fun apply(st: LicenseGate.State?) {
             val locked = st == null || st.locked
-            overlay.visibility = if (locked) View.VISIBLE else View.GONE
+            val tampered = st?.tampered == true
+            shameOverlay.visibility = if (locked && tampered) View.VISIBLE else View.GONE
+            registerOverlay.visibility = if (locked && !tampered) View.VISIBLE else View.GONE
         }
-        if (LicenseGate.isLocked()) overlay.visibility = View.VISIBLE
+        LicenseGate.state.observe(fragment.viewLifecycleOwner) { apply(it) }
+        apply(LicenseGate.state.value)
         return fl
+    }
+
+    /** Full-screen "you got caught" screen for tampered / repackaged builds. */
+    private fun buildShameOverlay(ctx: Context): View {
+        val root = FrameLayout(ctx).apply {
+            setBackgroundColor(0xFF0A0000.toInt())
+            isClickable = true
+            isFocusable = true
+        }
+        val scroll = ScrollView(ctx).apply {
+            isFillViewport = true
+            setPadding(dp(ctx, 18), dp(ctx, 24), dp(ctx, 18), dp(ctx, 24))
+        }
+        val card = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(ctx, 22), dp(ctx, 26), dp(ctx, 22), dp(ctx, 26))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 22).toFloat()
+                colors = intArrayOf(0xFF1A0000.toInt(), 0xFF2A0505.toInt())
+                orientation = GradientDrawable.Orientation.TOP_BOTTOM
+                setStroke(dp(ctx, 2), 0xFFEF4444.toInt())
+            }
+        }
+
+        card.addView(TextView(ctx).apply {
+            text = "🤡"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 84f)
+            gravity = Gravity.CENTER
+        })
+        card.addView(TextView(ctx).apply {
+            text = "ধরা খাইছোস, চোরা!"
+            setTextColor(0xFFEF4444.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+            gravity = Gravity.CENTER
+            letterSpacing = 0.15f
+            setPadding(0, dp(ctx, 6), 0, dp(ctx, 4))
+        })
+        card.addView(TextView(ctx).apply {
+            text = "TAMPERED · REPACKAGED · BLACKLISTED"
+            setTextColor(0xFFFCA5A5.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            gravity = Gravity.CENTER
+            letterSpacing = 0.3f
+            setPadding(0, 0, 0, dp(ctx, 18))
+        })
+
+        card.addView(TextView(ctx).apply {
+            text = "তুই আমাদের APK ঘেঁটে বা root/hook দিয়ে bypass করার চেষ্টা করছিলি। আমাদের TamperGuard তোকে হাতেনাতে ধরে ফেলেছে। এখন এই device চিরতরে blacklist। কোনো signal, কোনো unlock — কিচ্ছু পাবি না।"
+            setTextColor(0xFFFEE2E2.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(dp(ctx, 4).toFloat(), 1f)
+            setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                setColor(0x33EF4444.toInt())
+                setStroke(dp(ctx, 1), 0x66EF4444.toInt())
+            }
+        })
+
+        // Detected reasons
+        val reasons = TamperGuard.reasons.ifEmpty { listOf("server_reported") }
+        card.addView(TextView(ctx).apply {
+            text = "❌ যা যা ধরা পড়েছে:"
+            setTextColor(0xFFF59E0B.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, dp(ctx, 18), 0, dp(ctx, 6))
+        })
+        reasons.forEach { r ->
+            card.addView(TextView(ctx).apply {
+                text = "  • $r"
+                setTextColor(0xFFFDE68A.toInt())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setPadding(0, dp(ctx, 2), 0, dp(ctx, 2))
+            })
+        }
+
+        val lines = listOf(
+            "😂 setprop দিয়ে bypass? — হয় না।",
+            "😂 MT Manager দিয়ে classes.dex edit? — signature mismatch → server LOCK।",
+            "😂 Fake license server বসাবি? — endpoint runtime-এ assemble হয়, grep-এও পাবি না।",
+            "😂 Root/Frida/Xposed? — সব detect হয়ে গেছে।",
+            "",
+            "সময় নষ্ট না করে asli account বানিয়ে আমাদের team-এ join হ। ১০ গুণ ভালো signal পাবি free-তে।",
+        )
+        card.addView(TextView(ctx).apply {
+            text = lines.joinToString("\n")
+            setTextColor(0xFFFECACA.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setLineSpacing(dp(ctx, 3).toFloat(), 1f)
+            setPadding(0, dp(ctx, 18), 0, 0)
+        })
+
+        card.addView(TextView(ctx).apply {
+            text = "— EIP Anti-Tamper Division 👁️"
+            setTextColor(0xFF64748B.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(ctx, 22), 0, 0)
+        })
+
+        scroll.addView(card, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
+        root.addView(scroll, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
+        ))
+        return root
     }
 
     private fun buildOverlay(ctx: Context): View {
