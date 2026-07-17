@@ -124,6 +124,7 @@ class AviatorFragment : Fragment() {
         if (list.isEmpty()) {
             b.historyLabel.visibility = View.GONE
             b.historyScroll.visibility = View.GONE
+            b.predictionCard.visibility = View.GONE
             b.roundsText.text = "(none)"
             b.streakText.text = "—"
             b.statAvg.text = "—"; b.statMax.text = "—"; b.statMin.text = "—"
@@ -131,6 +132,7 @@ class AviatorFragment : Fragment() {
             b.trendBadge.text = "—"
             return
         }
+
         b.historyLabel.visibility = View.VISIBLE
         b.historyScroll.visibility = View.VISIBLE
 
