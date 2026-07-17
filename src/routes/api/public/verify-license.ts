@@ -2,25 +2,18 @@ import { createFileRoute } from '@tanstack/react-router';
 
 /**
  * POST /api/public/verify-license
- * Body:
- *   {
- *     device_id?: string,
- *     uid?: string|null,
- *     parent_invite_code?: string|null,
- *     pkg?: string,           // package name reported by app
- *     sig_sha256?: string,    // APK signing cert SHA-256
- *     tamper_flags?: string   // comma-separated tamper detections
- *   }
- * Returns: { licensed, reason, message, required_invite_code }
+ * Body: { device_id?, uid?, parent_invite_code?, pkg?, sig_sha256?, tamper_flags? }
  *
- * Priority:
- *   0. Any tamper_flags OR wrong package → LOCKED with troll message.
- *   1. If enforce_signature_allowlist && sig not in allowed_signature_hashes → LOCKED.
- *   2. If uid in `licensed_uids` whitelist → LICENSED.
- *   3. If parent_invite_code matches required → LICENSED.
- *   4. Else → LOCKED.
- *
- * Every attempt is logged to license_verify_log.
+ * Fast path (no user action needed):
+ *   • Tamper flags or wrong package name → LOCKED (troll message)
+ *   • Otherwise verify UID / invite code
+ *   • TOFU (Trust-On-First-Use): the FIRST legit verify auto-adds the
+ *     signing certificate SHA-256 to the allowlist and turns on enforcement.
+ *     After that, any repackaged APK with a different sig is rejected
+ *     server-side — completely automatic, no admin action required.
+ *   • Signals never wait on this endpoint (client caches for 12h and
+ *     re-verifies silently in the background), so latency here does not
+ *     affect signal delivery.
  */
 export const Route = createFileRoute('/api/public/verify-license')({
   server: {
@@ -59,13 +52,21 @@ export const Route = createFileRoute('/api/public/verify-license')({
         const requiredInvite = (cfg?.required_parent_invite_code ?? '82824101415') as string;
         const lockMessage = (cfg?.lock_message ??
           '🔒 Locked. আমাদের team-এর invite code দিয়ে account বানিয়ে login করুন।') as string;
-        const allowedSigs = ((cfg as any)?.allowed_signature_hashes ?? []) as string[];
+        const allowedSigs = (((cfg as any)?.allowed_signature_hashes ?? []) as string[])
+          .map((s) => String(s).toLowerCase().trim())
+          .filter(Boolean);
         const enforceSig = Boolean((cfg as any)?.enforce_signature_allowlist);
         const expectedPkg = 'com.eip.netsniffer';
 
-        const trollLock = '🤡 তুই কি ভাবছিলি হ্যাক করে বাইঁচে যাবি? Tampered/repackaged APK detect হইছে — চিরতরে LOCKED। মায়ের কোলে ফিরে যা।';
+        const trollLock =
+          '🤡 তুই কি ভাবছিলি hack করে বাঁচবি? Tampered / repackaged APK detect হইছে। এই device চিরতরে LOCKED। মায়ের কোলে ফিরে যা।';
 
-        const respond = async (licensed: boolean, reason: string, message: string) => {
+        const respond = async (
+          licensed: boolean,
+          reason: string,
+          message: string,
+          tampered = false,
+        ) => {
           try {
             await supabaseAdmin.from('license_verify_log').insert({
               device_id: deviceId,
@@ -81,6 +82,7 @@ export const Route = createFileRoute('/api/public/verify-license')({
           return new Response(
             JSON.stringify({
               licensed,
+              tampered,
               reason,
               message,
               required_invite_code: requiredInvite,
@@ -90,35 +92,50 @@ export const Route = createFileRoute('/api/public/verify-license')({
           );
         };
 
-        // 0) Tamper / repackage → hard lock
-        if (tamperFlags) return respond(false, 'tampered', trollLock);
-        if (pkg && pkg !== expectedPkg) return respond(false, 'pkg_renamed', trollLock);
+        // 0) Tamper / package rename → hard troll lock
+        if (tamperFlags) return respond(false, 'tampered', trollLock, true);
+        if (pkg && pkg !== expectedPkg) return respond(false, 'pkg_renamed', trollLock, true);
 
-        // 1) Signature allowlist
+        // 1) Signature allowlist (only when enforcement is on AND list is populated)
         if (enforceSig && allowedSigs.length > 0) {
-          const norm = allowedSigs.map((s) => String(s).toLowerCase().trim()).filter(Boolean);
-          if (!sig || !norm.includes(sig)) {
-            return respond(false, 'sig_mismatch', trollLock);
+          if (!sig || !allowedSigs.includes(sig)) {
+            return respond(false, 'sig_mismatch', trollLock, true);
           }
         }
 
-        // 2) UID whitelist
+        // 2) Decide LICENSED
+        let licensed = false;
+        let reason = 'no_login';
         if (uid) {
           const { data: row } = await supabaseAdmin
             .from('licensed_uids')
             .select('uid')
             .eq('uid', uid)
             .maybeSingle();
-          if (row) return respond(true, 'uid_whitelisted', '');
+          if (row) { licensed = true; reason = 'uid_whitelisted'; }
+        }
+        if (!licensed && inviteCode && inviteCode === requiredInvite) {
+          licensed = true; reason = 'invite_match';
+        }
+        if (!licensed && (uid || inviteCode)) reason = 'mismatch';
+
+        // 3) TOFU: auto-adopt the first legit signature we see and turn on
+        //    enforcement so any repackaged clone is rejected from now on.
+        //    Runs only once (list is empty + enforce is off + we trust this call).
+        if (licensed && sig && !enforceSig && allowedSigs.length === 0) {
+          try {
+            await supabaseAdmin
+              .from('app_config')
+              .update({
+                allowed_signature_hashes: [sig],
+                enforce_signature_allowlist: true,
+              })
+              .eq('id', 1);
+          } catch {}
         }
 
-        // 3) Invite code match
-        if (inviteCode && inviteCode === requiredInvite) {
-          return respond(true, 'invite_match', '');
-        }
-
-        // 4) LOCKED
-        return respond(false, uid || inviteCode ? 'mismatch' : 'no_login', lockMessage);
+        if (licensed) return respond(true, reason, '');
+        return respond(false, reason, lockMessage);
       },
     },
   },
