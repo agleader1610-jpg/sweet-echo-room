@@ -53,8 +53,30 @@ class WinGoFragment : Fragment() {
             b.lastResultBadge.setTextColor(0xFF94A3B8.toInt())
             b.lastResultBadge.background = bg(0xFF1F2937.toInt(), 6f)
             b.lastResultDetail.text = ""
+            WinGoStore.lastResult.postValue(null)
+            WinGoStore.score.postValue(0 to 0)
+        }
+
+        // Browser-tab overlay toggle (mutually exclusive with Aviator overlay).
+        val prefs = requireContext().getSharedPreferences("net_sniffer", Context.MODE_PRIVATE)
+        b.overlaySwitch.isChecked = prefs.getBoolean(PREF_WINGO_OVERLAY, false)
+        WinGoStore.overlayEnabled.postValue(b.overlaySwitch.isChecked)
+        b.overlaySwitch.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(PREF_WINGO_OVERLAY, checked).apply()
+            WinGoStore.overlayEnabled.postValue(checked)
+            if (checked) {
+                // Kill the aviator overlay to keep only one active.
+                prefs.edit().putBoolean("aviator_overlay_on", false).apply()
+                AviatorStore.overlayEnabled.postValue(false)
+            }
+        }
+        // Reflect external changes (Aviator toggling on) back into our switch.
+        WinGoStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
+            if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
     }
+
+    companion object { private const val PREF_WINGO_OVERLAY = "wingo_overlay_on" }
 
     override fun onDestroyView() {
         super.onDestroyView()
