@@ -23,6 +23,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         CaptureUploader.init(applicationContext)
+        CaptureStore.init(applicationContext)
+        val devId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+        LicenseGate.init(applicationContext, devId)
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
 
