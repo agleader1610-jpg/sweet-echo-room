@@ -178,8 +178,8 @@ class WinGoFragment : Fragment() {
     private fun renderSignal(sig: WinGoLogic.Signal, forIssue: String) {
         b.signalCard.visibility = View.VISIBLE
         val (color, label) = when (sig.pick) {
-            "BIG" -> 0xFFF59E0B.toInt() to "BIG (5-9)"
-            "SMALL" -> 0xFF3B82F6.toInt() to "SMALL (0-4)"
+            "BIG" -> 0xFFF59E0B.toInt() to "BIG"
+            "SMALL" -> 0xFF3B82F6.toInt() to "SMALL"
             else -> 0xFF64748B.toInt() to sig.pick
         }
         b.predPick.text = label
