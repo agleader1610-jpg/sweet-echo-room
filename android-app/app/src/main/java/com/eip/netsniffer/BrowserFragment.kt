@@ -304,9 +304,13 @@ class BrowserFragment : Fragment() {
 
     private fun updateOverlayVisibility() {
         val v = _b ?: return
-        val on = AviatorStore.overlayEnabled.value == true
+        val aviOn = AviatorStore.overlayEnabled.value == true
+        val wgOn = WinGoStore.overlayEnabled.value == true
+        // Mutual exclusion: WinGo wins if both somehow true.
+        val showAvi = aviOn && !wgOn
         val st = AviatorStore.state.value
-        v.vipOverlay.visibility = if (on && st != null && st.updatedAt != 0L) View.VISIBLE else View.GONE
+        v.vipOverlay.visibility = if (showAvi && st != null && st.updatedAt != 0L) View.VISIBLE else View.GONE
+        v.wingoOverlay.visibility = if (wgOn) View.VISIBLE else View.GONE
     }
 
     private fun renderOverlay() {
