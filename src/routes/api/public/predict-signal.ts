@@ -133,11 +133,15 @@ async function callAI(history: Array<{ round_id: number; multiplier: number }>):
     if (!['BET', 'STRONG BET', 'SKIP'].includes(action)) throw new Error('ai_bad_action');
     if (target !== null && (!isFinite(target) || target < 1.01 || target > 100)) throw new Error('ai_bad_target');
     return {
-      action: action as Signal['action'],
-      target: action === 'SKIP' ? null : target,
-      confidence: (['LOW', 'MEDIUM', 'HIGH'].includes(confidence) ? confidence : 'MEDIUM') as Signal['confidence'],
-      reasoning: reasoning || 'AI analysis',
+      signal: {
+        action: action as Signal['action'],
+        target: action === 'SKIP' ? null : target,
+        confidence: (['LOW', 'MEDIUM', 'HIGH'].includes(confidence) ? confidence : 'MEDIUM') as Signal['confidence'],
+        reasoning: reasoning || 'AI analysis',
+      },
+      raw: String(content).slice(0, 2000),
     };
+
   } finally {
     clearTimeout(t);
   }
