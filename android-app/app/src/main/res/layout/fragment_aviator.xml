@@ -12,7 +12,7 @@
         android:orientation="vertical"
         android:padding="14dp">
 
-        <!-- ═════════════ VIP TEAM HEADER ═════════════ -->
+        <!-- ═════════════ EIP TEAM HEADER ═════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -98,7 +98,7 @@
             android:layout_marginTop="14dp"
             android:visibility="gone"
             app:cardBackgroundColor="#0F172A"
-            app:cardCornerRadius="18dp"
+            app:cardCornerRadius="14dp"
             app:cardElevation="6dp">
 
             <LinearLayout
@@ -187,7 +187,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="BET"
+                            android:text="BET TIME"
                             android:textSize="10sp"
                             android:textStyle="bold"
                             android:textColor="#4ADE80"
@@ -216,7 +216,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="FLY"
+                            android:text="FLY TIME"
                             android:textSize="10sp"
                             android:textStyle="bold"
                             android:textColor="#FFB74D"
@@ -269,11 +269,11 @@
             android:id="@+id/predictionCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:visibility="gone"
-            app:cardBackgroundColor="#0F172A"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="6dp">
+            app:cardBackgroundColor="#08111F"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -290,7 +290,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="◈ EIP PREDICTION SIGNAL"
+                        android:text="⚡ EIP PRO SIGNAL"
                         android:textColor="#FFD54F"
                         android:textSize="11sp"
                         android:textStyle="bold"
@@ -316,11 +316,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
+                    android:minHeight="86dp"
                     android:padding="14dp"
                     android:gravity="center"
                     android:text="ANALYZING…"
                     android:textColor="#FFFFFF"
-                    android:textSize="22sp"
+                    android:textSize="24sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
                     android:background="#455A64"/>
@@ -330,7 +331,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:textColor="#B0BEC5"
+                    android:textColor="#D7DEE8"
                     android:textSize="12sp"
                     android:lineSpacingExtra="2dp"
                     android:text=""/>
@@ -359,7 +360,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="DROUGHT"
+                            android:text="10x GAP"
                             android:textSize="9sp"
                             android:textStyle="bold"
                             android:textColor="#94A3B8"

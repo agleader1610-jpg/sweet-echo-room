@@ -196,12 +196,12 @@ class BrowserFragment : Fragment() {
         updateOverlayVisibility()
         val st = AviatorStore.state.value ?: return
 
-        // BET NOW = post-crash bet window (CRASHED or BETTING phase)
+        // BET TIME = post-crash betting window (CRASHED or BETTING phase)
         // FLYING  = plane in the air
         val (label, color) = when (st.phase) {
-            AviatorPhase.FLYING              -> "✈ FLYING"  to 0xFFFFB74D.toInt()
+            AviatorPhase.FLYING              -> "✈ FLYING"   to 0xFFFFB74D.toInt()
             AviatorPhase.CRASHED,
-            AviatorPhase.BETTING             -> "🎯 BET NOW" to 0xFF4CAF50.toInt()
+            AviatorPhase.BETTING             -> "🎯 BET TIME" to 0xFF16A34A.toInt()
             AviatorPhase.IDLE                -> "IDLE"       to 0xFF455A64.toInt()
         }
         v.overlayPhase.text = label
@@ -215,14 +215,15 @@ class BrowserFragment : Fragment() {
         v.overlayLive.text = big?.let { "%.2fx".format(it) } ?: "—"
         v.overlayLive.setTextColor(color)
 
-        val curId: Long? = when (st.phase) {
-            AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId?.plus(1)
-            else -> st.roundId
-        }
+        val curId: Long? = AviatorStore.rounds.value.orEmpty().firstOrNull()?.roundId?.plus(1)
+            ?: when (st.phase) {
+                AviatorPhase.CRASHED -> st.prevRoundId?.plus(1) ?: st.roundId
+                else -> st.roundId
+            }
         v.overlayPrev.text = if (st.prevRoundId != null && st.prevCrashX != null)
-            "prev #${st.prevRoundId} → %.2fx  •  next #${curId ?: "-"}".format(st.prevCrashX)
+            "LAST #${st.prevRoundId} • %.2fx   |   NEXT #${curId ?: "-"}".format(st.prevCrashX)
         else
-            "next #${curId ?: "-"}"
+            "NEXT #${curId ?: "-"}"
 
         // Marquee history — right→left, most recent first.
         val hist = AviatorStore.rounds.value.orEmpty().take(30)
@@ -248,14 +249,15 @@ class BrowserFragment : Fragment() {
 
         // Show the signal armed for the CURRENT running round (if any),
         // else fall back to the last resolved label.
-        val armedLabel = PredictionTracker.currentArmedLabel()
+        val armed = PredictionTracker.currentArmed()
         v.overlaySignal.text = when {
-            armedLabel != null && curId != null ->
-                "▶ #${curId} · $armedLabel"
-            last != null -> "◈ ${last.label}"
-            else -> "◈ ANALYZING…"
+            armed != null -> "SIGNAL #${armed.roundId} • ${armed.label}"
+            last != null -> "LAST SIGNAL • ${last.label}"
+            st.phase == AviatorPhase.FLYING -> "SIGNAL LOCKED • WAIT CRASH"
+            else -> "SIGNAL • ANALYZING BET TIME"
         }
         v.overlaySignal.setTextColor(0xFFFACC15.toInt())
+        v.overlaySignal.setBackgroundColor(if (armed != null) 0xFF173A25.toInt() else 0xFF1F2937.toInt())
 
         if (last == null) {
             v.overlayResult.text = "◌ WAIT"
@@ -273,7 +275,7 @@ class BrowserFragment : Fragment() {
         val w = stats?.wins ?: 0
         val l = stats?.losses ?: 0
         val acc = if ((w + l) == 0) "—" else "${(w * 100) / (w + l)}%"
-        v.overlayScore.text = "${w}W-${l}L · $acc"
+        v.overlayScore.text = "W $w  L $l  $acc"
         v.overlayScore.setTextColor(
             if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt()
         )
