@@ -14,7 +14,7 @@
 
     <style name="Theme.NetSniffer.BottomSheet" parent="Theme.MaterialComponents.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/NetSniffer.BottomSheet.Modal</item>
-        <item name="android:navigationBarColor">#0B1020</item>
+        <item name="android:navigationBarColor">#05060A</item>
     </style>
 
     <style name="NetSniffer.BottomSheet.Modal" parent="Widget.MaterialComponents.BottomSheet.Modal">
