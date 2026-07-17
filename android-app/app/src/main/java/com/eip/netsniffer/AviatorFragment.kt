@@ -203,9 +203,9 @@ class AviatorFragment : Fragment() {
     }
 
     /**
-     * EIP prediction heuristic — turns the recent round history into a
-     * human-readable signal for the NEXT round. Not a guarantee, just a
-     * statistical hint based on drought / streak / heat.
+     * EIP prediction — simplified into 3 clear ACTIONS: STRONG BET, BET, SKIP.
+     * The card header shows exactly WHICH round this signal is for; the WIN
+     * detector below shows exactly WHICH round it was scored against.
      */
     private fun renderPrediction(all: List<Double>) {
         if (all.size < 5) {
@@ -214,91 +214,77 @@ class AviatorFragment : Fragment() {
         }
         b.predictionCard.visibility = View.VISIBLE
 
-        // drought = rounds since last ≥10x (scanning newest→oldest)
         val droughtIdx = all.indexOfFirst { it >= 10.0 }
         val drought = if (droughtIdx < 0) all.size else droughtIdx
-
-        // consecutive <2x streak from newest side
         val lowStreak = all.takeWhile { it < 2.0 }.size
-
-        // heat = count of ≥2x hits in last 10
         val last10 = all.take(10)
         val heat = last10.count { it >= 2.0 }
         val avg10 = last10.average()
         val lastRound = all.first()
 
-        // Decide signal
         data class Sig(
-            val label: String,
+            val action: String,      // "BET" / "STRONG BET" / "SKIP"
+            val emoji: String,
             val bg: Int,
-            val tip: String,
+            val cashout: String,     // "cash out @1.5x" etc.
+            val reason: String,
             val conf: String,
             val confCol: Int,
             val test: (Double) -> Boolean,
         )
         val sig = when {
             drought >= 20 || lowStreak >= 7 -> Sig(
-                "🔥 BIG MULTIPLIER OVERDUE",
-                0xFFDC2626.toInt(),
-                "Long drought detected. A high round is statistically overdue.\nStrategy: wait for takeoff, cash out early (1.3x–1.8x) and keep bet small — big spike can hit any moment.",
-                "HIGH", 0xFF4ADE80.toInt(),
-                { it >= 2.0 },
+                "STRONG BET", "🔥", 0xFFDC2626.toInt(),
+                "Cash out at 1.5x", "Big multiplier long overdue.",
+                "HIGH", 0xFF4ADE80.toInt(), { it >= 1.5 },
             )
             drought >= 12 || lowStreak >= 5 -> Sig(
-                "⚡ RECOVERY LIKELY",
-                0xFFF59E0B.toInt(),
-                "Pattern favors a recovery round soon.\nStrategy: safe entry, cash out around 1.5x–2x.",
-                "MEDIUM", 0xFFFBBF24.toInt(),
-                { it >= 1.5 },
+                "BET", "⚡", 0xFF16A34A.toInt(),
+                "Cash out at 1.5x", "Recovery round likely.",
+                "MEDIUM", 0xFFFBBF24.toInt(), { it >= 1.5 },
             )
             lastRound >= 10.0 -> Sig(
-                "❄ COOL DOWN",
-                0xFF3B82F6.toInt(),
-                "A big spike just landed. Next few rounds usually run low.\nStrategy: skip 1–2 rounds or bet very small.",
-                "MEDIUM", 0xFFFBBF24.toInt(),
-                { it < 2.0 },
+                "SKIP", "❄", 0xFF3B82F6.toInt(),
+                "Wait 1–2 rounds", "Big spike just landed, cool-down expected.",
+                "MEDIUM", 0xFFFBBF24.toInt(), { it < 2.0 },
             )
             avg10 < 1.6 && heat <= 3 -> Sig(
-                "◈ SAFE ZONE",
-                0xFF16A34A.toInt(),
-                "Market is cold, small wins available.\nStrategy: quick cash-out at 1.3x–1.7x.",
-                "MEDIUM", 0xFFFBBF24.toInt(),
-                { it >= 1.3 },
+                "BET", "◈", 0xFF16A34A.toInt(),
+                "Cash out at 1.3x", "Cold market — quick small wins.",
+                "MEDIUM", 0xFFFBBF24.toInt(), { it >= 1.3 },
             )
-            heat >= 6 -> Sig(
-                "▲ HOT STREAK",
-                0xFF9333EA.toInt(),
-                "Multiple hits recently. Momentum is strong but a crash-back is near.\nStrategy: ride carefully, don't chase past 2.5x.",
-                "MEDIUM", 0xFFFBBF24.toInt(),
-                { it >= 2.0 },
+            heat >= 7 -> Sig(
+                "SKIP", "▲", 0xFF9333EA.toInt(),
+                "Crash-back near", "Hot streak — momentum fading.",
+                "MEDIUM", 0xFFFBBF24.toInt(), { it < 2.0 },
             )
             else -> Sig(
-                "◆ NORMAL",
-                0xFF64748B.toInt(),
-                "No strong signal. Standard range 1.5x–2.5x expected.\nStrategy: normal play, conservative cash-out.",
-                "LOW", 0xFF94A3B8.toInt(),
-                { it >= 1.5 },
+                "BET", "◆", 0xFF64748B.toInt(),
+                "Cash out at 1.5x", "Normal range — conservative play.",
+                "LOW", 0xFF94A3B8.toInt(), { it >= 1.5 },
             )
         }
 
-        b.predSignal.text = sig.label
-        b.predSignal.background = ColorDrawable(sig.bg)
-        b.predSuggestion.text = sig.tip
-        b.predConfidence.text = "CONF: ${sig.conf}"
-        b.predConfidence.setTextColor(sig.confCol)
-
-        b.predDrought.text = if (droughtIdx < 0) "${all.size}+" else drought.toString()
-        b.predLowStreak.text = lowStreak.toString()
-        b.predHeat.text = "$heat/10"
-
-        // Arm the WIN detector for the currently RUNNING round.
+        // Which round is this signal FOR?
         val st = AviatorStore.state.value
         val runningId: Long? = when (st?.phase) {
             AviatorPhase.CRASHED -> (st.prevRoundId ?: st.roundId)?.plus(1)
             AviatorPhase.BETTING, AviatorPhase.FLYING -> st.roundId
             else -> null
         }
-        PredictionTracker.arm(runningId, sig.label, sig.test)
+
+        b.predSignal.text = "${sig.emoji} ${sig.action}  •  ${sig.cashout}"
+        b.predSignal.background = ColorDrawable(sig.bg)
+        b.predSuggestion.text = sig.reason
+        b.predConfidence.text = "▶ FOR #${runningId ?: "-"}  •  ${sig.conf}"
+        b.predConfidence.setTextColor(sig.confCol)
+
+        b.predDrought.text = if (droughtIdx < 0) "${all.size}+" else drought.toString()
+        b.predLowStreak.text = lowStreak.toString()
+        b.predHeat.text = "$heat/10"
+
+        // Arm the WIN detector so we score THIS signal against runningId.
+        PredictionTracker.arm(runningId, "${sig.emoji} ${sig.action}", sig.test)
     }
 
     private fun renderTrackerStats(s: PredictionTracker.Stats) {
