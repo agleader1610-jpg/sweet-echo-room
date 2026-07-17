@@ -134,6 +134,7 @@ class BrowserFragment : Fragment() {
         }
         AviatorStore.state.observe(viewLifecycleOwner) { renderOverlay() }
         AviatorStore.rounds.observe(viewLifecycleOwner) { renderOverlay() }
+        PredictionTracker.stats.observe(viewLifecycleOwner) { renderOverlay() }
         setupOverlayDrag()
         b.overlayClose.setOnClickListener {
             AviatorStore.overlayEnabled.postValue(false)
@@ -234,6 +235,30 @@ class BrowserFragment : Fragment() {
             }
             v.overlayHistory.text = sb.toString().trim()
         }
+
+        // Prediction signal + WIN detector in overlay
+        val stats = PredictionTracker.stats.value
+        val last = stats?.lastResult
+        v.overlaySignal.text = last?.label ?: "◈ ANALYZING…"
+        v.overlaySignal.setTextColor(0xFFFACC15.toInt())
+
+        if (stats == null || last == null) {
+            v.overlayResult.text = "◌ WAIT"
+            v.overlayResult.setBackgroundColor(0xFF1F2937.toInt())
+            v.overlayResult.setTextColor(0xFF94A3B8.toInt())
+        } else if (last.win) {
+            v.overlayResult.text = "✓ WIN"
+            v.overlayResult.setBackgroundColor(0xFF16A34A.toInt())
+            v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
+        } else {
+            v.overlayResult.text = "✗ LOSS"
+            v.overlayResult.setBackgroundColor(0xFFDC2626.toInt())
+            v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
+        }
+        val w = stats?.wins ?: 0
+        val l = stats?.losses ?: 0
+        val acc = if ((w + l) == 0) "—" else "${(w * 100) / (w + l)}%"
+        v.overlayScore.text = "${w}W-${l}L  •  $acc"
     }
 
     private fun loadFromInput() {
