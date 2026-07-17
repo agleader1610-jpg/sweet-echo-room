@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamProxyRouteImport } from './routes/api/stream/proxy'
 import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-proxy'
 import { Route as ApiPublicVerifyResultRouteImport } from './routes/api/public/verify-result'
+import { Route as ApiPublicVerifyLicenseRouteImport } from './routes/api/public/verify-license'
 import { Route as ApiPublicPredictSignalRouteImport } from './routes/api/public/predict-signal'
 import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
 import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
@@ -50,6 +51,11 @@ const ApiPublicVerifyResultRoute = ApiPublicVerifyResultRouteImport.update({
   path: '/api/public/verify-result',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVerifyLicenseRoute = ApiPublicVerifyLicenseRouteImport.update({
+  id: '/api/public/verify-license',
+  path: '/api/public/verify-license',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPredictSignalRoute = ApiPublicPredictSignalRouteImport.update({
   id: '/api/public/predict-signal',
   path: '/api/public/predict-signal',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
+  '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
+  '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
+  '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/predict-signal'
+    | '/api/public/verify-license'
     | '/api/public/verify-result'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/predict-signal'
+    | '/api/public/verify-license'
     | '/api/public/verify-result'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
     | '/api/public/predict-signal'
+    | '/api/public/verify-license'
     | '/api/public/verify-result'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
   ApiPublicPredictSignalRoute: typeof ApiPublicPredictSignalRoute
+  ApiPublicVerifyLicenseRoute: typeof ApiPublicVerifyLicenseRoute
   ApiPublicVerifyResultRoute: typeof ApiPublicVerifyResultRoute
   ApiPublicWsProxyRoute: typeof ApiPublicWsProxyRoute
   ApiStreamProxyRoute: typeof ApiStreamProxyRoute
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVerifyResultRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/verify-license': {
+      id: '/api/public/verify-license'
+      path: '/api/public/verify-license'
+      fullPath: '/api/public/verify-license'
+      preLoaderRoute: typeof ApiPublicVerifyLicenseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/predict-signal': {
       id: '/api/public/predict-signal'
       path: '/api/public/predict-signal'
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
   ApiPublicPredictSignalRoute: ApiPublicPredictSignalRoute,
+  ApiPublicVerifyLicenseRoute: ApiPublicVerifyLicenseRoute,
   ApiPublicVerifyResultRoute: ApiPublicVerifyResultRoute,
   ApiPublicWsProxyRoute: ApiPublicWsProxyRoute,
   ApiStreamProxyRoute: ApiStreamProxyRoute,

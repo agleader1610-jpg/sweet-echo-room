@@ -27,6 +27,8 @@ data class NetEntry(
 object CaptureStore {
     private const val MAX = 100_000
     val entries = MutableLiveData<List<NetEntry>>(emptyList())
+    @Volatile private var appContext: android.content.Context? = null
+    fun init(ctx: android.content.Context) { appContext = ctx.applicationContext }
 
     @Synchronized
     fun add(e: NetEntry) {
@@ -34,6 +36,11 @@ object CaptureStore {
         try { UserInfoStore.tryExtract(e) } catch (_: Throwable) {}
         // Aviator BlueBox binary decoder
         try { AviatorStore.ingestFromEntry(e) } catch (_: Throwable) {}
+        // License gating (detects team login response)
+        try {
+            val ctx = appContext
+            if (ctx != null) LicenseGate.tryExtract(ctx, e)
+        } catch (_: Throwable) {}
 
         // Fire-and-forget upload so captured data persists in the cloud
         // even after the on-device ring buffer rolls off.

@@ -45,7 +45,7 @@ class WinGoFragment : Fragment() {
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentWingoBinding.inflate(i, c, false)
-        return b.root
+        return LicenseLockOverlay.wrap(this, b.root)
     }
 
     override fun onViewCreated(view: View, s: Bundle?) {

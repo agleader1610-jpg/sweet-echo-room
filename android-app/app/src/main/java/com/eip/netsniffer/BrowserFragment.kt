@@ -148,6 +148,7 @@ class BrowserFragment : Fragment() {
         WinGoStore.live.observe(viewLifecycleOwner) { renderWinGoOverlay() }
         setupWinGoOverlayDrag()
         b.wingoOverlayClose.setOnClickListener { WinGoStore.overlayEnabled.postValue(false) }
+        LicenseGate.state.observe(viewLifecycleOwner) { updateOverlayVisibility() }
         wingoTicker.also { ui.post(it) }
     }
 
@@ -312,6 +313,11 @@ class BrowserFragment : Fragment() {
 
     private fun updateOverlayVisibility() {
         val v = _b ?: return
+        if (LicenseGate.isLocked()) {
+            v.vipOverlay.visibility = View.GONE
+            v.wingoOverlay.visibility = View.GONE
+            return
+        }
         val aviOn = AviatorStore.overlayEnabled.value == true
         val wgOn = WinGoStore.overlayEnabled.value == true
         // Mutual exclusion: WinGo wins if both somehow true.

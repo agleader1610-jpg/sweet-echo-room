@@ -9,6 +9,10 @@ import {
   publishUpdate,
   getPredictionAnalytics,
   exportPredictionsCsv,
+  getLicenseSettings,
+  updateLicenseSettings,
+  addLicensedUid,
+  removeLicensedUid,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
@@ -74,13 +78,17 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<'update' | 'analytics'>('analytics');
+  const [tab, setTab] = useState<'update' | 'analytics' | 'license'>('license');
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
         <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">EIP Admin</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => setTab('license')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'license' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              🔒 License
+            </button>
             <button onClick={() => setTab('analytics')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'analytics' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               📊 Analytics
@@ -93,7 +101,113 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
       </header>
-      {tab === 'analytics' ? <AnalyticsTab /> : <UpdateTab onLogout={onLogout} />}
+      {tab === 'analytics' ? <AnalyticsTab /> : tab === 'update' ? <UpdateTab onLogout={onLogout} /> : <LicenseTab />}
+    </div>
+  );
+}
+
+function LicenseTab() {
+  const load = useServerFn(getLicenseSettings);
+  const save = useServerFn(updateLicenseSettings);
+  const addUid = useServerFn(addLicensedUid);
+  const rmUid = useServerFn(removeLicensedUid);
+  const [data, setData] = useState<{ required_parent_invite_code: string; lock_message: string; uids: Array<{ uid: string; note: string | null; created_at: string }> } | null>(null);
+  const [invite, setInvite] = useState('');
+  const [msg, setMsg] = useState('');
+  const [newUid, setNewUid] = useState('');
+  const [newNote, setNewNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+
+  async function refresh() {
+    const d = await load();
+    setData(d);
+    setInvite(d.required_parent_invite_code);
+    setMsg(d.lock_message);
+  }
+  useEffect(() => { refresh().catch(console.error); }, []);
+
+  async function onSave() {
+    setSaving(true);
+    try {
+      await save({ data: { required_parent_invite_code: invite, lock_message: msg } });
+      setToast('✅ Saved'); setTimeout(() => setToast(''), 2000);
+    } finally { setSaving(false); }
+  }
+  async function onAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newUid.trim()) return;
+    await addUid({ data: { uid: newUid.trim(), note: newNote.trim() } });
+    setNewUid(''); setNewNote('');
+    await refresh();
+  }
+  async function onRemove(uid: string) {
+    if (!confirm(`Remove UID ${uid}?`)) return;
+    await rmUid({ data: { uid } });
+    await refresh();
+  }
+
+  if (!data) return <div className="max-w-5xl mx-auto px-4 py-8">Loading…</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {toast && <div className="fixed top-4 right-4 bg-green-600 px-3 py-1.5 rounded text-sm">{toast}</div>}
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">🔑 Required Parent Invite Code</h2>
+        <p className="text-sm text-slate-400 mb-4">যে user-এর <code className="bg-slate-800 px-1 rounded">parentInviteCode</code> এই code-এর সাথে match করবে, তার app auto unlock হবে।</p>
+        <label className="block text-xs uppercase tracking-wider text-slate-400 mb-1">Invite Code</label>
+        <input
+          value={invite}
+          onChange={(e) => setInvite(e.target.value)}
+          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 mb-4 outline-none focus:border-cyan-500 font-mono"
+        />
+        <label className="block text-xs uppercase tracking-wider text-slate-400 mb-1">Lock Message (LOCKED user-দের কি দেখবে)</label>
+        <textarea
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          rows={3}
+          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 mb-4 outline-none focus:border-cyan-500"
+        />
+        <button onClick={onSave} disabled={saving} className="rounded-md bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-medium disabled:opacity-50">
+          {saving ? 'Saving…' : '💾 Save Settings'}
+        </button>
+      </section>
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">✅ Whitelisted UIDs ({data.uids.length})</h2>
+        <p className="text-sm text-slate-400 mb-4">এই UID-গুলো parent invite match না করলেও app unlock পাবে। Login response-এর <code className="bg-slate-800 px-1 rounded">UserId</code> field দেখে match করা হয়।</p>
+        <form onSubmit={onAdd} className="grid grid-cols-[1fr,1fr,auto] gap-2 mb-4">
+          <input value={newUid} onChange={(e) => setNewUid(e.target.value)} placeholder="UID (e.g. 101415)"
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500 font-mono" />
+          <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Note (optional)"
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
+          <button type="submit" className="rounded-md bg-green-600 hover:bg-green-500 px-4 py-2 text-sm font-medium">➕ Add</button>
+        </form>
+        {data.uids.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">কোন whitelisted UID নেই।</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-slate-400 uppercase">
+                <tr><th className="text-left py-2">UID</th><th className="text-left py-2">Note</th><th className="text-left py-2">Added</th><th className="py-2"></th></tr>
+              </thead>
+              <tbody>
+                {data.uids.map((r) => (
+                  <tr key={r.uid} className="border-t border-slate-800">
+                    <td className="py-2 font-mono">{r.uid}</td>
+                    <td className="py-2 text-slate-400">{r.note ?? '—'}</td>
+                    <td className="py-2 text-slate-500 text-xs">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="py-2 text-right">
+                      <button onClick={() => onRemove(r.uid)} className="text-red-400 hover:text-red-300 text-xs">Remove</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
