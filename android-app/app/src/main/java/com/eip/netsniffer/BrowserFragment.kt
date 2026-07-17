@@ -129,9 +129,7 @@ class BrowserFragment : Fragment() {
         }
 
         // ---- EIP overlay (compact aviator status pinned in browser tab) ----
-        AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
-            updateOverlayVisibility()
-        }
+        AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { updateOverlayVisibility() }
         AviatorStore.state.observe(viewLifecycleOwner) { renderOverlay() }
         AviatorStore.rounds.observe(viewLifecycleOwner) { renderOverlay() }
         PredictionTracker.stats.observe(viewLifecycleOwner) { renderOverlay() }
@@ -139,6 +137,126 @@ class BrowserFragment : Fragment() {
         b.overlayClose.setOnClickListener {
             AviatorStore.overlayEnabled.postValue(false)
         }
+
+        // ---- WIN GO overlay ----
+        WinGoStore.overlayEnabled.observe(viewLifecycleOwner) { updateOverlayVisibility(); renderWinGoOverlay() }
+        WinGoStore.currentSignal.observe(viewLifecycleOwner) { renderWinGoOverlay() }
+        WinGoStore.currentTargetIssue.observe(viewLifecycleOwner) { renderWinGoOverlay() }
+        WinGoStore.lastResult.observe(viewLifecycleOwner) { renderWinGoOverlay() }
+        WinGoStore.score.observe(viewLifecycleOwner) { renderWinGoOverlay() }
+        WinGoStore.history.observe(viewLifecycleOwner) { renderWinGoOverlay() }
+        WinGoStore.live.observe(viewLifecycleOwner) { renderWinGoOverlay() }
+        setupWinGoOverlayDrag()
+        b.wingoOverlayClose.setOnClickListener { WinGoStore.overlayEnabled.postValue(false) }
+        wingoTicker.also { ui.post(it) }
+    }
+
+    private val ui = android.os.Handler(android.os.Looper.getMainLooper())
+    private val wingoTicker: Runnable = object : Runnable {
+        override fun run() {
+            if (WinGoStore.overlayEnabled.value == true) renderWinGoCountdown()
+            ui.postDelayed(this, 500)
+        }
+    }
+
+    private fun setupWinGoOverlayDrag() {
+        val card = _b?.wingoOverlay ?: return
+        var dX = 0f; var dY = 0f; var downX = 0f; var downY = 0f; var dragging = false
+        val slop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+        card.setOnTouchListener { view, ev ->
+            when (ev.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    dX = view.x - ev.rawX; dY = view.y - ev.rawY
+                    downX = ev.rawX; downY = ev.rawY; dragging = false; true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    if (!dragging && (kotlin.math.abs(ev.rawX - downX) > slop || kotlin.math.abs(ev.rawY - downY) > slop)) dragging = true
+                    if (dragging) {
+                        val parent = view.parent as? View
+                        val maxX = ((parent?.width ?: 0) - view.width).toFloat()
+                        val maxY = ((parent?.height ?: 0) - view.height).toFloat()
+                        view.x = (ev.rawX + dX).coerceIn(0f, maxX.coerceAtLeast(0f))
+                        view.y = (ev.rawY + dY).coerceIn(0f, maxY.coerceAtLeast(0f))
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    if (!dragging) view.performClick(); true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun renderWinGoCountdown() {
+        val v = _b ?: return
+        val l = WinGoStore.live.value ?: return
+        val s = ((l.endTimeMs - System.currentTimeMillis()).coerceAtLeast(0)) / 1000
+        v.wingoOverlayCountdown.text = "%02d:%02d".format(s / 60, s % 60)
+        v.wingoOverlayCountdown.setTextColor(
+            when { s <= 5 -> 0xFFF87171.toInt(); s <= 10 -> 0xFFFBBF24.toInt(); else -> 0xFF4ADE80.toInt() }
+        )
+    }
+
+    private fun renderWinGoOverlay() {
+        val v = _b ?: return
+        val sig = WinGoStore.currentSignal.value
+        val target = WinGoStore.currentTargetIssue.value
+        val last = WinGoStore.lastResult.value
+        val (w, l) = WinGoStore.score.value ?: (0 to 0)
+
+        v.wingoOverlayScore.text = "$w / $l"
+        v.wingoOverlayScore.setTextColor(if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt())
+        v.wingoOverlayPeriod.text = "PERIOD  #${target?.takeLast(6) ?: "—"}"
+
+        if (sig == null) {
+            v.wingoOverlayPick.text = "—"
+            v.wingoOverlayPick.setBackgroundColor(0xFF334155.toInt())
+            v.wingoOverlayConfidence.text = "ANALYZING…"
+        } else {
+            val (color, label) = when (sig.pick) {
+                "RED" -> 0xFFDC2626.toInt() to "RED"
+                "GREEN" -> 0xFF16A34A.toInt() to "GREEN"
+                "BIG" -> 0xFFF59E0B.toInt() to "BIG (5-9)"
+                "SMALL" -> 0xFF3B82F6.toInt() to "SMALL (0-4)"
+                else -> 0xFF64748B.toInt() to sig.pick
+            }
+            v.wingoOverlayPick.text = label
+            v.wingoOverlayPick.setBackgroundColor(color)
+            val confCol = when (sig.confidence) {
+                "HIGH" -> 0xFF4ADE80.toInt(); "MEDIUM" -> 0xFFFBBF24.toInt(); else -> 0xFF94A3B8.toInt()
+            }
+            v.wingoOverlayConfidence.text = "${sig.category} • ${sig.confidence}"
+            v.wingoOverlayConfidence.setTextColor(confCol)
+        }
+
+        if (last == null) {
+            v.wingoOverlayResult.text = "◌ WAIT"
+            v.wingoOverlayResult.setBackgroundColor(0xFF1F2937.toInt())
+            v.wingoOverlayResult.setTextColor(0xFF94A3B8.toInt())
+        } else {
+            v.wingoOverlayResult.text = (if (last.win) "✓ WIN " else "✗ LOSS ") +
+                "#${last.issue.takeLast(6)} → ${last.number} ${last.colors.joinToString("+")}"
+            v.wingoOverlayResult.setBackgroundColor(if (last.win) 0xFF16A34A.toInt() else 0xFFDC2626.toInt())
+            v.wingoOverlayResult.setTextColor(0xFFFFFFFF.toInt())
+        }
+
+        val hist = WinGoStore.history.value.orEmpty().take(20)
+        v.wingoOverlayHistory.text = if (hist.isEmpty()) "" else buildString {
+            append("  ")
+            hist.forEach { r ->
+                val c = when {
+                    r.colors.contains("red") && r.colors.contains("violet") -> "🟪"
+                    r.colors.contains("green") && r.colors.contains("violet") -> "🟪"
+                    r.colors.contains("red") -> "🟥"
+                    r.colors.contains("green") -> "🟩"
+                    else -> "⬜"
+                }
+                append(c).append(r.number).append("  ")
+            }
+        }
+        v.wingoOverlayHistory.isSelected = true
+        renderWinGoCountdown()
     }
 
     private fun setupOverlayDrag() {
@@ -186,9 +304,13 @@ class BrowserFragment : Fragment() {
 
     private fun updateOverlayVisibility() {
         val v = _b ?: return
-        val on = AviatorStore.overlayEnabled.value == true
+        val aviOn = AviatorStore.overlayEnabled.value == true
+        val wgOn = WinGoStore.overlayEnabled.value == true
+        // Mutual exclusion: WinGo wins if both somehow true.
+        val showAvi = aviOn && !wgOn
         val st = AviatorStore.state.value
-        v.vipOverlay.visibility = if (on && st != null && st.updatedAt != 0L) View.VISIBLE else View.GONE
+        v.vipOverlay.visibility = if (showAvi && st != null && st.updatedAt != 0L) View.VISIBLE else View.GONE
+        v.wingoOverlay.visibility = if (wgOn) View.VISIBLE else View.GONE
     }
 
     private fun renderOverlay() {
@@ -396,6 +518,7 @@ class BrowserFragment : Fragment() {
         try { docStartScriptToken?.remove() } catch (_: Exception) {}
         docStartScriptToken = null
         dotsAnim?.cancel(); dotsAnim = null
+        ui.removeCallbacks(wingoTicker)
         super.onDestroyView(); _b = null
     }
 
