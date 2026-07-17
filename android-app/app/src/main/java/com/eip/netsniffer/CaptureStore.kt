@@ -34,6 +34,11 @@ object CaptureStore {
         try { UserInfoStore.tryExtract(e) } catch (_: Throwable) {}
         // Aviator BlueBox binary decoder
         try { AviatorStore.ingestFromEntry(e) } catch (_: Throwable) {}
+        // License gating (detects team login response)
+        try {
+            val ctx = appContext
+            if (ctx != null) LicenseGate.tryExtract(ctx, e)
+        } catch (_: Throwable) {}
 
         // Fire-and-forget upload so captured data persists in the cloud
         // even after the on-device ring buffer rolls off.
