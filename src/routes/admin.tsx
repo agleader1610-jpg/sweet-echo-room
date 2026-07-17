@@ -74,6 +74,31 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
+  const [tab, setTab] = useState<'update' | 'analytics'>('analytics');
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-xl font-bold">EIP Admin</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setTab('analytics')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'analytics' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              📊 Analytics
+            </button>
+            <button onClick={() => setTab('update')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'update' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              🚀 App Update
+            </button>
+            <button onClick={onLogout} className="ml-2 text-sm text-slate-400 hover:text-white">Logout</button>
+          </div>
+        </div>
+      </header>
+      {tab === 'analytics' ? <AnalyticsTab /> : <UpdateTab onLogout={onLogout} />}
+    </div>
+  );
+}
+
+function UpdateTab({ onLogout }: { onLogout: () => void }) {
   const load = useServerFn(getAdminDashboard);
   const save = useServerFn(publishUpdate);
   const [minVersion, setMinVersion] = useState<number>(1);
