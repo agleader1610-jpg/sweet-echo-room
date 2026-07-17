@@ -100,7 +100,74 @@ export const publishUpdate = createServerFn({ method: 'POST' })
     return { ok: true };
   });
 
+// ---------- License Gate ----------
+
+export const getLicenseSettings = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUnlocked();
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  const { data: cfg } = await supabaseAdmin
+    .from('app_config')
+    .select('required_parent_invite_code, lock_message')
+    .eq('id', 1)
+    .maybeSingle();
+  const { data: uids } = await supabaseAdmin
+    .from('licensed_uids')
+    .select('uid, note, created_at')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  return {
+    required_parent_invite_code: cfg?.required_parent_invite_code ?? '82824101415',
+    lock_message: cfg?.lock_message ?? '',
+    uids: uids ?? [],
+  };
+});
+
+export const updateLicenseSettings = createServerFn({ method: 'POST' })
+  .inputValidator((d: { required_parent_invite_code: string; lock_message: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('app_config')
+      .update({
+        required_parent_invite_code: String(data.required_parent_invite_code || '').trim(),
+        lock_message: String(data.lock_message || '').trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', 1);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const addLicensedUid = createServerFn({ method: 'POST' })
+  .inputValidator((d: { uid: string; note?: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const uid = String(data.uid || '').trim();
+    if (!uid) throw new Error('UID required');
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('licensed_uids')
+      .upsert({ uid, note: data.note ? String(data.note).slice(0, 500) : null });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const removeLicensedUid = createServerFn({ method: 'POST' })
+  .inputValidator((d: { uid: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('licensed_uids')
+      .delete()
+      .eq('uid', String(data.uid || '').trim());
+    if (error) throw error;
+    return { ok: true };
+  });
+
 // ---------- Prediction Analytics ----------
+
 
 type Row = {
   id: number;
