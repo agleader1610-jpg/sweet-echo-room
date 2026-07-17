@@ -301,7 +301,7 @@ class AviatorFragment : Fragment() {
             b.predResultBadge.text = "◌ WAITING"
             b.predResultBadge.setBackgroundColor(0xFF1F2937.toInt())
             b.predResultBadge.setTextColor(0xFF94A3B8.toInt())
-            b.predResultDetail.text = "—"
+            b.predResultDetail.text = "waiting for round to end…"
         } else {
             if (last.win) {
                 b.predResultBadge.text = "✓ WIN"
@@ -312,6 +312,8 @@ class AviatorFragment : Fragment() {
                 b.predResultBadge.setBackgroundColor(0xFFDC2626.toInt())
                 b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
             }
+            b.predResultDetail.text = "${last.label}  •  #${last.roundId} → %.2fx".format(last.crashX)
+        }
             b.predResultDetail.text = "#${last.roundId} → %.2fx".format(last.crashX)
         }
     }
