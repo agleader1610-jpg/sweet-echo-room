@@ -56,6 +56,7 @@ class AviatorFragment : Fragment() {
             b.emptyText.visibility = View.VISIBLE
             b.phaseCard.visibility = View.GONE
             b.analysisCard.visibility = View.GONE
+            b.predictionCard.visibility = View.GONE
             b.historyLabel.visibility = View.GONE
             b.historyScroll.visibility = View.GONE
             return
@@ -63,6 +64,7 @@ class AviatorFragment : Fragment() {
         b.emptyText.visibility = View.GONE
         b.phaseCard.visibility = View.VISIBLE
         b.analysisCard.visibility = View.GONE  // simplified per request
+
 
         val (label, color) = when (st.phase) {
             AviatorPhase.FLYING   -> "FLYING"    to 0xFFFFB74D.toInt()
