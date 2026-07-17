@@ -231,6 +231,155 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <!-- ═════ EIP WIN GO overlay (compact) ═════ -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/wingoOverlay"
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#F00A1226"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⚡ EIP TEAM • WIN GO"
+                    android:textColor="#FFD54F"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.22"
+                    android:shadowColor="#66FFD54F"
+                    android:shadowRadius="6"/>
+                <TextView
+                    android:id="@+id/wingoOverlayScore"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="7dp" android:paddingEnd="7dp"
+                    android:paddingTop="2dp" android:paddingBottom="2dp"
+                    android:background="#1F2937"
+                    android:text="0 / 0"
+                    android:textColor="#4ADE80"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"/>
+                <TextView
+                    android:id="@+id/wingoOverlayClose"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp" android:paddingEnd="2dp"
+                    android:text="✕"
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="8dp">
+                <TextView
+                    android:id="@+id/wingoOverlayPeriod"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="#—"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:textStyle="bold"/>
+                <TextView
+                    android:id="@+id/wingoOverlayCountdown"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp" android:paddingEnd="8dp"
+                    android:paddingTop="2dp" android:paddingBottom="2dp"
+                    android:background="#0B1A33"
+                    android:text="—:—"
+                    android:textColor="#4ADE80"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/wingoOverlayPick"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:text="—"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.05"
+                android:background="#334155"/>
+
+            <TextView
+                android:id="@+id/wingoOverlayConfidence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="—"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.18"/>
+
+            <TextView
+                android:id="@+id/wingoOverlayResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
+                android:paddingTop="3dp" android:paddingBottom="3dp"
+                android:background="#1F2937"
+                android:text="◌ WAIT"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"/>
+
+            <TextView
+                android:id="@+id/wingoOverlayHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
+                android:paddingTop="4dp" android:paddingBottom="4dp"
+                android:background="#0B1220"
+                android:text=""
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:scrollHorizontally="true"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
     <!-- Loading overlay: "Connecting EIP Team..." -->
     <LinearLayout
         android:id="@+id/loadingOverlay"
