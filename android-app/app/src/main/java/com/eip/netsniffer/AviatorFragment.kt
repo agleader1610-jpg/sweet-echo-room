@@ -224,43 +224,56 @@ class AviatorFragment : Fragment() {
         val lastRound = all.first()
 
         // Decide signal
-        data class Sig(val label: String, val bg: Int, val tip: String, val conf: String, val confCol: Int)
+        data class Sig(
+            val label: String,
+            val bg: Int,
+            val tip: String,
+            val conf: String,
+            val confCol: Int,
+            val test: (Double) -> Boolean,
+        )
         val sig = when {
             drought >= 20 || lowStreak >= 7 -> Sig(
                 "🔥 BIG MULTIPLIER OVERDUE",
                 0xFFDC2626.toInt(),
                 "Long drought detected. A high round is statistically overdue.\nStrategy: wait for takeoff, cash out early (1.3x–1.8x) and keep bet small — big spike can hit any moment.",
                 "HIGH", 0xFF4ADE80.toInt(),
+                { it >= 2.0 },
             )
             drought >= 12 || lowStreak >= 5 -> Sig(
                 "⚡ RECOVERY LIKELY",
                 0xFFF59E0B.toInt(),
                 "Pattern favors a recovery round soon.\nStrategy: safe entry, cash out around 1.5x–2x.",
                 "MEDIUM", 0xFFFBBF24.toInt(),
+                { it >= 1.5 },
             )
             lastRound >= 10.0 -> Sig(
                 "❄ COOL DOWN",
                 0xFF3B82F6.toInt(),
                 "A big spike just landed. Next few rounds usually run low.\nStrategy: skip 1–2 rounds or bet very small.",
                 "MEDIUM", 0xFFFBBF24.toInt(),
+                { it < 2.0 },
             )
             avg10 < 1.6 && heat <= 3 -> Sig(
                 "◈ SAFE ZONE",
                 0xFF16A34A.toInt(),
                 "Market is cold, small wins available.\nStrategy: quick cash-out at 1.3x–1.7x.",
                 "MEDIUM", 0xFFFBBF24.toInt(),
+                { it >= 1.3 },
             )
             heat >= 6 -> Sig(
                 "▲ HOT STREAK",
                 0xFF9333EA.toInt(),
                 "Multiple hits recently. Momentum is strong but a crash-back is near.\nStrategy: ride carefully, don't chase past 2.5x.",
                 "MEDIUM", 0xFFFBBF24.toInt(),
+                { it >= 2.0 },
             )
             else -> Sig(
                 "◆ NORMAL",
                 0xFF64748B.toInt(),
                 "No strong signal. Standard range 1.5x–2.5x expected.\nStrategy: normal play, conservative cash-out.",
                 "LOW", 0xFF94A3B8.toInt(),
+                { it >= 1.5 },
             )
         }
 
@@ -273,6 +286,44 @@ class AviatorFragment : Fragment() {
         b.predDrought.text = if (droughtIdx < 0) "${all.size}+" else drought.toString()
         b.predLowStreak.text = lowStreak.toString()
         b.predHeat.text = "$heat/10"
+
+        // Arm the WIN detector for the currently RUNNING round.
+        val st = AviatorStore.state.value
+        val runningId: Long? = when (st?.phase) {
+            AviatorPhase.CRASHED -> (st.prevRoundId ?: st.roundId)?.plus(1)
+            AviatorPhase.BETTING, AviatorPhase.FLYING -> st.roundId
+            else -> null
+        }
+        PredictionTracker.arm(runningId, sig.label, sig.test)
+    }
+
+    private fun renderTrackerStats(s: PredictionTracker.Stats) {
+        b.predWins.text = s.wins.toString()
+        b.predLosses.text = s.losses.toString()
+        b.predAccuracy.text = if (s.total == 0) "—" else "${s.accuracy}%"
+        b.predStreak.text = when {
+            s.streak > 0 -> "W${s.streak}"
+            s.streak < 0 -> "L${-s.streak}"
+            else -> "—"
+        }
+        val last = s.lastResult
+        if (last == null) {
+            b.predResultBadge.text = "◌ WAITING"
+            b.predResultBadge.setBackgroundColor(0xFF1F2937.toInt())
+            b.predResultBadge.setTextColor(0xFF94A3B8.toInt())
+            b.predResultDetail.text = "—"
+        } else {
+            if (last.win) {
+                b.predResultBadge.text = "✓ WIN"
+                b.predResultBadge.setBackgroundColor(0xFF16A34A.toInt())
+                b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
+            } else {
+                b.predResultBadge.text = "✗ LOSS"
+                b.predResultBadge.setBackgroundColor(0xFFDC2626.toInt())
+                b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
+            }
+            b.predResultDetail.text = "#${last.roundId} → %.2fx".format(last.crashX)
+        }
     }
 
     private fun category(x: Double): Int = when {
