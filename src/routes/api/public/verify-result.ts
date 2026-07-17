@@ -21,10 +21,10 @@ export const Route = createFileRoute('/api/public/verify-result')({
         if (!isFinite(roundId) || !isFinite(actual)) return json({ ok: false, error: 'bad_input' }, 400);
         const deviceId = (body.device_id ?? '').slice(0, 128);
         const target = body.target_multiplier == null ? null : Number(body.target_multiplier);
-        // Determine outcome: target null → SKIP verify (win if actual<2, else loss); else win if actual>=target
+        // Determine outcome: target null → SKIP verify (correct if actual<2, wrong if actual>=2); else win if actual>=target.
         let outcome: string;
-        if (target == null) outcome = actual < 2 ? 'skip_win' : 'skip_loss';
-        else outcome = actual >= target ? 'win' : 'loss';
+        if (target == null) outcome = actual < 2 ? 'SKIP_WIN' : 'SKIP_LOSS';
+        else outcome = actual >= target ? 'WIN' : 'LOSS';
 
         const supa = supaClient();
         await supa.from('prediction_results').insert({
