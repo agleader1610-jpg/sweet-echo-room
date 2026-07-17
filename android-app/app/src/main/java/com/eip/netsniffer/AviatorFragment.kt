@@ -37,8 +37,16 @@ class AviatorFragment : Fragment() {
 
     override fun onViewCreated(view: View, s: Bundle?) {
         AviatorStore.state.observe(viewLifecycleOwner) { renderState(it) }
-        AviatorStore.rounds.observe(viewLifecycleOwner) { renderRounds(it) }
-        b.clearBtn.setOnClickListener { AviatorStore.clear() }
+        AviatorStore.rounds.observe(viewLifecycleOwner) { list ->
+            // Resolve the most recent armed prediction against the newest crash
+            list.firstOrNull()?.let { PredictionTracker.resolve(it) }
+            renderRounds(list)
+        }
+        PredictionTracker.stats.observe(viewLifecycleOwner) { renderTrackerStats(it) }
+        b.clearBtn.setOnClickListener {
+            AviatorStore.clear()
+            PredictionTracker.reset()
+        }
 
         b.overlaySwitch.isChecked = prefs.getBoolean(PREF_OVERLAY, false)
         AviatorStore.overlayEnabled.postValue(b.overlaySwitch.isChecked)
