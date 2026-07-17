@@ -106,6 +106,22 @@
                 android:stateListAnimator="@null"
                 android:minWidth="0dp"/>
             <Button
+                android:id="@+id/tabWinGoBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="76dp"
+                android:layout_marginStart="8dp"
+                android:text="🎲\nWIN GO"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:lineSpacingExtra="2dp"
+                android:background="@drawable/tab_chip_bg"
+                android:textColor="@color/tab_chip_text"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"/>
+            <Button
                 android:id="@+id/tabProfileBtn"
                 android:layout_width="0dp"
                 android:layout_weight="1"
