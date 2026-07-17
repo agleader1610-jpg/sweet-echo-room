@@ -99,3 +99,168 @@ export const publishUpdate = createServerFn({ method: 'POST' })
     if (error) throw error;
     return { ok: true };
   });
+
+// ---------- Prediction Analytics ----------
+
+type Row = {
+  id: number;
+  device_id: string | null;
+  round_id: number;
+  target_multiplier: number | null;
+  action: string;
+  confidence: string | null;
+  source: string;
+  reasoning: string | null;
+  ai_model: string | null;
+  latency_ms: number | null;
+  created_at: string;
+  result: { actual_multiplier: number; outcome: string } | null;
+};
+
+function targetBucket(t: number | null): string {
+  if (t == null) return 'skip';
+  if (t < 1.5) return '1.0-1.5x';
+  if (t < 2) return '1.5-2x';
+  if (t < 3) return '2-3x';
+  if (t < 5) return '3-5x';
+  if (t < 10) return '5-10x';
+  return '10x+';
+}
+function crashBucket(m: number): string {
+  if (m < 1.5) return '1.0-1.5x (pink)';
+  if (m < 2) return '1.5-2x';
+  if (m < 3) return '2-3x';
+  if (m < 5) return '3-5x';
+  if (m < 10) return '5-10x';
+  return '10x+ (blue)';
+}
+
+function agg(rows: Row[], key: (r: Row) => string) {
+  const map = new Map<string, { total: number; verified: number; wins: number; latencySum: number; latencyN: number }>();
+  for (const r of rows) {
+    const k = key(r);
+    if (!map.has(k)) map.set(k, { total: 0, verified: 0, wins: 0, latencySum: 0, latencyN: 0 });
+    const b = map.get(k)!;
+    b.total++;
+    if (r.latency_ms != null) { b.latencySum += r.latency_ms; b.latencyN++; }
+    if (r.result) {
+      b.verified++;
+      if (r.result.outcome === 'WIN') b.wins++;
+    }
+  }
+  return Array.from(map.entries()).map(([k, v]) => ({
+    key: k,
+    total: v.total,
+    verified: v.verified,
+    wins: v.wins,
+    win_rate: v.verified ? Math.round((v.wins / v.verified) * 1000) / 10 : null,
+    avg_latency_ms: v.latencyN ? Math.round(v.latencySum / v.latencyN) : null,
+  })).sort((a, b) => b.total - a.total);
+}
+
+export const getPredictionAnalytics = createServerFn({ method: 'GET' })
+  .inputValidator((d: { hours?: number } | undefined) => ({ hours: Math.min(720, Math.max(1, Number(d?.hours) || 24)) }))
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const since = new Date(Date.now() - data.hours * 3600_000).toISOString();
+
+    const { data: preds, error } = await supabaseAdmin
+      .from('predictions')
+      .select('id,device_id,round_id,target_multiplier,action,confidence,source,reasoning,ai_model,latency_ms,created_at,prediction_results(actual_multiplier,outcome)')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(2000);
+    if (error) throw error;
+
+    const rows: Row[] = (preds ?? []).map((p: any) => ({
+      id: p.id,
+      device_id: p.device_id,
+      round_id: Number(p.round_id),
+      target_multiplier: p.target_multiplier == null ? null : Number(p.target_multiplier),
+      action: p.action,
+      confidence: p.confidence,
+      source: p.source,
+      reasoning: p.reasoning,
+      ai_model: p.ai_model,
+      latency_ms: p.latency_ms,
+      created_at: p.created_at,
+      result: Array.isArray(p.prediction_results) && p.prediction_results.length
+        ? { actual_multiplier: Number(p.prediction_results[0].actual_multiplier), outcome: String(p.prediction_results[0].outcome) }
+        : null,
+    }));
+
+    const verified = rows.filter(r => r.result);
+    const wins = verified.filter(r => r.result!.outcome === 'WIN').length;
+    const latencies = rows.map(r => r.latency_ms).filter((n): n is number => n != null).sort((a, b) => a - b);
+    const p50 = latencies[Math.floor(latencies.length * 0.5)] ?? null;
+    const p95 = latencies[Math.floor(latencies.length * 0.95)] ?? null;
+
+    // Crash distribution (from actual results)
+    const crashDist = agg(verified, r => crashBucket(r.result!.actual_multiplier));
+
+    // Best/worst target scenarios: bucket by (action + target range)
+    const scenario = agg(verified, r => `${r.action} @ ${targetBucket(r.target_multiplier)}`);
+
+    return {
+      unauthorized: false as const,
+      window_hours: data.hours,
+      summary: {
+        total: rows.length,
+        verified: verified.length,
+        pending: rows.length - verified.length,
+        wins,
+        losses: verified.length - wins,
+        win_rate: verified.length ? Math.round((wins / verified.length) * 1000) / 10 : null,
+        latency_p50_ms: p50,
+        latency_p95_ms: p95,
+      },
+      by_source: agg(rows, r => r.source),
+      by_action: agg(rows, r => r.action),
+      by_confidence: agg(rows, r => r.confidence ?? 'UNKNOWN'),
+      by_target: agg(rows, r => targetBucket(r.target_multiplier)),
+      by_model: agg(rows.filter(r => r.ai_model), r => r.ai_model!),
+      crash_distribution: crashDist,
+      best_scenarios: scenario.filter(s => s.verified >= 3).sort((a, b) => (b.win_rate ?? 0) - (a.win_rate ?? 0)).slice(0, 8),
+      worst_scenarios: scenario.filter(s => s.verified >= 3).sort((a, b) => (a.win_rate ?? 0) - (b.win_rate ?? 0)).slice(0, 8),
+      recent: rows.slice(0, 30).map(r => ({
+        id: r.id,
+        round_id: r.round_id,
+        action: r.action,
+        target: r.target_multiplier,
+        confidence: r.confidence,
+        source: r.source,
+        latency_ms: r.latency_ms,
+        reasoning: r.reasoning,
+        actual: r.result?.actual_multiplier ?? null,
+        outcome: r.result?.outcome ?? null,
+        created_at: r.created_at,
+      })),
+    };
+  });
+
+export const exportPredictionsCsv = createServerFn({ method: 'GET' })
+  .inputValidator((d: { hours?: number } | undefined) => ({ hours: Math.min(720, Math.max(1, Number(d?.hours) || 168)) }))
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const since = new Date(Date.now() - data.hours * 3600_000).toISOString();
+    const { data: rows, error } = await supabaseAdmin
+      .from('predictions')
+      .select('id,round_id,device_id,action,target_multiplier,confidence,source,ai_model,latency_ms,reasoning,created_at,prediction_results(actual_multiplier,outcome)')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(10000);
+    if (error) throw error;
+    const header = 'id,round_id,device_id,action,target,confidence,source,model,latency_ms,actual,outcome,reasoning,created_at';
+    const esc = (v: any) => {
+      if (v == null) return '';
+      const s = String(v).replace(/"/g, '""');
+      return /[",\n]/.test(s) ? `"${s}"` : s;
+    };
+    const lines = (rows ?? []).map((r: any) => {
+      const res = Array.isArray(r.prediction_results) && r.prediction_results[0];
+      return [r.id, r.round_id, r.device_id, r.action, r.target_multiplier, r.confidence, r.source, r.ai_model, r.latency_ms, res?.actual_multiplier ?? '', res?.outcome ?? '', r.reasoning, r.created_at].map(esc).join(',');
+    });
+    return { csv: [header, ...lines].join('\n'), count: rows?.length ?? 0 };
+  });
