@@ -148,122 +148,257 @@ function UpdateTab({ onLogout }: { onLogout: () => void }) {
     } finally { setSaving(false); }
   }
 
-  if (loading) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Loading…</div>;
+  if (loading) return <div className="p-8 text-center">Loading…</div>;
   const dirty = minVersion !== savedMin;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">App Update Control</h1>
-          <button onClick={onLogout} className="text-sm text-slate-400 hover:text-white">Logout</button>
-        </div>
-      </header>
+    <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div className="text-xs uppercase tracking-wide text-slate-400 mb-1">Saved update target</div>
+        <div className="text-2xl font-bold mb-2">Version code {latestVersion || minVersion}</div>
+        {apkUrl ? (
+          <a href={apkUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm break-all">
+            📥 Test APK link
+          </a>
+        ) : (
+          <div className="text-slate-400 text-sm">এখনো APK download URL দেওয়া হয়নি।</div>
+        )}
+        <button onClick={() => { refresh(); }} className="mt-3 text-xs text-slate-400 hover:text-white">🔄 Refresh</button>
+      </section>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        <section className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <div className="text-xs uppercase tracking-wide text-slate-400 mb-1">Saved update target</div>
-          <div className="text-2xl font-bold mb-2">Version code {latestVersion || minVersion}</div>
-          {apkUrl ? (
-            <a href={apkUrl} target="_blank" rel="noreferrer"
-               className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm break-all">
-              📥 Test APK link
-            </a>
-          ) : (
-            <div className="text-slate-400 text-sm">এখনো APK download URL দেওয়া হয়নি।</div>
-          )}
-          <button onClick={() => { refresh(); }}
-                  className="mt-3 text-xs text-slate-400 hover:text-white">
-            🔄 Refresh saved config
+      <form onSubmit={onPublish} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+        <div>
+          <label className="block text-sm font-medium mb-1">Minimum required version code</label>
+          <input type="number" min={1} value={minVersion} onChange={(e) => setMinVersion(Number(e.target.value))}
+            className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
+          <div className="mt-1.5 text-xs">Saved: <b>{savedMin}</b>{dirty && <span className="text-amber-400 ml-2">● unsaved</span>}</div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">Latest version code</label>
+            <input type="number" min={1} value={latestVersion} onChange={(e) => setLatestVersion(Number(e.target.value))}
+              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Latest version name</label>
+            <input value={latestName} onChange={(e) => setLatestName(e.target.value)} placeholder="1.0.32"
+              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">APK download URL</label>
+          <input type="url" value={apkUrl} onChange={(e) => setApkUrl(e.target.value)} placeholder="https://…/app.apk"
+            className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" checked={forceUpdate} onChange={(e) => setForceUpdate(e.target.checked)} className="w-5 h-5 mt-0.5 accent-cyan-500" />
+          <div>
+            <div className="font-medium">Force update চালু</div>
+            <div className="text-xs text-slate-400">On থাকলে পুরনো version block হবে।</div>
+          </div>
+        </label>
+        <div>
+          <label className="block text-sm font-medium mb-1">Update message</label>
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3}
+            className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
+        </div>
+        <div className="flex items-center gap-3 pt-2">
+          <button disabled={saving} type="submit" className="rounded-md bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 px-6 py-2.5 font-semibold">
+            {saving ? 'Publishing…' : '🚀 Publish'}
           </button>
-        </section>
-
-        {/* Publish card */}
-        <form onSubmit={onPublish} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium mb-1">Minimum required version code</label>
-            <p className="text-xs text-slate-400 mb-2">
-              app-এর current version code এর নিচে হলে user-কে update করতে বলবে।
-            </p>
-            <input
-              type="number"
-              min={1}
-              value={minVersion}
-              onChange={(e) => setMinVersion(Number(e.target.value))}
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500"
-            />
-            <div className="mt-1.5 text-xs">
-              বর্তমানে saved: <b>Version code {savedMin}</b>
-              {dirty && <span className="text-amber-400 ml-2">● unsaved</span>}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-1">Latest version code</label>
-              <input
-                type="number"
-                min={1}
-                value={latestVersion}
-                onChange={(e) => setLatestVersion(Number(e.target.value))}
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Latest version name</label>
-              <input
-                value={latestName}
-                onChange={(e) => setLatestName(e.target.value)}
-                placeholder="1.0.15"
-                className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">APK download URL</label>
-            <input
-              type="url"
-              value={apkUrl}
-              onChange={(e) => setApkUrl(e.target.value)}
-              placeholder="https://example.com/APKBid.apk"
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={forceUpdate}
-                   onChange={(e) => setForceUpdate(e.target.checked)}
-                   className="w-5 h-5 mt-0.5 accent-cyan-500" />
-            <div>
-              <div className="font-medium">Force update চালু</div>
-              <div className="text-xs text-slate-400">On থাকলে পুরনো version block হবে। Off রাখলে app normal চলবে।</div>
-            </div>
-          </label>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Update message (users দেখবে)</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3}
-                      className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-cyan-500" />
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <button disabled={saving} type="submit"
-                    className="rounded-md bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 px-6 py-2.5 font-semibold">
-              {saving ? 'Publishing…' : '🚀 Publish update'}
-            </button>
-            {msg && <span className="text-sm">{msg}</span>}
-          </div>
-        </form>
-
-        <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 text-xs text-slate-400 leading-relaxed">
-          <b className="text-slate-300">কীভাবে কাজ করে:</b><br />
-          1. APK build করার আগে app-এর version code/version name manually ঠিক করুন।<br />
-          2. APK ready হলে এখানে latest version code/name এবং download URL manually save করুন।<br />
-          3. App launch-এ এই saved তথ্য পড়ে। current version code minimum-এর নিচে হলে update dialog দেখাবে।<br />
-          4. Rollback/disable করতে চাইলে Force update off করুন বা minimum version কমিয়ে Save করুন।
+          {msg && <span className="text-sm">{msg}</span>}
         </div>
-      </main>
+      </form>
+    </main>
+  );
+}
+
+// ============ ANALYTICS TAB ============
+
+type Bucket = { key: string; total: number; verified: number; wins: number; win_rate: number | null; avg_latency_ms: number | null };
+
+function AnalyticsTab() {
+  const load = useServerFn(getPredictionAnalytics);
+  const csvFn = useServerFn(exportPredictionsCsv);
+  const [hours, setHours] = useState(24);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  async function refresh() {
+    setLoading(true);
+    try { setData(await load({ data: { hours } })); } finally { setLoading(false); }
+  }
+
+  useEffect(() => { refresh(); }, [hours]);
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const t = setInterval(refresh, 15000);
+    return () => clearInterval(t);
+  }, [autoRefresh, hours]);
+
+  async function onExport() {
+    const r = await csvFn({ data: { hours: 720 } });
+    const blob = new Blob([r.csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `predictions-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  if (loading && !data) return <div className="p-8 text-center text-slate-400">Loading analytics…</div>;
+  if (!data) return <div className="p-8 text-center text-red-400">Failed to load</div>;
+
+  const s = data.summary;
+
+  return (
+    <main className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      {/* Controls */}
+      <div className="flex flex-wrap gap-2 items-center bg-slate-900 border border-slate-800 rounded-lg p-3">
+        <span className="text-sm text-slate-400 mr-2">Window:</span>
+        {[1, 6, 24, 72, 168, 720].map(h => (
+          <button key={h} onClick={() => setHours(h)}
+            className={`px-3 py-1 rounded text-xs ${hours === h ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+            {h < 24 ? `${h}h` : `${h / 24}d`}
+          </button>
+        ))}
+        <div className="ml-auto flex gap-2 items-center">
+          <label className="text-xs flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} className="accent-cyan-500" />
+            Auto-refresh 15s
+          </label>
+          <button onClick={refresh} className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded">🔄</button>
+          <button onClick={onExport} className="text-xs bg-emerald-700 hover:bg-emerald-600 px-3 py-1 rounded">📥 Export CSV (30d)</button>
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Total Predictions" value={s.total} />
+        <Stat label="Verified" value={`${s.verified} / ${s.total}`} sub={s.pending ? `${s.pending} pending` : undefined} />
+        <Stat label="Win Rate" value={s.win_rate == null ? '—' : `${s.win_rate}%`} sub={`${s.wins}W / ${s.losses}L`}
+          tone={s.win_rate == null ? 'neutral' : s.win_rate >= 55 ? 'good' : s.win_rate >= 45 ? 'neutral' : 'bad'} />
+        <Stat label="Latency" value={s.latency_p50_ms == null ? '—' : `${s.latency_p50_ms}ms`} sub={s.latency_p95_ms ? `p95: ${s.latency_p95_ms}ms` : undefined}
+          tone={s.latency_p50_ms == null ? 'neutral' : s.latency_p50_ms < 2000 ? 'good' : s.latency_p50_ms < 4000 ? 'neutral' : 'bad'} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-5">
+        <Card title="By Source (AI vs Local)">
+          <BucketTable rows={data.by_source} />
+        </Card>
+        <Card title="By Action">
+          <BucketTable rows={data.by_action} />
+        </Card>
+        <Card title="By Confidence">
+          <BucketTable rows={data.by_confidence} />
+        </Card>
+        <Card title="By Target Range">
+          <BucketTable rows={data.by_target} />
+        </Card>
+        <Card title="By Model">
+          <BucketTable rows={data.by_model} />
+        </Card>
+        <Card title="Actual Crash Distribution">
+          <BucketTable rows={data.crash_distribution} showWin={false} />
+        </Card>
+        <Card title="🏆 Best Scenarios (min 3 verified)">
+          <BucketTable rows={data.best_scenarios} />
+        </Card>
+        <Card title="⚠️ Worst Scenarios (min 3 verified)">
+          <BucketTable rows={data.worst_scenarios} />
+        </Card>
+      </div>
+
+      {/* Recent predictions */}
+      <Card title={`Recent ${data.recent.length} Predictions`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="text-left p-1.5">Round</th>
+                <th className="text-left p-1.5">Action</th>
+                <th className="text-right p-1.5">Target</th>
+                <th className="text-left p-1.5">Conf</th>
+                <th className="text-left p-1.5">Src</th>
+                <th className="text-right p-1.5">Lat</th>
+                <th className="text-right p-1.5">Actual</th>
+                <th className="text-center p-1.5">W/L</th>
+                <th className="text-left p-1.5">Reasoning</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.recent.map((r: any) => (
+                <tr key={r.id} className="border-b border-slate-800/50">
+                  <td className="p-1.5 font-mono text-slate-400">#{r.round_id}</td>
+                  <td className="p-1.5 font-semibold">{r.action}</td>
+                  <td className="p-1.5 text-right font-mono">{r.target == null ? '—' : `${Number(r.target).toFixed(2)}x`}</td>
+                  <td className="p-1.5 text-slate-400">{r.confidence ?? '—'}</td>
+                  <td className="p-1.5"><span className={r.source === 'ai' ? 'text-emerald-400' : 'text-blue-400'}>{r.source}</span></td>
+                  <td className="p-1.5 text-right text-slate-400 font-mono">{r.latency_ms ?? '—'}</td>
+                  <td className="p-1.5 text-right font-mono">{r.actual == null ? '⏳' : `${Number(r.actual).toFixed(2)}x`}</td>
+                  <td className="p-1.5 text-center">
+                    {r.outcome == null ? <span className="text-slate-500">—</span>
+                      : r.outcome === 'WIN' ? <span className="text-emerald-400 font-bold">✓</span>
+                      : <span className="text-red-400 font-bold">✗</span>}
+                  </td>
+                  <td className="p-1.5 text-slate-400 max-w-xs truncate" title={r.reasoning ?? ''}>{r.reasoning ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div className="text-xs text-slate-500 text-center pt-2">
+        Window: last {data.window_hours}h • Data: {data.summary.total} predictions loaded
+      </div>
+    </main>
+  );
+}
+
+function Stat({ label, value, sub, tone = 'neutral' }: { label: string; value: string | number; sub?: string; tone?: 'good' | 'bad' | 'neutral' }) {
+  const color = tone === 'good' ? 'text-emerald-400' : tone === 'bad' ? 'text-red-400' : 'text-white';
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+      <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
+      <div className={`text-2xl font-bold mt-1 ${color}`}>{value}</div>
+      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+      <div className="text-sm font-semibold mb-3 text-slate-200">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function BucketTable({ rows, showWin = true }: { rows: Bucket[]; showWin?: boolean }) {
+  if (!rows.length) return <div className="text-xs text-slate-500 py-2">No data yet</div>;
+  const max = Math.max(...rows.map(r => r.total));
+  return (
+    <div className="space-y-1.5">
+      {rows.map(r => (
+        <div key={r.key} className="text-xs">
+          <div className="flex justify-between mb-0.5">
+            <span className="font-medium text-slate-300 truncate">{r.key}</span>
+            <span className="text-slate-400 font-mono ml-2 shrink-0">
+              {r.total}
+              {showWin && r.verified > 0 && (
+                <span className={`ml-2 ${r.win_rate! >= 55 ? 'text-emerald-400' : r.win_rate! >= 45 ? 'text-slate-400' : 'text-red-400'}`}>
+                  {r.win_rate}% ({r.wins}/{r.verified})
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="h-1.5 bg-slate-800 rounded overflow-hidden">
+            <div className="h-full bg-cyan-600" style={{ width: `${(r.total / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
