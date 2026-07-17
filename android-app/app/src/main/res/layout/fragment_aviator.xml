@@ -63,237 +63,66 @@
             android:text="Waiting for Aviator data…\nOpen the game in the DK Win tab."
             android:visibility="visible"/>
 
-        <!-- ═════════════ HERO: PREDICTION SIGNAL (biggest, first) ═════════════ -->
+        <!-- ═════════════ HERO: PREDICTION SIGNAL (compact & advanced) ═════════════ -->
         <androidx.cardview.widget.CardView
             android:id="@+id/predictionCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
             app:cardBackgroundColor="#0A1428"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="12dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="10dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="18dp">
+                android:padding="14dp">
 
-                <!-- Signal header: which round -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
+                    <View
+                        android:layout_width="3dp"
+                        android:layout_height="14dp"
+                        android:background="#FFD54F"/>
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="⚡ EIP SIGNAL"
+                        android:layout_marginStart="8dp"
+                        android:text="EIP SIGNAL"
                         android:textColor="#FFD54F"
-                        android:textSize="12sp"
+                        android:textSize="10sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.28"/>
+                        android:letterSpacing="0.3"/>
+                    <TextView
+                        android:id="@+id/predForRound"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="#—"
+                        android:textColor="#64748B"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"/>
                     <TextView
                         android:id="@+id/predConfidence"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:background="#1F2937"
                         android:text="—"
                         android:textColor="#E2E8F0"
-                        android:textSize="10sp"
+                        android:textSize="9sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.18"/>
+                        android:letterSpacing="0.2"/>
                 </LinearLayout>
 
-                <!-- "FOR ROUND #123456" -->
-                <TextView
-                    android:id="@+id/predForRound"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="FOR ROUND #—"
-                    android:textColor="#94A3B8"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.2"
-                    android:fontFamily="monospace"/>
-
-                <!-- BIG TARGET (hero) — this is the ONE thing users look at -->
-                <TextView
-                    android:id="@+id/predTargetBig"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="—"
-                    android:textColor="#4ADE80"
-                    android:textSize="68sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="-0.02"
-                    android:fontFamily="sans-serif-black"
-                    android:includeFontPadding="false"/>
-
-                <!-- Action pill -->
-                <TextView
-                    android:id="@+id/predSignal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
-                    android:paddingTop="7dp"
-                    android:paddingBottom="7dp"
-                    android:text="ANALYZING…"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.16"
-                    android:background="#455A64"/>
-
-                <TextView
-                    android:id="@+id/predSuggestion"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:textColor="#D7DEE8"
-                    android:textSize="12sp"
-                    android:lineSpacingExtra="2dp"
-                    android:text=""/>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="14dp"
-                    android:background="#1E293B"/>
-
-                <!-- WIN / LOSS score bar -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="14dp"
-                    android:weightSum="4">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#0F2318">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="WIN"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#4ADE80"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/predWins"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#4ADE80"
-                            android:textStyle="bold"
-                            android:textSize="20sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#2A1414">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="LOSS"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#F87171"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/predLosses"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="0"
-                            android:textColor="#F87171"
-                            android:textStyle="bold"
-                            android:textSize="20sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="#2A2410">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ACC"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#FACC15"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/predAccuracy"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#FACC15"
-                            android:textStyle="bold"
-                            android:textSize="20sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="10dp"
-                        android:layout_marginStart="3dp"
-                        android:background="#1E1A2E">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="STREAK"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#A78BFA"
-                            android:letterSpacing="0.2"/>
-                        <TextView
-                            android:id="@+id/predStreak"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#A78BFA"
-                            android:textStyle="bold"
-                            android:textSize="20sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Last result badge (compact) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -302,134 +131,136 @@
                     android:layout_marginTop="10dp">
 
                     <TextView
-                        android:id="@+id/predResultBadge"
+                        android:id="@+id/predTargetBig"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="—"
+                        android:textColor="#4ADE80"
+                        android:textSize="52sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.03"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"/>
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="5dp"
-                        android:paddingBottom="5dp"
-                        android:background="#1F2937"
-                        android:text="◌ WAITING"
-                        android:textColor="#94A3B8"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.18"/>
-
-                    <TextView
-                        android:id="@+id/predResultDetail"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="10dp"
-                        android:text="—"
-                        android:textColor="#B0BEC5"
-                        android:textSize="11sp"
-                        android:fontFamily="monospace"/>
-                </LinearLayout>
-
-                <!-- Mini stats: 10x gap / low streak / heat -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="12dp"
-                    android:weightSum="3">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginEnd="4dp"
-                        android:background="#111C33">
+                        android:gravity="end">
+                        <TextView
+                            android:id="@+id/predSignal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:text="ANALYZING"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.18"
+                            android:background="#455A64"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="10x GAP"
-                            android:textSize="9sp"
+                            android:layout_marginTop="4dp"
+                            android:layout_gravity="end"
+                            android:text="CASH OUT"
+                            android:textColor="#64748B"
+                            android:textSize="8sp"
                             android:textStyle="bold"
-                            android:textColor="#94A3B8"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predDrought"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#F87171"
-                            android:textStyle="bold"
-                            android:textSize="14sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="2dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="LOW STREAK"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#94A3B8"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predLowStreak"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#FBBF24"
-                            android:textStyle="bold"
-                            android:textSize="14sp"
-                            android:fontFamily="monospace"/>
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:padding="8dp"
-                        android:layout_marginStart="4dp"
-                        android:background="#111C33">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="HEAT"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:textColor="#94A3B8"
-                            android:letterSpacing="0.18"/>
-                        <TextView
-                            android:id="@+id/predHeat"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="—"
-                            android:textColor="#4ADE80"
-                            android:textStyle="bold"
-                            android:textSize="14sp"
-                            android:fontFamily="monospace"/>
+                            android:letterSpacing="0.24"/>
                     </LinearLayout>
                 </LinearLayout>
 
                 <TextView
+                    android:id="@+id/predSuggestion"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"
+                    android:text=""/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:layout_marginTop="10dp"
-                    android:text="⚠ Prediction is a statistical hint from history, not a guarantee. Play responsibly."
-                    android:textColor="#64748B"
-                    android:textSize="10sp"
-                    android:fontStyle="italic"/>
+                    android:paddingTop="8dp"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
+                    android:background="#0F1E36">
+                    <TextView
+                        android:id="@+id/predDrought"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="—"
+                        android:textColor="#F87171"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"/>
+                    <TextView
+                        android:id="@+id/predLowStreak"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="—"
+                        android:textColor="#FBBF24"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"/>
+                    <TextView
+                        android:id="@+id/predHeat"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="—"
+                        android:textColor="#4ADE80"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#0F1E36"
+                    android:paddingBottom="6dp">
+                    <TextView
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:text="10x GAP"
+                        android:textColor="#546A85" android:textSize="8sp"
+                        android:textStyle="bold" android:letterSpacing="0.16"/>
+                    <TextView
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:text="LOW RUN"
+                        android:textColor="#546A85" android:textSize="8sp"
+                        android:textStyle="bold" android:letterSpacing="0.16"/>
+                    <TextView
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:text="HEAT"
+                        android:textColor="#546A85" android:textSize="8sp"
+                        android:textStyle="bold" android:letterSpacing="0.16"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:visibility="gone">
+                    <TextView android:id="@+id/predWins"  android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    <TextView android:id="@+id/predLosses" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    <TextView android:id="@+id/predAccuracy" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    <TextView android:id="@+id/predStreak" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    <TextView android:id="@+id/predResultBadge" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    <TextView android:id="@+id/predResultDetail" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

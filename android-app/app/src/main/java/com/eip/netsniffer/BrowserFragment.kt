@@ -262,11 +262,8 @@ class BrowserFragment : Fragment() {
             v.overlayResult.setBackgroundColor(0xFFDC2626.toInt())
             v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
         }
-        val w = stats?.wins ?: 0
-        val l = stats?.losses ?: 0
-        val acc = if ((w + l) == 0) "—" else "${(w * 100) / (w + l)}%"
-        v.overlayScore.text = "W $w  L $l  $acc"
-        v.overlayScore.setTextColor(if (w >= l) 0xFF4ADE80.toInt() else 0xFFF87171.toInt())
+        // W/L score hidden from overlay per user request.
+        v.overlayScore.visibility = View.GONE
 
         // Marquee history — right→left, most recent first.
         val hist = rounds.take(30)

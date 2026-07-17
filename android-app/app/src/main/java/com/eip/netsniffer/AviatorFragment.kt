@@ -105,112 +105,122 @@ class AviatorFragment : Fragment() {
         }
         b.predictionCard.visibility = View.VISIBLE
 
+        // ---------- adaptive stats over last 15 rounds ----------
+        val recent = all.take(15)
+        val last5 = all.take(5)
+        val avgRecent = recent.average()
+        val avgLast5 = last5.average()
+        val heat5x = recent.count { it >= 5.0 }
+        val heat2x = recent.count { it >= 2.0 }
+        val lowStreak = all.takeWhile { it < 2.0 }.size
+        val highStreak = all.takeWhile { it >= 2.0 }.size
         val droughtIdx = all.indexOfFirst { it >= 10.0 }
         val drought = if (droughtIdx < 0) all.size else droughtIdx
-        val lowStreak = all.takeWhile { it < 2.0 }.size
-        val last10 = all.take(10)
-        val heat = last10.count { it >= 2.0 }
-        val avg10 = last10.average()
-        val lastRound = all.first()
+        val lastX = all.first()
+        val prevX = all.getOrNull(1) ?: 0.0
 
         data class Sig(
-            val action: String,      // "BET" / "STRONG BET" / "SKIP"
-            val bg: Int,
-            val targetColor: Int,
-            val cashout: String,
-            val reason: String,
-            val conf: String,
-            val confCol: Int,
-            val targetX: Double?,
-            val test: (Double) -> Boolean,
+            val action: String, val bg: Int, val targetColor: Int,
+            val cashout: String, val reason: String,
+            val conf: String, val confCol: Int,
+            val targetX: Double?, val test: (Double) -> Boolean,
         )
-        val sig = when {
-            drought >= 20 || lowStreak >= 7 -> Sig(
-                "STRONG BET", 0xFFDC2626.toInt(), 0xFF4ADE80.toInt(),
-                "Cash out at 1.5x", "Big multiplier long overdue.",
-                "HIGH", 0xFF4ADE80.toInt(), 1.5, { it >= 1.5 },
-            )
-            drought >= 12 || lowStreak >= 5 -> Sig(
-                "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
-                "Cash out at 1.5x", "Recovery round likely.",
-                "MEDIUM", 0xFFFBBF24.toInt(), 1.5, { it >= 1.5 },
-            )
-            lastRound >= 10.0 -> Sig(
+
+        // ---------- adaptive target selection ----------
+        val sig: Sig = when {
+            // 1) Just crashed on 10x+ → cool-down likely
+            lastX >= 10.0 -> Sig(
                 "SKIP", 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt(),
-                "Wait 1–2 rounds", "Big spike just landed, cool-down expected.",
-                "MEDIUM", 0xFFFBBF24.toInt(), null, { it < 2.0 },
+                "wait 1–2 rounds", "big spike just landed, cool-down.",
+                "HIGH", 0xFF4ADE80.toInt(), null, { it < 2.0 },
             )
-            avg10 < 1.6 && heat <= 3 -> Sig(
+            // 2) Two big multipliers back-to-back → almost always followed by pink
+            lastX >= 3.0 && prevX >= 3.0 -> Sig(
+                "SKIP", 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt(),
+                "wait — hot pair", "two high crashes in a row → reversal likely.",
+                "HIGH", 0xFF4ADE80.toInt(), null, { it < 2.0 },
+            )
+            // 3) Long dry spell of pinks → recovery due, aim HIGHER
+            lowStreak >= 8 -> Sig(
+                "STRONG BET", 0xFFDC2626.toInt(), 0xFFA78BFA.toInt(),
+                "cash @ 3.00x", "$lowStreak straight pinks — big recovery overdue.",
+                "HIGH", 0xFF4ADE80.toInt(), 3.0, { it >= 3.0 },
+            )
+            lowStreak >= 5 -> Sig(
+                "STRONG BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
+                "cash @ 2.00x", "$lowStreak pinks in a row — reversal building.",
+                "HIGH", 0xFF4ADE80.toInt(), 2.0, { it >= 2.0 },
+            )
+            lowStreak >= 3 -> Sig(
                 "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
-                "Cash out at 1.3x", "Cold market — quick small wins.",
+                "cash @ 1.70x", "cold streak — moderate rebound.",
+                "MEDIUM", 0xFFFBBF24.toInt(), 1.7, { it >= 1.7 },
+            )
+            // 4) Big drought without any 10x
+            drought >= 25 -> Sig(
+                "STRONG BET", 0xFFDC2626.toInt(), 0xFFA78BFA.toInt(),
+                "cash @ 5.00x", "$drought rounds since 10x — mega-spike zone.",
+                "HIGH", 0xFF4ADE80.toInt(), 5.0, { it >= 5.0 },
+            )
+            drought >= 15 -> Sig(
+                "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
+                "cash @ 2.50x", "long drought — spike window opening.",
+                "MEDIUM", 0xFFFBBF24.toInt(), 2.5, { it >= 2.5 },
+            )
+            // 5) Very hot market → shave target, quick take
+            avgRecent > 3.5 || heat5x >= 4 -> Sig(
+                "BET", 0xFFF97316.toInt(), 0xFFFACC15.toInt(),
+                "cash @ 1.30x", "market running hot — take small & fast.",
                 "MEDIUM", 0xFFFBBF24.toInt(), 1.3, { it >= 1.3 },
             )
-            heat >= 7 -> Sig(
+            // 6) Cold market → small safe bet
+            avgRecent < 1.6 && heat2x <= 4 -> Sig(
+                "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
+                "cash @ 1.50x", "quiet market — safe quick win.",
+                "MEDIUM", 0xFFFBBF24.toInt(), 1.5, { it >= 1.5 },
+            )
+            // 7) High streak — momentum fading
+            highStreak >= 4 -> Sig(
                 "SKIP", 0xFF9333EA.toInt(), 0xFFC084FC.toInt(),
-                "Crash-back near", "Hot streak — momentum fading.",
+                "wait — momentum peak", "$highStreak greens in a row → crash-back.",
                 "MEDIUM", 0xFFFBBF24.toInt(), null, { it < 2.0 },
+            )
+            // 8) Nudge target with 5-round avg for variety
+            avgLast5 in 1.6..2.4 -> Sig(
+                "BET", 0xFF16A34A.toInt(), 0xFF4ADE80.toInt(),
+                "cash @ 1.80x", "balanced trend — steady climb.",
+                "MEDIUM", 0xFFFBBF24.toInt(), 1.8, { it >= 1.8 },
             )
             else -> Sig(
                 "BET", 0xFF64748B.toInt(), 0xFF94A3B8.toInt(),
-                "Cash out at 1.5x", "Normal range — conservative play.",
-                "LOW", 0xFF94A3B8.toInt(), 1.5, { it >= 1.5 },
+                "cash @ 1.60x", "neutral read — conservative play.",
+                "LOW", 0xFF94A3B8.toInt(), 1.6, { it >= 1.6 },
             )
         }
 
-        // Next running round id = last completed + 1
         val runningId: Long? = rounds.firstOrNull()?.roundId?.plus(1)
             ?: AviatorStore.state.value?.roundId
+        val signalLabel = if (sig.targetX == null) "SKIP" else "%.2fx".format(sig.targetX)
 
-        val signalLabel = if (sig.targetX == null) "SKIP"
-                          else "%.2fx".format(sig.targetX)
-
-        // HERO: big target
         b.predTargetBig.text = if (sig.targetX == null) "SKIP" else "%.2fx".format(sig.targetX)
         b.predTargetBig.setTextColor(sig.targetColor)
-
-        b.predForRound.text = "FOR ROUND #${runningId ?: "—"}"
-
+        b.predForRound.text = "#${runningId ?: "—"}"
         b.predSignal.text = sig.action
         b.predSignal.background = roundedBg(sig.bg, 8f)
-
-        b.predSuggestion.text = "${sig.cashout} — ${sig.reason}"
+        b.predSuggestion.text = "${sig.cashout} • ${sig.reason}"
         b.predConfidence.text = sig.conf
         b.predConfidence.setTextColor(sig.confCol)
 
         b.predDrought.text = if (droughtIdx < 0) "${all.size}+" else drought.toString()
         b.predLowStreak.text = lowStreak.toString()
-        b.predHeat.text = "$heat/10"
+        b.predHeat.text = "$heat2x/${recent.size}"
 
         PredictionTracker.arm(runningId, signalLabel, sig.test)
     }
 
     private fun renderTrackerStats(s: PredictionTracker.Stats) {
-        b.predWins.text = s.wins.toString()
-        b.predLosses.text = s.losses.toString()
-        b.predAccuracy.text = if (s.total == 0) "—" else "${s.accuracy}%"
-        b.predStreak.text = when {
-            s.streak > 0 -> "W${s.streak}"
-            s.streak < 0 -> "L${-s.streak}"
-            else -> "—"
-        }
-        val last = s.lastResult
-        if (last == null) {
-            b.predResultBadge.text = "◌ WAITING"
-            b.predResultBadge.setBackgroundColor(0xFF1F2937.toInt())
-            b.predResultBadge.setTextColor(0xFF94A3B8.toInt())
-            b.predResultDetail.text = "waiting for round to end…"
-        } else {
-            if (last.win) {
-                b.predResultBadge.text = "✓ WIN"
-                b.predResultBadge.setBackgroundColor(0xFF16A34A.toInt())
-                b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
-            } else {
-                b.predResultBadge.text = "✗ LOSS"
-                b.predResultBadge.setBackgroundColor(0xFFDC2626.toInt())
-                b.predResultBadge.setTextColor(0xFFFFFFFF.toInt())
-            }
-            b.predResultDetail.text = "${last.label}  •  #${last.roundId} → %.2fx".format(last.crashX)
-        }
+        // W/L stats intentionally hidden from top UI per user request.
+        // Tracker still runs for internal accuracy tracking.
     }
 
     private fun makeChip(ctx: Context, x: Double): View {
