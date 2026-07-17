@@ -56,6 +56,7 @@ class AviatorFragment : Fragment() {
             b.emptyText.visibility = View.VISIBLE
             b.phaseCard.visibility = View.GONE
             b.analysisCard.visibility = View.GONE
+            b.predictionCard.visibility = View.GONE
             b.historyLabel.visibility = View.GONE
             b.historyScroll.visibility = View.GONE
             return
@@ -63,6 +64,7 @@ class AviatorFragment : Fragment() {
         b.emptyText.visibility = View.GONE
         b.phaseCard.visibility = View.VISIBLE
         b.analysisCard.visibility = View.GONE  // simplified per request
+
 
         val (label, color) = when (st.phase) {
             AviatorPhase.FLYING   -> "FLYING"    to 0xFFFFB74D.toInt()
@@ -122,6 +124,7 @@ class AviatorFragment : Fragment() {
         if (list.isEmpty()) {
             b.historyLabel.visibility = View.GONE
             b.historyScroll.visibility = View.GONE
+            b.predictionCard.visibility = View.GONE
             b.roundsText.text = "(none)"
             b.streakText.text = "—"
             b.statAvg.text = "—"; b.statMax.text = "—"; b.statMin.text = "—"
@@ -129,6 +132,7 @@ class AviatorFragment : Fragment() {
             b.trendBadge.text = "—"
             return
         }
+
         b.historyLabel.visibility = View.VISIBLE
         b.historyScroll.visibility = View.VISIBLE
 
@@ -137,8 +141,13 @@ class AviatorFragment : Fragment() {
             b.historyStrip.addView(makeChip(ctx, r.crashX))
         }
 
+        // ── EIP PREDICTION SIGNAL ──
+        renderPrediction(list.map { it.crashX })
+
         // Compact legacy line
         b.roundsText.text = list.take(30).joinToString("  ") { "%.2fx".format(it.crashX) }
+
+
 
         // Analysis over last 20
         val sample = list.take(20).map { it.crashX }
@@ -181,11 +190,89 @@ class AviatorFragment : Fragment() {
         }
     }
 
+    /**
+     * EIP prediction heuristic — turns the recent round history into a
+     * human-readable signal for the NEXT round. Not a guarantee, just a
+     * statistical hint based on drought / streak / heat.
+     */
+    private fun renderPrediction(all: List<Double>) {
+        if (all.size < 5) {
+            b.predictionCard.visibility = View.GONE
+            return
+        }
+        b.predictionCard.visibility = View.VISIBLE
+
+        // drought = rounds since last ≥10x (scanning newest→oldest)
+        val droughtIdx = all.indexOfFirst { it >= 10.0 }
+        val drought = if (droughtIdx < 0) all.size else droughtIdx
+
+        // consecutive <2x streak from newest side
+        val lowStreak = all.takeWhile { it < 2.0 }.size
+
+        // heat = count of ≥2x hits in last 10
+        val last10 = all.take(10)
+        val heat = last10.count { it >= 2.0 }
+        val avg10 = last10.average()
+        val lastRound = all.first()
+
+        // Decide signal
+        data class Sig(val label: String, val bg: Int, val tip: String, val conf: String, val confCol: Int)
+        val sig = when {
+            drought >= 20 || lowStreak >= 7 -> Sig(
+                "🔥 BIG MULTIPLIER OVERDUE",
+                0xFFDC2626.toInt(),
+                "Long drought detected. A high round is statistically overdue.\nStrategy: wait for takeoff, cash out early (1.3x–1.8x) and keep bet small — big spike can hit any moment.",
+                "HIGH", 0xFF4ADE80.toInt(),
+            )
+            drought >= 12 || lowStreak >= 5 -> Sig(
+                "⚡ RECOVERY LIKELY",
+                0xFFF59E0B.toInt(),
+                "Pattern favors a recovery round soon.\nStrategy: safe entry, cash out around 1.5x–2x.",
+                "MEDIUM", 0xFFFBBF24.toInt(),
+            )
+            lastRound >= 10.0 -> Sig(
+                "❄ COOL DOWN",
+                0xFF3B82F6.toInt(),
+                "A big spike just landed. Next few rounds usually run low.\nStrategy: skip 1–2 rounds or bet very small.",
+                "MEDIUM", 0xFFFBBF24.toInt(),
+            )
+            avg10 < 1.6 && heat <= 3 -> Sig(
+                "◈ SAFE ZONE",
+                0xFF16A34A.toInt(),
+                "Market is cold, small wins available.\nStrategy: quick cash-out at 1.3x–1.7x.",
+                "MEDIUM", 0xFFFBBF24.toInt(),
+            )
+            heat >= 6 -> Sig(
+                "▲ HOT STREAK",
+                0xFF9333EA.toInt(),
+                "Multiple hits recently. Momentum is strong but a crash-back is near.\nStrategy: ride carefully, don't chase past 2.5x.",
+                "MEDIUM", 0xFFFBBF24.toInt(),
+            )
+            else -> Sig(
+                "◆ NORMAL",
+                0xFF64748B.toInt(),
+                "No strong signal. Standard range 1.5x–2.5x expected.\nStrategy: normal play, conservative cash-out.",
+                "LOW", 0xFF94A3B8.toInt(),
+            )
+        }
+
+        b.predSignal.text = sig.label
+        b.predSignal.background = ColorDrawable(sig.bg)
+        b.predSuggestion.text = sig.tip
+        b.predConfidence.text = "CONF: ${sig.conf}"
+        b.predConfidence.setTextColor(sig.confCol)
+
+        b.predDrought.text = if (droughtIdx < 0) "${all.size}+" else drought.toString()
+        b.predLowStreak.text = lowStreak.toString()
+        b.predHeat.text = "$heat/10"
+    }
+
     private fun category(x: Double): Int = when {
         x < 2.0 -> 0
         x < 10.0 -> 1
         else -> 2
     }
+
 
     private fun makeChip(ctx: Context, x: Double): View {
         val tv = TextView(ctx)
