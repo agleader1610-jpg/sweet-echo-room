@@ -314,7 +314,6 @@ class BrowserFragment : Fragment() {
         updateOverlayVisibility()
         val st = AviatorStore.state.value ?: return
 
-        // Signal-first: derive everything from confirmed crash history.
         val rounds = AviatorStore.rounds.value.orEmpty()
         val lastRound = rounds.firstOrNull()
         val lastId = lastRound?.roundId ?: st.prevRoundId ?: st.roundId
@@ -325,40 +324,43 @@ class BrowserFragment : Fragment() {
         val stats = PredictionTracker.stats.value
         val last = stats?.lastResult
 
-        // HERO target: parse from armed label ("1.50x" or "SKIP")
-        val armedLabel = armed?.label ?: last?.label
+        // HERO signal must ONLY reflect the CURRENT running round.
+        // If we're not armed for nextId, show nothing (no stale previous label).
+        val showLive = armed != null && nextId != null && armed.roundId == nextId
+        val armedLabel = if (showLive) armed?.label else null
         val isSkip = armedLabel?.equals("SKIP", ignoreCase = true) == true
         val target = armedLabel
             ?.removeSuffix("x")?.removeSuffix("X")
             ?.toDoubleOrNull()
 
         v.overlayLive.text = when {
-            armed == null && last == null -> "—"
+            !showLive -> "—"
             isSkip -> "SKIP"
             target != null -> "%.2fx".format(target)
             else -> "—"
         }
-        val targetCol = when {
-            isSkip -> 0xFF60A5FA.toInt()
-            target != null -> 0xFF4ADE80.toInt()
-            else -> 0xFF64748B.toInt()
-        }
-        v.overlayLive.setTextColor(targetCol)
+        v.overlayLive.setTextColor(
+            when {
+                !showLive -> 0xFF64748B.toInt()
+                isSkip -> 0xFF60A5FA.toInt()
+                target != null -> 0xFF4ADE80.toInt()
+                else -> 0xFF64748B.toInt()
+            }
+        )
 
-        v.overlayPhase.text = "SIGNAL • FOR #${nextId ?: "—"}"
+        v.overlayPhase.text = if (showLive) "SIGNAL • FOR #${nextId}" else "WAITING • NEXT #${nextId ?: "—"}"
         v.overlayPhase.setTextColor(0xFF94A3B8.toInt())
 
         v.overlaySignal.text = when {
-            armed != null && isSkip -> "SKIP ROUND"
-            armed != null -> "BET NOW"
-            last != null -> "AWAITING NEXT"
-            else -> "ANALYZING"
+            !showLive -> "WAIT"
+            isSkip -> "SKIP ROUND"
+            else -> "BET NOW"
         }
         v.overlaySignal.setBackgroundColor(
             when {
-                armed != null && isSkip -> 0xFF3B82F6.toInt()
-                armed != null -> 0xFF16A34A.toInt()
-                else -> 0xFF455A64.toInt()
+                !showLive -> 0xFF455A64.toInt()
+                isSkip -> 0xFF3B82F6.toInt()
+                else -> 0xFF16A34A.toInt()
             }
         )
         v.overlaySignal.setTextColor(0xFFFFFFFF.toInt())
@@ -367,23 +369,31 @@ class BrowserFragment : Fragment() {
             "LAST #%d → %.2fx".format(lastId, lastX)
         else "LAST —"
 
-        if (last == null) {
-            v.overlayResult.text = "◌ WAIT"
-            v.overlayResult.setBackgroundColor(0xFF1F2937.toInt())
-            v.overlayResult.setTextColor(0xFF94A3B8.toInt())
-        } else if (last.win) {
-            v.overlayResult.text = "✓ WIN #${last.roundId} → %.2fx".format(last.crashX)
-            v.overlayResult.setBackgroundColor(0xFF16A34A.toInt())
-            v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
-        } else {
-            v.overlayResult.text = "✗ LOSS #${last.roundId} → %.2fx".format(last.crashX)
-            v.overlayResult.setBackgroundColor(0xFFDC2626.toInt())
-            v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
+        // Previous-round outcome strip: shows WIN / LOSS / SKIPPED distinctly.
+        when {
+            last == null -> {
+                v.overlayResult.text = "◌ WAIT"
+                v.overlayResult.setBackgroundColor(0xFF1F2937.toInt())
+                v.overlayResult.setTextColor(0xFF94A3B8.toInt())
+            }
+            last.skipped -> {
+                v.overlayResult.text = "◌ SKIPPED #${last.roundId} → %.2fx".format(last.crashX)
+                v.overlayResult.setBackgroundColor(0xFF3B82F6.toInt())
+                v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
+            }
+            last.win -> {
+                v.overlayResult.text = "✓ WIN #${last.roundId} → %.2fx".format(last.crashX)
+                v.overlayResult.setBackgroundColor(0xFF16A34A.toInt())
+                v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
+            }
+            else -> {
+                v.overlayResult.text = "✗ LOSS #${last.roundId} → %.2fx".format(last.crashX)
+                v.overlayResult.setBackgroundColor(0xFFDC2626.toInt())
+                v.overlayResult.setTextColor(0xFFFFFFFF.toInt())
+            }
         }
-        // W/L score hidden from overlay per user request.
         v.overlayScore.visibility = View.GONE
 
-        // Marquee history — right→left, most recent first.
         val hist = rounds.take(30)
         if (hist.isEmpty()) {
             v.overlayHistory.text = ""
