@@ -33,6 +33,15 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           multiplier: newest.multiplier,
         }).then(() => {}, () => {});
 
+        // Fetch recent prediction outcomes so AI has memory of prior W/L
+        const priorRes = await supa
+          .from('prediction_results')
+          .select('round_id,target_multiplier,actual_multiplier,outcome')
+          .eq('device_id', deviceId)
+          .order('round_id', { ascending: false })
+          .limit(10);
+        const priors = (priorRes.data ?? []) as Array<{ round_id: number; target_multiplier: number | null; actual_multiplier: number; outcome: string }>;
+
         // Try AI first
         let signal: Signal | null = null;
         let source: 'ai' | 'local' = 'local';
@@ -40,7 +49,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let aiError: string | null = null;
         let aiRaw: string | null = null;
         try {
-          const r = await callAI(history);
+          const r = await callAI(history, priors);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
