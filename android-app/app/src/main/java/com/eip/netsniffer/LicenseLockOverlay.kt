@@ -192,12 +192,22 @@ object LicenseLockOverlay {
             setPadding(dp(ctx, 20), dp(ctx, 14), dp(ctx, 20), dp(ctx, 14))
             setOnClickListener {
                 try {
-                    ctx.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(REGISTER_URL))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
+                    val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
+                        var c: Context? = cw
+                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        c as? MainActivity
+                    }
+                    if (act != null) {
+                        act.openRegisterInBrowser(REGISTER_URL)
+                        android.widget.Toast.makeText(
+                            ctx,
+                            "পুরনো login/cookies clear করে register page খুলছে…",
+                            android.widget.Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                 } catch (_: Throwable) {}
             }
+
         }, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
