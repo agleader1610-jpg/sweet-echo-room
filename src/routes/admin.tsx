@@ -7,6 +7,8 @@ import {
   adminStatus,
   getAdminDashboard,
   publishUpdate,
+  getPredictionAnalytics,
+  exportPredictionsCsv,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
