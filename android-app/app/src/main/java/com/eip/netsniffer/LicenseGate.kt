@@ -31,6 +31,10 @@ object LicenseGate {
     private const val KEY_UID = "uid"
     private const val KEY_INVITE = "invite"
     private const val KEY_LAST_CHECK = "last_check"
+    private const val KEY_TAMPERED = "tampered"
+    // Trust cached LICENSED for 12h so app-open never waits on the network.
+    // We still refresh silently in the background if the cache is older.
+    private const val CACHE_TTL_MS = 12L * 60L * 60L * 1000L
 
     // Endpoint assembled at runtime from fragments — makes a plain `grep`
     // through the decompiled APK for "verify-license" or the full host
