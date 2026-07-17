@@ -135,6 +135,20 @@ function crashBucket(m: number): string {
   return '10x+ (blue)';
 }
 
+function normalizeOutcome(v: unknown): string {
+  const s = String(v ?? '').toLowerCase();
+  if (s === 'win') return 'WIN';
+  if (s === 'loss') return 'LOSS';
+  if (s === 'skip_win') return 'SKIP_WIN';
+  if (s === 'skip_loss') return 'SKIP_LOSS';
+  return String(v ?? '').toUpperCase();
+}
+
+function outcomeIsCorrect(outcome: string): boolean {
+  const o = normalizeOutcome(outcome);
+  return o === 'WIN' || o === 'SKIP_WIN';
+}
+
 function agg(rows: Row[], key: (r: Row) => string) {
   const map = new Map<string, { total: number; verified: number; wins: number; latencySum: number; latencyN: number }>();
   for (const r of rows) {
@@ -145,7 +159,7 @@ function agg(rows: Row[], key: (r: Row) => string) {
     if (r.latency_ms != null) { b.latencySum += r.latency_ms; b.latencyN++; }
     if (r.result) {
       b.verified++;
-      if (r.result.outcome === 'WIN') b.wins++;
+      if (outcomeIsCorrect(r.result.outcome)) b.wins++;
     }
   }
   return Array.from(map.entries()).map(([k, v]) => ({
@@ -186,12 +200,12 @@ export const getPredictionAnalytics = createServerFn({ method: 'GET' })
       latency_ms: p.latency_ms,
       created_at: p.created_at,
       result: Array.isArray(p.prediction_results) && p.prediction_results.length
-        ? { actual_multiplier: Number(p.prediction_results[0].actual_multiplier), outcome: String(p.prediction_results[0].outcome) }
+        ? { actual_multiplier: Number(p.prediction_results[0].actual_multiplier), outcome: normalizeOutcome(p.prediction_results[0].outcome) }
         : null,
     }));
 
     const verified = rows.filter(r => r.result);
-    const wins = verified.filter(r => r.result!.outcome === 'WIN').length;
+    const wins = verified.filter(r => outcomeIsCorrect(r.result!.outcome)).length;
     const latencies = rows.map(r => r.latency_ms).filter((n): n is number => n != null).sort((a, b) => a - b);
     const p50 = latencies[Math.floor(latencies.length * 0.5)] ?? null;
     const p95 = latencies[Math.floor(latencies.length * 0.95)] ?? null;

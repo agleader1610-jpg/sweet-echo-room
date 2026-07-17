@@ -11,7 +11,7 @@ import java.util.concurrent.Executors
 
 /**
  * PredictionClient — pushes recent round history to the Lovable backend, which
- * asks Cloud AI (Gemini 3 Flash) for a signal and falls back to local logic
+ * asks Cloud AI for a signal and falls back to local logic
  * if AI credits are exhausted. Returns the parsed signal via callback on the
  * main thread. If the network itself fails, callback receives null so the
  * caller can degrade to on-device logic.
@@ -22,7 +22,7 @@ object PredictionClient {
         "https://sweet-echo-room.lovable.app/api/public/predict-signal"
     private const val VERIFY_ENDPOINT =
         "https://sweet-echo-room.lovable.app/api/public/verify-result"
-    private const val TIMEOUT_MS = 6000
+    private const val TIMEOUT_MS = 10000
 
     private val exec = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -42,6 +42,11 @@ object PredictionClient {
         val historyLen: Int,
         val aiRaw: String?,
         val aiError: String?,
+        val memoryCount: Int,
+        val memoryLossStreak: Int,
+        val memoryAccuracy: Int,
+        val memorySkipAccuracy: Int,
+        val memoryPending: Int,
         val httpStatus: Int,
         val requestedAt: Long,
     )
@@ -108,6 +113,11 @@ object PredictionClient {
             historyLen = obj.optInt("history_len", 0),
             aiRaw = if (obj.isNull("ai_raw")) null else obj.optString("ai_raw"),
             aiError = if (obj.isNull("ai_error")) null else obj.optString("ai_error"),
+            memoryCount = obj.optInt("memory_count", 0),
+            memoryLossStreak = obj.optInt("memory_loss_streak", 0),
+            memoryAccuracy = obj.optInt("memory_accuracy", 0),
+            memorySkipAccuracy = obj.optInt("memory_skip_accuracy", 0),
+            memoryPending = obj.optInt("memory_pending", 0),
             httpStatus = 200,
             requestedAt = System.currentTimeMillis(),
         )

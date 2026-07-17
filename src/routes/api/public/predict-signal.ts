@@ -12,6 +12,30 @@ interface Body {
   history?: Array<{ round_id: number; multiplier: number }>;
 }
 
+type PriorSignal = {
+  id: number;
+  round_id: number;
+  target_multiplier: number | null;
+  action: string;
+  confidence: string | null;
+  source: string | null;
+  reasoning: string | null;
+  result: { actual_multiplier: number; outcome: string } | null;
+};
+
+type MemoryStats = {
+  priorStr: string;
+  lossStreak: number;
+  wins: number;
+  losses: number;
+  accuracy: number;
+  skipWins: number;
+  skipLosses: number;
+  skipAccuracy: number;
+  pending: number;
+  memoryCount: number;
+};
+
 export const Route = createFileRoute('/api/public/predict-signal')({
   server: {
     handlers: {
@@ -33,14 +57,29 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           multiplier: newest.multiplier,
         }).then(() => {}, () => {});
 
-        // Fetch recent prediction outcomes so AI has memory of prior W/L
+        // Fetch recent predictions + outcomes so AI has real memory of its own W/L, targets, and pending calls.
         const priorRes = await supa
-          .from('prediction_results')
-          .select('round_id,target_multiplier,actual_multiplier,outcome')
+          .from('predictions')
+          .select('id,round_id,target_multiplier,action,confidence,source,reasoning,prediction_results(actual_multiplier,outcome)')
           .eq('device_id', deviceId)
-          .order('round_id', { ascending: false })
-          .limit(10);
-        const priors = (priorRes.data ?? []) as Array<{ round_id: number; target_multiplier: number | null; actual_multiplier: number; outcome: string }>;
+          .order('created_at', { ascending: false })
+          .limit(15);
+        const priors = ((priorRes.data ?? []) as any[]).map((p): PriorSignal => {
+          const result = Array.isArray(p.prediction_results) && p.prediction_results.length
+            ? p.prediction_results[0]
+            : null;
+          return {
+            id: Number(p.id),
+            round_id: Number(p.round_id),
+            target_multiplier: p.target_multiplier == null ? null : Number(p.target_multiplier),
+            action: String(p.action ?? 'BET'),
+            confidence: p.confidence == null ? null : String(p.confidence),
+            source: p.source == null ? null : String(p.source),
+            reasoning: p.reasoning == null ? null : String(p.reasoning),
+            result: result ? { actual_multiplier: Number(result.actual_multiplier), outcome: normalizeOutcome(result.outcome) } : null,
+          };
+        });
+        const memory = summarizeMemory(priors);
 
         // Try AI first
         let signal: Signal | null = null;
@@ -49,7 +88,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let aiError: string | null = null;
         let aiRaw: string | null = null;
         try {
-          const r = await callAI(history, priors);
+          const r = await callAI(history, memory);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
@@ -74,7 +113,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           reasoning: signal.reasoning,
           ai_model: aiModel,
           latency_ms: latency,
-          raw: { history_len: history.length, ai_error: aiError, ai_raw: aiRaw },
+          raw: { history_len: history.length, memory, ai_error: aiError, ai_raw: aiRaw },
         }).select('id').maybeSingle();
 
         return json({
@@ -93,6 +132,11 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           latency_ms: latency,
           ai_raw: aiRaw,
           ai_error: aiError,
+          memory_count: memory.memoryCount,
+          memory_loss_streak: memory.lossStreak,
+          memory_accuracy: memory.accuracy,
+          memory_skip_accuracy: memory.skipAccuracy,
+          memory_pending: memory.pending,
         }, 200);
       },
     },
@@ -101,7 +145,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
 
 async function callAI(
   history: Array<{ round_id: number; multiplier: number }>,
-  priors: Array<{ round_id: number; target_multiplier: number | null; actual_multiplier: number; outcome: string }>,
+  memory: MemoryStats,
 ): Promise<{ signal: Signal; raw: string }> {
 
   const key = process.env.LOVABLE_API_KEY;
@@ -111,22 +155,8 @@ async function callAI(
   const recent = history.slice(0, 20);
   const compact = recent.map(r => `#${r.round_id}:${r.multiplier.toFixed(2)}x`).join(', ');
 
-  // Build prior-predictions memory string + streak stats
-  const priorStr = priors.length
-    ? priors.map(p => {
-        const tag = p.outcome === 'win' ? 'WIN' : p.outcome === 'loss' ? 'LOSS' : p.outcome === 'skip_win' ? 'SKIP✓' : 'SKIP✗';
-        const tgt = p.target_multiplier == null ? 'SKIP' : `T${p.target_multiplier.toFixed(2)}x`;
-        return `#${p.round_id}[${tgt}→${p.actual_multiplier.toFixed(2)}x=${tag}]`;
-      }).join(', ')
-    : 'none';
-  let lossStreak = 0;
-  for (const p of priors) { if (p.outcome === 'loss') lossStreak++; else break; }
-  const wins = priors.filter(p => p.outcome === 'win').length;
-  const losses = priors.filter(p => p.outcome === 'loss').length;
-  const acc = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
-
-  const sys = 'You are an Aviator crash-game analyst with MEMORY of your own past predictions. Given (a) recent crash rounds and (b) your last 10 predictions with outcomes, predict the NEXT round. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Adapt to your recent performance: if you have a loss streak, lower targets (1.3-1.6) and boost confidence for safer plays; if winning, you can stay in your successful range. Analyze: crash streaks (<2x pinks, >=2x greens), drought since 10x+, momentum, average trend, and your recent hit-rate. Targets typically 1.3-3.5, occasionally 5+ only on long droughts.';
-  const user = `Recent crashes (newest first): ${compact}.\nYour last predictions [target→actual=result]: ${priorStr}.\nCurrent loss streak: ${lossStreak}. Recent accuracy: ${acc}% (${wins}W/${losses}L). Predict next round.`;
+  const sys = 'You are an Aviator crash-game analyst with persistent MEMORY of your own past signals. You must use both recent crash history and your prior prediction outcomes before choosing the NEXT round signal. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Adapt to performance: after 1 loss become conservative; after 2+ consecutive losses avoid STRONG BET and use either SKIP or low target 1.30-1.60. If recent hit-rate is weak, reduce risk; if hit-rate is strong, keep the successful target band. Analyze crash streaks (<2x pinks, >=2x greens), drought since 10x+, momentum, average trend, skip correctness, and target hit-rate. Targets typically 1.30-3.50; 5+ only on strong long-drought evidence.';
+  const user = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}. Predict only round #${recent[0].round_id + 1}.`;
 
   try {
     const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -173,6 +203,58 @@ async function callAI(
   } finally {
     clearTimeout(t);
   }
+}
+
+function normalizeOutcome(v: unknown): string {
+  const s = String(v ?? '').toLowerCase();
+  if (s === 'win') return 'WIN';
+  if (s === 'loss') return 'LOSS';
+  if (s === 'skip_win') return 'SKIP_WIN';
+  if (s === 'skip_loss') return 'SKIP_LOSS';
+  return String(v ?? '').toUpperCase();
+}
+
+function summarizeMemory(priors: PriorSignal[]): MemoryStats {
+  const priorStr = priors.length
+    ? priors.map((p) => {
+        const tgt = p.target_multiplier == null ? 'SKIP' : `T${p.target_multiplier.toFixed(2)}x`;
+        const actual = p.result ? p.result.actual_multiplier.toFixed(2) : '?';
+        const outcome = p.result?.outcome ?? 'PENDING';
+        const tag = outcome === 'WIN' ? 'WIN'
+          : outcome === 'LOSS' ? 'LOSS'
+          : outcome === 'SKIP_WIN' ? 'SKIP✓'
+          : outcome === 'SKIP_LOSS' ? 'SKIP✗'
+          : 'PENDING';
+        return `#${p.round_id}[${p.action}:${tgt}→${actual}x=${tag}]`;
+      }).join(', ')
+    : 'none';
+
+  const verifiedBets = priors.filter(p => p.result?.outcome === 'WIN' || p.result?.outcome === 'LOSS');
+  let lossStreak = 0;
+  for (const p of priors) {
+    const outcome = p.result?.outcome;
+    if (outcome == null || outcome === 'SKIP_WIN' || outcome === 'SKIP_LOSS') continue;
+    if (outcome === 'LOSS') lossStreak++;
+    else break;
+  }
+  const wins = verifiedBets.filter(p => p.result?.outcome === 'WIN').length;
+  const losses = verifiedBets.filter(p => p.result?.outcome === 'LOSS').length;
+  const skipWins = priors.filter(p => p.result?.outcome === 'SKIP_WIN').length;
+  const skipLosses = priors.filter(p => p.result?.outcome === 'SKIP_LOSS').length;
+  const accuracy = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+  const skipAccuracy = skipWins + skipLosses > 0 ? Math.round((skipWins / (skipWins + skipLosses)) * 100) : 0;
+  return {
+    priorStr,
+    lossStreak,
+    wins,
+    losses,
+    accuracy,
+    skipWins,
+    skipLosses,
+    skipAccuracy,
+    pending: priors.filter(p => !p.result).length,
+    memoryCount: priors.length,
+  };
 }
 
 function supaClient() {

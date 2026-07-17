@@ -19,7 +19,7 @@ import com.eip.netsniffer.databinding.FragmentAviatorBinding
  *
  * Flow on every new confirmed crash:
  *   1. Verify the previous armed prediction against the newest crash.
- *   2. Fire PredictionClient.fetchSignal → Cloud AI (Gemini 3 Flash) via backend.
+     *   2. Fire PredictionClient.fetchSignal → Cloud AI with saved W/L memory via backend.
  *      Backend saves everything and returns { source: "ai" | "local" }.
  *   3. If the network itself fails → degrade to on-device logic → source="offline".
  *   4. Render the signal, arm PredictionTracker for the next round.
@@ -188,7 +188,7 @@ class AviatorFragment : Fragment() {
         b.debugLatencyId.text = "server ${sig.latencyMs}ms • rt ${roundTrip}ms • id=${sig.predictionId ?: "—"}"
         b.debugReasoning.text = sig.reasoning.ifBlank { "(empty)" }
         b.debugRawAi.text = sig.aiRaw ?: "(no AI raw — fallback used)"
-        b.debugFetchLog.text = "req ${timeStamp()} • hist_len=${sig.historyLen} • last_x=${sig.historyNewestMultiplier ?: "?"}"
+        b.debugFetchLog.text = "req ${timeStamp()} • hist=${sig.historyLen} • mem=${sig.memoryCount} • L${sig.memoryLossStreak} • acc=${sig.memoryAccuracy}% • skip=${sig.memorySkipAccuracy}% • pending=${sig.memoryPending}"
     }
 
     private fun timeStamp(): String {
@@ -289,6 +289,11 @@ class AviatorFragment : Fragment() {
             historyLen = rounds.size,
             aiRaw = null,
             aiError = "offline_fallback",
+            memoryCount = 0,
+            memoryLossStreak = 0,
+            memoryAccuracy = 0,
+            memorySkipAccuracy = 0,
+            memoryPending = 0,
             httpStatus = 0,
             requestedAt = System.currentTimeMillis(),
         )

@@ -338,8 +338,10 @@ function AnalyticsTab() {
                   <td className="p-1.5 text-right font-mono">{r.actual == null ? '⏳' : `${Number(r.actual).toFixed(2)}x`}</td>
                   <td className="p-1.5 text-center">
                     {r.outcome == null ? <span className="text-slate-500">—</span>
-                      : r.outcome === 'WIN' ? <span className="text-emerald-400 font-bold">✓</span>
-                      : <span className="text-red-400 font-bold">✗</span>}
+                      : r.outcome === 'WIN' ? <span className="text-emerald-400 font-bold">✓ WIN</span>
+                      : r.outcome === 'SKIP_WIN' ? <span className="text-emerald-400 font-bold">SKIP✓</span>
+                      : r.outcome === 'SKIP_LOSS' ? <span className="text-red-400 font-bold">SKIP✗</span>
+                      : <span className="text-red-400 font-bold">✗ LOSS</span>}
                   </td>
                   <td className="p-1.5 text-slate-400 max-w-xs truncate" title={r.reasoning ?? ''}>{r.reasoning ?? '—'}</td>
                 </tr>
