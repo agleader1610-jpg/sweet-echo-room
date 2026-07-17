@@ -26,13 +26,15 @@ object PredictionTracker {
         val label: String,
         val crashX: Double,
         val win: Boolean,
+        val skipped: Boolean = false,
         val at: Long = System.currentTimeMillis(),
     )
 
     data class Stats(
         val wins: Int = 0,
         val losses: Int = 0,
-        val streak: Int = 0,          // current same-kind streak (+ = win streak, − = loss streak)
+        val skips: Int = 0,
+        val streak: Int = 0,          // + win streak, − loss streak; skips don't affect
         val lastResult: Result? = null,
     ) {
         val total: Int get() = wins + losses
@@ -63,23 +65,31 @@ object PredictionTracker {
     fun resolve(newest: AviatorRound) {
         val a = armed ?: return
         if (a.roundId != newest.roundId) return
-        val win = a.test(newest.crashX)
-        val res = Result(newest.roundId, a.label, newest.crashX, win)
+        val isSkip = a.label.equals("SKIP", ignoreCase = true)
         val s = stats.value ?: Stats()
-        val newStreak = when {
-            win && s.streak >= 0 -> s.streak + 1
-            win && s.streak < 0  -> 1
-            !win && s.streak <= 0 -> s.streak - 1
-            else -> -1
-        }
-        stats.postValue(
-            s.copy(
-                wins = s.wins + if (win) 1 else 0,
-                losses = s.losses + if (win) 0 else 1,
-                streak = newStreak,
-                lastResult = res,
+        if (isSkip) {
+            // SKIP is not a bet — don't touch W/L. Just record the outcome so the
+            // UI can say "previous round was SKIPPED (crashed Yx)".
+            val res = Result(newest.roundId, a.label, newest.crashX, win = false, skipped = true)
+            stats.postValue(s.copy(skips = s.skips + 1, lastResult = res))
+        } else {
+            val win = a.test(newest.crashX)
+            val res = Result(newest.roundId, a.label, newest.crashX, win)
+            val newStreak = when {
+                win && s.streak >= 0 -> s.streak + 1
+                win && s.streak < 0  -> 1
+                !win && s.streak <= 0 -> s.streak - 1
+                else -> -1
+            }
+            stats.postValue(
+                s.copy(
+                    wins = s.wins + if (win) 1 else 0,
+                    losses = s.losses + if (win) 0 else 1,
+                    streak = newStreak,
+                    lastResult = res,
+                )
             )
-        )
+        }
         armed = null
     }
 
