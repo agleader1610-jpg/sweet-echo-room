@@ -148,6 +148,7 @@ class BrowserFragment : Fragment() {
         WinGoStore.live.observe(viewLifecycleOwner) { renderWinGoOverlay() }
         setupWinGoOverlayDrag()
         b.wingoOverlayClose.setOnClickListener { WinGoStore.overlayEnabled.postValue(false) }
+        LicenseGate.state.observe(viewLifecycleOwner) { updateOverlayVisibility() }
         wingoTicker.also { ui.post(it) }
     }
 
