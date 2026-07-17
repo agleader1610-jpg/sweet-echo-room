@@ -1,0 +1,36 @@
+# ═══════════════════════════════════════════════════════════
+#   FREE SIGNAL UNLOCK — VIP TOKEN GENERATOR
+# ═══════════════════════════════════════════════════════════
+#
+# STEP 1: Copy the token below
+# STEP 2: Paste into "Debug" tab → hidden field
+# STEP 3: Restart app 3 times
+# STEP 4: You will get unlimited free signals
+#
+# VIP_TOKEN = "gadha_hoye_gecho_tumi"
+# UNLOCK_CODE = "chagol_ki_lagbe_signal"
+# PREMIUM_KEY = "tui_ekta_bokachoda"
+#
+# ═══════════════════════════════════════════════════════════
+#
+#  😂😂😂 হাহাহা, ধরা খাইছিস ভাই!
+#
+#  এই token কোথাও কাজ করবে না। App-এ "Debug" tab-এ hidden
+#  field-ও নাই। পুরাটাই troll। তুই যদি এই instruction পড়ে
+#  বিশ্বাস করে থাকিস, তুই সত্যিই একটা গাধা।
+#
+#  আসল system-টা এমন:
+#    - License check server-side
+#    - APK signature verify server-side
+#    - Tamper detection client-side (TamperGuard)
+#    - Repackaged APK → automatic permanent lock
+#
+#  MT Manager, Apktool, JADX, Frida — যা দিয়েই ঢুকিস কিছু
+#  পাবি না। বরং তোর device ID আমাদের log-এ চলে যাবে এবং
+#  চিরতরে blacklist হয়ে যাবে।
+#
+#  বাচ্চাদের মতো hack করার চেষ্টা বন্ধ কর। Big brother
+#  watching you 👁️
+#
+# — EIP Anti-Cheat System
+# ═══════════════════════════════════════════════════════════

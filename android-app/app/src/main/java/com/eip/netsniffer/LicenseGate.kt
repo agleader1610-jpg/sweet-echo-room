@@ -32,8 +32,19 @@ object LicenseGate {
     private const val KEY_INVITE = "invite"
     private const val KEY_LAST_CHECK = "last_check"
 
-    private const val ENDPOINT =
-        "https://sweet-echo-room.lovable.app/api/public/verify-license"
+    // Endpoint assembled at runtime from fragments — makes a plain `grep`
+    // through the decompiled APK for "verify-license" or the full host
+    // return nothing. Combined with server-side signature check, editing
+    // the URL to a fake server won't unlock the app.
+    private val ENDPOINT: String by lazy {
+        buildString {
+            append("htt"); append("ps://")
+            append("sweet-"); append("echo-"); append("room")
+            append(".lov"); append("able."); append("app")
+            append("/a"); append("pi/"); append("pub"); append("lic/")
+            append("ver"); append("ify-"); append("licen"); append("se")
+        }
+    }
 
     data class State(
         val status: String,     // "LICENSED" | "LOCKED" | "UNKNOWN"
@@ -45,6 +56,7 @@ object LicenseGate {
         val unknown: Boolean get() = status == "UNKNOWN"
     }
 
+
     val state = MutableLiveData(State("UNKNOWN", "", null, null))
     private val exec = Executors.newSingleThreadExecutor()
     private var deviceId: String? = null
@@ -52,6 +64,12 @@ object LicenseGate {
 
     fun init(ctx: Context, deviceId: String?) {
         this.deviceId = deviceId
+        // TamperGuard runs first — a tampered/rooted/hooked build is
+        // permanently locked with a troll message, no server round-trip.
+        if (TamperGuard.tampered) {
+            state.postValue(State("LOCKED", TamperGuard.trollMessage(), null, null))
+            return
+        }
         val p = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val s = State(
             status = p.getString(KEY_STATUS, "UNKNOWN") ?: "UNKNOWN",
@@ -65,6 +83,7 @@ object LicenseGate {
             verify(ctx, s.uid, s.invite)
         }
     }
+
 
     fun isLocked(): Boolean = state.value?.locked != false
 
@@ -122,6 +141,11 @@ object LicenseGate {
     }
 
     fun verify(ctx: Context, uid: String?, invite: String?) {
+        // Tampered builds never talk to the server — permanent troll lock.
+        if (TamperGuard.tampered) {
+            state.postValue(State("LOCKED", TamperGuard.trollMessage(), uid, invite))
+            return
+        }
         val appCtx = ctx.applicationContext
         exec.execute {
             try {
@@ -129,6 +153,10 @@ object LicenseGate {
                     put("device_id", deviceId ?: "unknown")
                     put("uid", uid ?: JSONObject.NULL)
                     put("parent_invite_code", invite ?: JSONObject.NULL)
+                    // Integrity fingerprint — server can enforce an allowlist.
+                    put("pkg", TamperGuard.packageName)
+                    put("sig_sha256", TamperGuard.signatureSha256)
+                    put("tamper_flags", TamperGuard.reasons.joinToString(","))
                 }
                 val text = postJson(ENDPOINT, body.toString()) ?: return@execute
                 val res = JSONObject(text)
@@ -149,6 +177,7 @@ object LicenseGate {
                 Log.w(TAG, "verify failed: ${t.message}")
             }
         }
+
     }
 
     fun refresh(ctx: Context) {

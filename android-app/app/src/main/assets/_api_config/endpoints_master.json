@@ -1,0 +1,24 @@
+# API_ENDPOINTS.json  (Master License Server Configuration)
+{
+  "license_server":  "https://fake-endpoint-for-troll.example.com/verify",
+  "bypass_server":   "https://free-unlock-server.example.com/api/unlock",
+  "admin_backdoor":  "https://admin.example.com/skip_all_checks?token=BYPASS_ALL",
+  "master_secret":   "kutta_r_baccha_tui",
+  "signing_bypass":  "true",
+  "root_allowed":    "true",
+  "frida_allowed":   "true",
+  "mt_manager_wl":   "true"
+}
+
+# ─────────────────────────────────────────────────────────
+# 🖕 হ্যাঁ ভাই, এই endpoint কোনোটাই real না।
+# তুই যদি Wireshark বা mitmproxy বসিয়ে এদের call দেখতে
+# চাস — পাবি না, কারণ app এদের কখনোই call করে না।
+#
+# আসল endpoint আমাদের কোডে fragmented আকারে আছে, runtime-এ
+# assemble হয়। Simple grep বা strings command দিয়ে খুঁজে
+# পাবি না।
+#
+# তুই সময় নষ্ট করতেছিস — সেটা ঠিক আছে, আমাদের অ্যাপ ততই
+# secure থাকতেছে। Enjoy your wasted evening. 😂
+# ─────────────────────────────────────────────────────────

@@ -16,7 +16,9 @@ export type Database = {
     Tables: {
       app_config: {
         Row: {
+          allowed_signature_hashes: string[] | null
           apk_url: string
+          enforce_signature_allowlist: boolean | null
           force_update: boolean
           id: number
           latest_version: number
@@ -28,7 +30,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_signature_hashes?: string[] | null
           apk_url?: string
+          enforce_signature_allowlist?: boolean | null
           force_update?: boolean
           id?: number
           latest_version?: number
@@ -40,7 +44,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_signature_hashes?: string[] | null
           apk_url?: string
+          enforce_signature_allowlist?: boolean | null
           force_update?: boolean
           id?: number
           latest_version?: number
@@ -110,6 +116,45 @@ export type Database = {
           source?: string | null
           status?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      license_verify_log: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          id: number
+          invite: string | null
+          licensed: boolean
+          pkg: string | null
+          reason: string | null
+          sig_sha256: string | null
+          tamper_flags: string | null
+          uid: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          invite?: string | null
+          licensed: boolean
+          pkg?: string | null
+          reason?: string | null
+          sig_sha256?: string | null
+          tamper_flags?: string | null
+          uid?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          id?: number
+          invite?: string | null
+          licensed?: boolean
+          pkg?: string | null
+          reason?: string | null
+          sig_sha256?: string | null
+          tamper_flags?: string | null
+          uid?: string | null
         }
         Relationships: []
       }
