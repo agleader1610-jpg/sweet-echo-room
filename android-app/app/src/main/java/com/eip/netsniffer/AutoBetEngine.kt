@@ -14,7 +14,7 @@ import kotlin.math.pow
  * WinGo Auto-Bet Engine (v2 — ported from working DK WIN userscript).
  *
  * Key guarantees:
- *  - One bet per period (hard lock; failed bet allows max 3 retries, then locks).
+ *  - One submit attempt per period (hard lock; no duplicate loop if the page accepts the bet slowly).
  *  - Balance-based STEP LADDER: base = balance / (2^N - 1); step_i = round(base * 2^i)
  *    (integers). LOSS advances step; WIN within ladder → rebuild ladder from new balance;
  *    WIN beyond ladder → reset to step 1 anchor plan.
@@ -30,9 +30,7 @@ object AutoBetEngine {
     private const val PREF_BALANCE     = "autobet_balance"
     private const val PREF_MULT        = "autobet_mult"
     private const val PREF_MODE        = "autobet_mode"          // APP | RANDOM | PATTERN
-    private const val PREF_STOP_LOSS   = "autobet_stop_loss"
-    private const val PREF_TARGET_WIN  = "autobet_target_win"
-    private const val PREF_MAX_ROUNDS  = "autobet_max_rounds"
+    private const val PREF_DURATION_MIN = "autobet_duration_min"
     private const val PREF_SKIP_LOWCF  = "autobet_skip_lowconf"
 
     data class Config(
@@ -41,9 +39,7 @@ object AutoBetEngine {
         val balance: Int = 100,           // user-entered starting balance
         val multiplier: Int = 1,          // betMultiple sent to API
         val mode: String = "APP",         // APP | RANDOM | PATTERN
-        val stopLoss: Int = 500,
-        val targetWin: Int = 1000,
-        val maxRounds: Int = 50,
+        val durationMinutes: Int = 10,    // auto-off timer; finishes active ladder before stopping
         val skipLowConfidence: Boolean = false,
     )
 
@@ -64,6 +60,8 @@ object AutoBetEngine {
         val nextBetIssue: String? = null,
         val nextBetPick: String? = null,
         val nextBetAmount: Int = 0,
+        val startedAtMs: Long = 0L,
+        val stopAfterClear: Boolean = false,
     )
 
     val config = MutableLiveData(Config())
@@ -72,7 +70,7 @@ object AutoBetEngine {
     private var prefs: SharedPreferences? = null
     private var webViewRef: WeakReference<WebView>? = null
 
-    // Per-issue state so we never fire more than 3 attempts on same period.
+    // Per-issue state so we never fire more than 1 submit attempt on same period.
     // Once success = true, no more attempts on this issue, ever.
     private data class IssueSlot(var tries: Int = 0, var success: Boolean = false, var inflight: Boolean = false)
     private val issueSlots = HashMap<String, IssueSlot>()
@@ -89,9 +87,7 @@ object AutoBetEngine {
             balance = p.getInt(PREF_BALANCE, 100),
             multiplier = p.getInt(PREF_MULT, 1),
             mode = p.getString(PREF_MODE, "APP") ?: "APP",
-            stopLoss = p.getInt(PREF_STOP_LOSS, 500),
-            targetWin = p.getInt(PREF_TARGET_WIN, 1000),
-            maxRounds = p.getInt(PREF_MAX_ROUNDS, 50),
+            durationMinutes = p.getInt(PREF_DURATION_MIN, 10).coerceIn(1, 1440),
             skipLowConfidence = p.getBoolean(PREF_SKIP_LOWCF, false),
         ))
     }
@@ -101,30 +97,38 @@ object AutoBetEngine {
     }
 
     fun updateConfig(newCfg: Config) {
+        val oldCfg = config.value ?: Config()
         prefs?.edit()
             ?.putBoolean(PREF_ENABLED, newCfg.enabled)
             ?.putInt(PREF_STEPS, newCfg.steps)
             ?.putInt(PREF_BALANCE, newCfg.balance)
             ?.putInt(PREF_MULT, newCfg.multiplier)
             ?.putString(PREF_MODE, newCfg.mode)
-            ?.putInt(PREF_STOP_LOSS, newCfg.stopLoss)
-            ?.putInt(PREF_TARGET_WIN, newCfg.targetWin)
-            ?.putInt(PREF_MAX_ROUNDS, newCfg.maxRounds)
+            ?.putInt(PREF_DURATION_MIN, newCfg.durationMinutes)
             ?.putBoolean(PREF_SKIP_LOWCF, newCfg.skipLowConfidence)
             ?.apply()
         config.postValue(newCfg)
         if (!newCfg.enabled) {
-            note("OFF — auto-bet disabled")
-        } else {
-            // Rebuild ladder on next signal from current balance
             val st = state.value ?: State()
+            state.postValue(st.copy(startedAtMs = 0L, stopAfterClear = false, lastNote = "OFF — auto-bet disabled"))
+        } else if (!oldCfg.enabled) {
+            // Fresh run: keep visible stats, but start a clean ladder + timer.
+            val st = state.value ?: State()
+            issueSlots.clear()
+            awaitingBalanceRebuild = false
+            anchorLadder = emptyList()
             state.postValue(st.copy(
                 ladderReady = false,
                 ladder = emptyList(),
                 stepIdx = 0,
-                lastNote = "ARMED · N=${newCfg.steps} · bal ৳${newCfg.balance} · mode ${newCfg.mode}",
+                stepPendingIssue = null,
+                nextBetIssue = null,
+                nextBetPick = null,
+                nextBetAmount = 0,
+                startedAtMs = System.currentTimeMillis(),
+                stopAfterClear = false,
+                lastNote = "ARMED · ${newCfg.durationMinutes}m · N=${newCfg.steps} · bal ৳${newCfg.balance} · mode ${newCfg.mode}",
             ))
-            anchorLadder = emptyList()
         }
     }
 
@@ -132,7 +136,15 @@ object AutoBetEngine {
         issueSlots.clear()
         anchorLadder = emptyList()
         awaitingBalanceRebuild = false
-        state.postValue(State(lastNote = "Stats reset"))
+        val started = if (config.value?.enabled == true) System.currentTimeMillis() else 0L
+        state.postValue(State(startedAtMs = started, lastNote = "Stats reset"))
+    }
+
+    fun tick() {
+        val cfg = config.value ?: return
+        if (!cfg.enabled) return
+        val st = state.value ?: return
+        handleDuration(cfg, st)
     }
 
     /** Build ladder from current balance. */
@@ -154,9 +166,9 @@ object AutoBetEngine {
         var st = state.value ?: State()
 
         // ── Guards ───────────────────────────────────────────────
-        if (st.placed >= cfg.maxRounds) { note("STOPPED · max rounds (${cfg.maxRounds})"); autoOff(); return }
-        if (st.pnl <= -cfg.stopLoss)    { note("STOPPED · stop-loss ৳${cfg.stopLoss}"); autoOff(); return }
-        if (st.pnl >=  cfg.targetWin)   { note("STOPPED · target ৳${cfg.targetWin} reached"); autoOff(); return }
+        if (handleDuration(cfg, st)) return
+        st = state.value ?: st
+        if (st.stopAfterClear && isStepClear(st)) { autoOff("OFF — time completed") ; return }
 
         // Wait for previous period to resolve before placing next step.
         if (st.stepPendingIssue != null && st.stepPendingIssue != targetIssue) {
@@ -169,7 +181,7 @@ object AutoBetEngine {
         val slot = issueSlots.getOrPut(targetIssue) { IssueSlot() }
         if (slot.success) return              // already bet successfully this period
         if (slot.inflight) return              // request in progress
-        if (slot.tries >= 3) return            // give up after 3 fails
+        if (slot.tries >= 1) return            // one submit attempt only — prevents duplicate bet loop
 
         // ── Pick based on signal mode ────────────────────────────
         val pick: String = when (cfg.mode) {
@@ -228,7 +240,7 @@ object AutoBetEngine {
             } else {
                 // Do NOT clear the slot — tries counter naturally caps at 3.
                 state.postValue(cur.copy(
-                    lastNote = "✗ ${res.stage}: ${res.note} · retry ${slot.tries}/3",
+                    lastNote = "✗ ${res.stage}: ${res.note} · no retry this period",
                 ))
             }
         }
@@ -274,7 +286,7 @@ object AutoBetEngine {
             newStepIdx = st.stepIdx + 1  // LOSS → advance step
         }
 
-        state.postValue(st.copy(
+        val updated = st.copy(
             won = st.won + if (win) 1 else 0,
             lost = st.lost + if (!win) 1 else 0,
             pnl = st.pnl + delta,
@@ -287,7 +299,17 @@ object AutoBetEngine {
             lastResult = st.lastResult,  // updated separately via onOutcome below if needed
             lastNote = (if (win) "✓ WIN +৳$delta" else "✗ LOSS ৳$delta") +
                 " · step " + (if (stepNum > cfg.steps) "$stepNum/${cfg.steps}+" else "$stepNum/${cfg.steps}"),
-        ))
+        )
+        if (updated.stopAfterClear && isStepClear(updated)) {
+            state.postValue(updated.copy(
+                startedAtMs = 0L,
+                stopAfterClear = false,
+                lastNote = updated.lastNote + " · AUTO-OFF",
+            ))
+            autoOff("OFF — time completed after step clear")
+        } else {
+            state.postValue(updated)
+        }
         Log.i(TAG, "resolved $issue win=$win Δ$delta nextStep=${newStepIdx+1}")
     }
 
@@ -299,9 +321,32 @@ object AutoBetEngine {
         state.postValue(st.copy(lastResult = v))
     }
 
-    private fun autoOff() {
+    private fun handleDuration(cfg: Config, st: State): Boolean {
+        val start = st.startedAtMs
+        if (start <= 0L || cfg.durationMinutes <= 0) return false
+        val expired = System.currentTimeMillis() - start >= cfg.durationMinutes * 60_000L
+        if (!expired) return false
+        if (isStepClear(st)) {
+            autoOff("OFF — time completed")
+            return true
+        }
+        if (!st.stopAfterClear) {
+            state.postValue(st.copy(
+                stopAfterClear = true,
+                lastNote = "Time complete · finishing active step before OFF",
+            ))
+        }
+        return false
+    }
+
+    private fun isStepClear(st: State): Boolean = st.stepPendingIssue == null && st.stepIdx == 0
+
+    private fun autoOff(message: String = "OFF — auto-bet disabled") {
         val c = config.value ?: return
-        updateConfig(c.copy(enabled = false))
+        prefs?.edit()?.putBoolean(PREF_ENABLED, false)?.apply()
+        config.postValue(c.copy(enabled = false))
+        val st = state.value ?: State()
+        state.postValue(st.copy(startedAtMs = 0L, stopAfterClear = false, lastNote = message))
     }
 
     private fun note(msg: String) {

@@ -442,25 +442,41 @@ object JsHook {
     window.__dkSign = sign;
 
     // payload: {gameCode, issueNumber, amount, betMultiple, betContent, language?}
+    window.__dkBetSlots = window.__dkBetSlots || {};
     window.__dkPlaceBet = function(payload){
-      return new Promise(function(resolve){
-        try {
-          var base = window.__DK_BASE, token = window.__DK_TOKEN;
-          if (!base || !token) { resolve({ok:false, stage:'NO_TOKEN', note:'open WinGo tab first so token is captured'}); return; }
-          var body = sign(Object.assign({ language: (payload && payload.language) || 'en' }, payload || {}));
-          fetch(base + '/WinGoBet', {
-            method:'POST',
-            headers:{'Content-Type':'application/json','Authorization':token},
-            body: JSON.stringify(body),
-            credentials:'include'
-          }).then(function(r){ return r.text(); }).then(function(t){
-            var j = null; try { j = JSON.parse(t); } catch(e){}
-            var code = j && j.code, msg = (j && j.msg) || '';
-            if (code === 0) resolve({ok:true, stage:'DONE', note:'API OK · '+(payload.betContent||'')+' x'+(payload.betMultiple||1)});
-            else resolve({ok:false, stage:'API_ERR', note:'code='+code+' '+msg});
-          }).catch(function(e){ resolve({ok:false, stage:'NET_ERR', note:String(e)}); });
-        } catch(e){ resolve({ok:false, stage:'EXC', note:String(e)}); }
-      });
+      try {
+        var base = window.__DK_BASE, token = window.__DK_TOKEN;
+        if (!base || !token) return {ok:false, stage:'NO_TOKEN', note:'open WinGo tab first so token is captured'};
+        payload = payload || {};
+        var issue = String(payload.issueNumber || '');
+        if (!issue) return {ok:false, stage:'NO_ISSUE', note:'missing issueNumber'};
+        var key = issue + '|' + String(payload.betContent || '');
+        var prev = window.__dkBetSlots[key];
+        if (prev && (prev.status === 'SUBMITTED' || prev.status === 'DONE')) {
+          return {ok:true, stage:'LOCKED', note:'already submitted for #' + issue.slice(-6)};
+        }
+
+        var body = sign(Object.assign({ language: payload.language || 'en' }, payload));
+        window.__dkBetSlots[key] = {status:'SUBMITTED', at:Date.now(), body:body};
+        fetch(base + '/WinGoBet', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':token},
+          body: JSON.stringify(body),
+          credentials:'include'
+        }).then(function(r){ return r.text(); }).then(function(t){
+          var j = null; try { j = JSON.parse(t); } catch(e){}
+          var code = j && j.code, msg = (j && (j.msg || j.message)) || '';
+          var ok = code === 0 || code === 200 || (j && (j.success === true || j.status === true));
+          window.__dkBetSlots[key].status = ok ? 'DONE' : 'API_ERR';
+          window.__dkBetSlots[key].result = {code:code, msg:msg, raw:t};
+          window.__dkLastBetAck = {ok:ok, stage:(ok?'DONE':'API_ERR'), note:(ok?'API OK':'code='+code+' '+msg)};
+        }).catch(function(e){
+          window.__dkBetSlots[key].status = 'NET_ERR';
+          window.__dkBetSlots[key].result = String(e);
+          window.__dkLastBetAck = {ok:false, stage:'NET_ERR', note:String(e)};
+        });
+        return {ok:true, stage:'SUBMITTED', note:'request sent · '+(payload.betContent||'')+' x'+(payload.betMultiple||1)};
+      } catch(e){ return {ok:false, stage:'EXC', note:String(e)}; }
     };
   }
 })();

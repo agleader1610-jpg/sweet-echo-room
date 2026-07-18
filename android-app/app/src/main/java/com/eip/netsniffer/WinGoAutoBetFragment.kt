@@ -1,6 +1,8 @@
 package com.eip.netsniffer
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +16,14 @@ import com.eip.netsniffer.databinding.FragmentWingoAutobetBinding
 class WinGoAutoBetFragment : Fragment() {
     private var _b: FragmentWingoAutobetBinding? = null
     private val b get() = _b!!
+    private val ui = Handler(Looper.getMainLooper())
+    private val timerTick = object : Runnable {
+        override fun run() {
+            AutoBetEngine.tick()
+            renderTimer(AutoBetEngine.state.value)
+            ui.postDelayed(this, 1000)
+        }
+    }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentWingoAutobetBinding.inflate(i, c, false)
@@ -28,12 +38,9 @@ class WinGoAutoBetFragment : Fragment() {
         b.balanceInput.setText(cfg.balance.toString())
         b.stepsInput.setText(cfg.steps.toString())
         b.multInput.setText(cfg.multiplier.toString())
+        b.durationInput.setText(cfg.durationMinutes.toString())
         val modeId = when (cfg.mode) { "RANDOM" -> R.id.modeRandom; "PATTERN" -> R.id.modePattern; else -> R.id.modeApp }
         b.autoBetModeGroup.check(modeId)
-
-        b.stopLossInput.setText(cfg.stopLoss.toString())
-        b.targetWinInput.setText(cfg.targetWin.toString())
-        b.maxRoundsInput.setText(cfg.maxRounds.toString())
         b.skipLowConfBox.isChecked = cfg.skipLowConfidence
 
         val push = {
@@ -46,9 +53,7 @@ class WinGoAutoBetFragment : Fragment() {
                 balance = (b.balanceInput.text.toString().toIntOrNull() ?: 100).coerceAtLeast(1),
                 multiplier = (b.multInput.text.toString().toIntOrNull() ?: 1).coerceAtLeast(1),
                 mode = mode,
-                stopLoss = b.stopLossInput.text.toString().toIntOrNull() ?: 500,
-                targetWin = b.targetWinInput.text.toString().toIntOrNull() ?: 1000,
-                maxRounds = b.maxRoundsInput.text.toString().toIntOrNull() ?: 50,
+                durationMinutes = (b.durationInput.text.toString().toIntOrNull() ?: 10).coerceIn(1, 1440),
                 skipLowConfidence = b.skipLowConfBox.isChecked,
             ))
         }
@@ -60,13 +65,21 @@ class WinGoAutoBetFragment : Fragment() {
         b.balanceInput.onFocusChangeListener = lostListener
         b.stepsInput.onFocusChangeListener = lostListener
         b.multInput.onFocusChangeListener = lostListener
-        b.stopLossInput.onFocusChangeListener = lostListener
-        b.targetWinInput.onFocusChangeListener = lostListener
-        b.maxRoundsInput.onFocusChangeListener = lostListener
+        b.durationInput.onFocusChangeListener = lostListener
         b.abResetStats.setOnClickListener { AutoBetEngine.reset() }
+
+        AutoBetEngine.config.observe(viewLifecycleOwner) { c ->
+            c ?: return@observe
+            if (b.autoBetSwitch.isChecked != c.enabled) b.autoBetSwitch.isChecked = c.enabled
+            if (!b.durationInput.hasFocus() && b.durationInput.text.toString() != c.durationMinutes.toString()) {
+                b.durationInput.setText(c.durationMinutes.toString())
+            }
+            renderTimer(AutoBetEngine.state.value)
+        }
 
         AutoBetEngine.state.observe(viewLifecycleOwner) { st ->
             st ?: return@observe
+            renderTimer(st)
             b.abPlaced.text = st.placed.toString()
             b.abWon.text = st.won.toString()
             b.abLost.text = st.lost.toString()
@@ -83,10 +96,31 @@ class WinGoAutoBetFragment : Fragment() {
             b.abNote.text = st.lastNote +
                 (if (st.ladder.isNotEmpty()) "  ·  ladder ${st.ladder.joinToString("·")}" else "")
         }
+        ui.post(timerTick)
+    }
+
+    private fun renderTimer(st: AutoBetEngine.State?) {
+        val cfg = AutoBetEngine.config.value ?: AutoBetEngine.Config()
+        val state = st ?: AutoBetEngine.State()
+        if (!cfg.enabled || state.startedAtMs <= 0L) {
+            b.abTimerText.text = "Timer: OFF"
+            return
+        }
+        val end = state.startedAtMs + cfg.durationMinutes * 60_000L
+        val left = (end - System.currentTimeMillis()).coerceAtLeast(0L)
+        val sec = left / 1000L
+        val mm = sec / 60L
+        val ss = sec % 60L
+        b.abTimerText.text = if (state.stopAfterClear) {
+            "Timer: clearing step then OFF"
+        } else {
+            "Timer: %02d:%02d left".format(mm, ss)
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        ui.removeCallbacks(timerTick)
         _b = null
     }
 }
