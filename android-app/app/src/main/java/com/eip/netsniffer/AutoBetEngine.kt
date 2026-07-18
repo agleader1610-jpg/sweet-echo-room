@@ -290,13 +290,24 @@ object AutoBetEngine {
             }
         }
 
-        // ── Build ladder if needed (prefer live API balance over user input) ──
+        // ── Build ladder if needed (step 1 only). Prefer LIVE API balance;
+        //    fall back to user-entered balance if API not yet ready.
+        //    Decimals/paisa are ALWAYS floored to whole taka.
         if (!st.ladderReady || st.ladder.isEmpty()) {
-            val liveBal = st.apiBalance?.toInt()?.coerceAtLeast(1) ?: cfg.balance
+            val apiBal = st.apiBalance
+            val liveBal: Int
+            val src: String
+            if (apiBal != null && apiBal >= 1.0) {
+                liveBal = apiBal.toInt()           // floor decimals
+                src = "API"
+            } else {
+                liveBal = cfg.balance.coerceAtLeast(1)
+                src = "input"
+            }
             val lad = buildLadder(liveBal, cfg.steps)
             anchorLadder = lad
             st = st.copy(ladder = lad, ladderReady = true, stepIdx = 0)
-            pushState(st.copy(lastNote = "Ladder ৳$liveBal → ${lad.joinToString("·")}"))
+            pushState(st.copy(lastNote = "Ladder [$src ৳$liveBal] → ${lad.joinToString("·")}"))
         }
 
         val stakeIdx = min(st.stepIdx, st.ladder.size - 1)
