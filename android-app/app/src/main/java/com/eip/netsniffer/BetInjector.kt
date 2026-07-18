@@ -98,7 +98,8 @@ object BetInjector {
             if (!window.__DK_BASE || !window.__DK_TOKEN) {
               return JSON.stringify({ok:false, stage:'NO_TOKEN', note:'open WinGo tab first so token is captured'});
             }
-            var gameCode = ($gameLit) || window.__DK_GAME || 'WinGo_30S';
+            var gameCode = ($gameLit) || window.__DK_GAME || '';
+            if (!gameCode) return JSON.stringify({ok:false, stage:'NO_GAME', note:'open the exact WinGo market first'});
             var issue = ($issueLit);
             if (!issue) {
               // Best-effort: read the visible issue number from the page.

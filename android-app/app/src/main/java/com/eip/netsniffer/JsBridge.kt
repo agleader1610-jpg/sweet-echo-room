@@ -475,7 +475,10 @@ object JsHook {
     // Aggregate snapshot the Android reconciler polls every ~2s.
     // Returns { ok, balance, currentIssue, myBets:[{issueNumber, betContent, state, winLoseAmount}] }
     window.__dkReconcile = function(gameCode){
-      var gc = gameCode || window.__DK_GAME || 'WinGo_30S';
+      var gc = gameCode || window.__DK_GAME || '';
+      if (!gc) {
+        return Promise.resolve({ok:true, ts:Date.now(), tokenReady:!!window.__DK_TOKEN, baseReady:!!window.__DK_BASE, gameCode:'', currentIssue:'', myBets:[], lastError:'NO_GAME', lastBetAck:window.__dkLastBetAck || null});
+      }
       var p1 = window.__dkSignedGet('/GetBalance', {});
       var p2 = window.__dkSignedGet('/GetRecordPage', {pageSize:10, pageNo:1, gameCode:gc});
       var p3 = window.__dkSignedGet('/GetGameInfo', {gameCode:gc});

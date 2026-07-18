@@ -252,6 +252,10 @@ object AutoBetEngine {
             note("Waiting for DK Win token … keep DK Win page logged in")
             return
         }
+        if (st.apiGameCode.isNullOrBlank()) {
+            note("Waiting for WinGo market detect … open the running WinGo game")
+            return
+        }
         if (apiIssue != targetIssue) {
             note("API mismatch · running #${apiIssue.takeLast(6)} ≠ signal #${targetIssue.takeLast(6)}")
             return
@@ -320,7 +324,7 @@ object AutoBetEngine {
             amount = 1,
             multiplier = stake,
             issueNumber = targetIssue,
-            gameCodeOverride = st.apiGameCode ?: "WinGo_30S",
+            gameCodeOverride = st.apiGameCode,
         ) { res ->
             slot.inflight = false
             val cur = state.value ?: State()
@@ -485,7 +489,7 @@ object AutoBetEngine {
         st = st.copy(
             apiBalance = snap.balance ?: st.apiBalance,
             apiCurrentIssue = snap.currentIssue,
-            apiGameCode = snap.gameCode ?: st.apiGameCode ?: "WinGo_30S",
+            apiGameCode = snap.gameCode ?: st.apiGameCode,
             apiRemainingSeconds = snap.remainingSeconds,
             apiTokenReady = snap.tokenReady,
             apiBaseReady = snap.baseReady,
