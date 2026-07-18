@@ -247,6 +247,15 @@ object AutoBetEngine {
     }
 
     /** Called on every resolved round (WinGoFragment / WinGoStore). */
+    fun onResolved(issue: String, actualBigOrSmall: String) {
+        val actual = actualBigOrSmall.uppercase()
+        if (actual != "BIG" && actual != "SMALL") return
+        val betPick = state.value?.nextBetPick?.uppercase() ?: return
+        if (betPick != "BIG" && betPick != "SMALL") return
+        onResolved(issue, betPick == actual)
+    }
+
+    /** Called on every resolved round (WinGoFragment / WinGoStore). */
     fun onResolved(issue: String, win: Boolean) {
         val slot = issueSlots[issue] ?: return
         if (!slot.success) return  // we didn't place here — ignore

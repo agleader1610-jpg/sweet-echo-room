@@ -151,8 +151,9 @@ class WinGoFragment : Fragment() {
                 )
                 WinGoStore.score.postValue(wins to losses)
                 // Notify auto-bet engine so it counts P/L for placed bets.
-                AutoBetEngine.onOutcome(if (match.number >= 5) "BIG" else "SMALL")
-                AutoBetEngine.onResolved(armedId, win)
+                val actualSize = if (match.number >= 5) "BIG" else "SMALL"
+                AutoBetEngine.onOutcome(actualSize)
+                AutoBetEngine.onResolved(armedId, actualSize)
                 armedIssue = null; armedSignal = null
                 renderScoreboard()
                 renderLog()
