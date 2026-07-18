@@ -61,6 +61,10 @@ class BrowserFragment : Fragment() {
         // JS bridge so page scripts can report fetch / XHR / WebSocket events
         wv.addJavascriptInterface(JsBridge(), "__NetSniffer")
 
+        // Register WebView with AutoBetEngine so it can inject bet clicks on-device.
+        AutoBetEngine.init(requireContext())
+        AutoBetEngine.attachWebView(wv)
+
         // Inject hook at document-start in EVERY frame (main + iframes) BEFORE
         // any page script runs. This is what makes iframe players / chat widgets'
         // WebSocket calls also get captured (Tampermonkey parity).
