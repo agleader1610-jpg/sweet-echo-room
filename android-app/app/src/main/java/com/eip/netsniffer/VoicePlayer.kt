@@ -34,6 +34,9 @@ object VoicePlayer {
     /** Speak once per issue. Safe to call from any signal render. */
     fun speakForIssue(ctx: Context, issue: String, pick: String) {
         if (isMuted(ctx)) return
+        // Don't speak while the signal system is locked (no license / not logged in).
+        // Otherwise the voice fires under the lock overlay even though no signal is visible.
+        if (LicenseGate.isLocked()) return
         if (lastSpokenIssue == issue) return
         val res = when (pick.uppercase()) {
             "BIG" -> R.raw.voice_big
