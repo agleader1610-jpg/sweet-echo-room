@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 75
-        versionName = "1.0.75-autobet-current-period"
+        versionCode = 76
+        versionName = "1.0.76-autobet-bridge-ack"
 
 
 
