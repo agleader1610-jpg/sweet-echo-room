@@ -484,9 +484,9 @@ object AutoBetEngine {
 
         st = st.copy(
             apiBalance = snap.balance ?: st.apiBalance,
-            apiCurrentIssue = snap.currentIssue ?: st.apiCurrentIssue,
+            apiCurrentIssue = snap.currentIssue,
             apiGameCode = snap.gameCode ?: st.apiGameCode ?: "WinGo_30S",
-            apiRemainingSeconds = snap.remainingSeconds ?: st.apiRemainingSeconds,
+            apiRemainingSeconds = snap.remainingSeconds,
             apiTokenReady = snap.tokenReady,
             apiBaseReady = snap.baseReady,
             apiLastError = snap.lastError,
@@ -551,7 +551,7 @@ object AutoBetEngine {
 
         // 3) API-driven auto-fire. This keeps auto-bet alive even when the user
         // is on DK Win, Auto-Bet, or another tab; WinGoFragment UI is no longer required.
-        val current = snap.currentIssue ?: (state.value?.apiCurrentIssue) ?: return
+        val current = snap.currentIssue ?: return
         val latest = state.value ?: return
         if (cfg.enabled && latest.stepPendingIssue == null && !latest.stopAfterClear) {
             val slot = issueSlots[current]

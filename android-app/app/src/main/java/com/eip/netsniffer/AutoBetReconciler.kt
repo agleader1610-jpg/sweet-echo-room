@@ -120,7 +120,9 @@ object AutoBetReconciler {
         if (!json.optBoolean("ok", false)) return
 
         val balance = json.optDouble("balance", Double.NaN)
-        val currentIssue = json.optString("currentIssue", "")
+        val currentIssue = json.optString("currentIssue", "").ifBlank {
+            WinGoStore.live.value?.currentIssue.orEmpty()
+        }
         val detectedGame = json.optString("gameCode", "")
         if (detectedGame.isNotBlank()) {
             gameCode = detectedGame
