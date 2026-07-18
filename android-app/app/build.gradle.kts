@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 68
-        versionName = "1.0.68-nested-comment-fix"
+        versionCode = 69
+        versionName = "1.0.69-ladder-modes"
 
 
 
