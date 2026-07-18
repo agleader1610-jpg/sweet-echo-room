@@ -9,12 +9,12 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * WinGo (30S) polling store.
+ * WinGo polling store.
  *
  * Two endpoints polled directly (no network-capture required):
- *  - Live:    https://draw.ar-lottery01.com/WinGo/WinGo_30S.json
+ *  - Live:    https://draw.ar-lottery01.com/WinGo/<gameCode>.json
  *             → current/previous/next issueNumber + startTime/endTime (ms)
- *  - History: https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json
+ *  - History: https://draw.ar-lottery01.com/WinGo/<gameCode>/GetHistoryIssuePage.json
  *             → last ~10 results with number(0-9) + color(red|green|violet|combos)
  */
 data class WinGoRound(
@@ -32,8 +32,8 @@ data class WinGoLive(
 
 object WinGoStore {
     private const val TAG = "WinGoStore"
-    private const val LIVE_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S.json"
-    private const val HIST_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json"
+    private const val DRAW_BASE = "https://draw.ar-lottery01.com/WinGo"
+    @Volatile private var gameCode: String = "WinGo_30S"
 
     val history = MutableLiveData<List<WinGoRound>>(emptyList())
     val live = MutableLiveData<WinGoLive?>(null)
@@ -44,6 +44,7 @@ object WinGoStore {
     data class LastResult(val issue: String, val win: Boolean, val number: Int, val colors: List<String>, val pick: String)
     val lastResult = MutableLiveData<LastResult?>(null)
     val score = MutableLiveData(0 to 0) // wins to losses
+    val activeGameCode = MutableLiveData(gameCode)
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(6, TimeUnit.SECONDS)
@@ -55,9 +56,21 @@ object WinGoStore {
     fun start() {
         if (started) return
         started = true
-        exec.scheduleWithFixedDelay({ safeFetch(LIVE_URL, ::parseLive) }, 0, 3, TimeUnit.SECONDS)
-        exec.scheduleWithFixedDelay({ safeFetch(HIST_URL, ::parseHistory) }, 500, 5000, TimeUnit.MILLISECONDS)
+        exec.scheduleWithFixedDelay({ safeFetch(liveUrl(), ::parseLive) }, 0, 3, TimeUnit.SECONDS)
+        exec.scheduleWithFixedDelay({ safeFetch(historyUrl(), ::parseHistory) }, 500, 5000, TimeUnit.MILLISECONDS)
     }
+
+    fun setGameCode(code: String) {
+        val clean = code.trim()
+        if (clean.isBlank() || !clean.startsWith("WinGo_", true)) return
+        if (clean == gameCode) return
+        gameCode = clean
+        activeGameCode.postValue(clean)
+        Log.i(TAG, "active gameCode=$clean")
+    }
+
+    private fun liveUrl(): String = "$DRAW_BASE/$gameCode.json"
+    private fun historyUrl(): String = "$DRAW_BASE/$gameCode/GetHistoryIssuePage.json"
 
     private fun safeFetch(url: String, onBody: (String) -> Unit) {
         try {

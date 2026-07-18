@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(b.root)
 
         b.pager.adapter = PagerAdapter(this)
-        b.pager.offscreenPageLimit = 3
+        b.pager.offscreenPageLimit = 5
         b.pager.isUserInputEnabled = false
         b.pager.setCurrentItem(prefs.getInt(PREF_LAST_TAB, 0), false)
 

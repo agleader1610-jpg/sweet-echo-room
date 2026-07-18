@@ -55,7 +55,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="🤖 AUTO-BET  •  100% ON-DEVICE"
+                        android:text="🤖 AUTO-BET  •  AUTO MARKET"
                         android:textColor="#F59E0B"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -70,7 +70,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Places bets via your phone's browser tab — no VPS, no relay. Signal comes from the WIN GO tab."
+                    android:text="Places bets via your phone's DK Win session — game/period auto-detected from captured API."
                     android:textColor="#64748B"
                     android:textSize="10sp"/>
 
@@ -177,7 +177,7 @@
                     android:layout_marginTop="10dp"
                     android:padding="8dp"
                     android:background="#0F1B33"
-                    android:text="Next: —"
+                    android:text="Trade: —"
                     android:textColor="#E2E8F0"
                     android:textSize="12sp"
                     android:fontFamily="@font/roboto_mono"/>

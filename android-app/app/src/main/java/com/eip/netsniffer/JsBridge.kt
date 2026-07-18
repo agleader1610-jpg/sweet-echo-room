@@ -38,6 +38,11 @@ class JsBridge {
     }
 
     @JavascriptInterface
+    fun autoBetReconcile(json: String) {
+        AutoBetReconciler.handleJson(json)
+    }
+
+    @JavascriptInterface
     fun relayUrl(originalUrl: String, relayBaseUrl: String): String {
         return try {
             val abs = originalUrl.trim()
@@ -384,6 +389,11 @@ object JsHook {
         if (reqBody && typeof reqBody === 'string') {
           try { var jb = JSON.parse(reqBody); if (jb && jb.gameCode) window.__DK_GAME = jb.gameCode; } catch(e){}
         }
+        try {
+          var uu = new URL(String(url), location.href);
+          var gc = uu.searchParams.get('gameCode');
+          if (gc) window.__DK_GAME = gc;
+        } catch(e){}
       } catch(e){}
     };
 
@@ -465,12 +475,26 @@ object JsHook {
     // Aggregate snapshot the Android reconciler polls every ~2s.
     // Returns { ok, balance, currentIssue, myBets:[{issueNumber, betContent, state, winLoseAmount}] }
     window.__dkReconcile = function(gameCode){
-      var gc = gameCode || window.__DK_GAME || 'WinGo_30S';
+      var gc = gameCode || window.__DK_GAME || '';
+      if (!gc) {
+        return Promise.resolve({ok:true, ts:Date.now(), tokenReady:!!window.__DK_TOKEN, baseReady:!!window.__DK_BASE, gameCode:'', currentIssue:'', myBets:[], lastError:'NO_GAME', lastBetAck:window.__dkLastBetAck || null});
+      }
       var p1 = window.__dkSignedGet('/GetBalance', {});
       var p2 = window.__dkSignedGet('/GetRecordPage', {pageSize:10, pageNo:1, gameCode:gc});
       var p3 = window.__dkSignedGet('/GetGameInfo', {gameCode:gc});
       return Promise.all([p1,p2,p3]).then(function(arr){
-        var out = {ok:true, ts: Date.now()};
+        var errs = [];
+        for (var ei=0; ei<arr.length; ei++) if (!arr[ei] || !arr[ei].ok) errs.push((arr[ei] && arr[ei].err) || ('ERR_'+ei));
+        var out = {
+          ok:true,
+          ts: Date.now(),
+          tokenReady: !!window.__DK_TOKEN,
+          baseReady: !!window.__DK_BASE,
+          gameCode: gc,
+          myBets: [],
+          lastError: errs.length ? errs.join('|') : '',
+          lastBetAck: window.__dkLastBetAck || null
+        };
         try { out.balance = arr[0] && arr[0].json && arr[0].json.data && arr[0].json.data.balance; } catch(e){}
         try {
           var list = arr[1] && arr[1].json && arr[1].json.data && arr[1].json.data.list;
@@ -492,8 +516,15 @@ object JsHook {
           var gi = arr[2] && arr[2].json && arr[2].json.data;
           if (gi) {
             // GetGameInfo may return currentIssueNumber / issue depending on API version.
-            out.currentIssue = String(gi.currentIssueNumber || gi.issueNumber || (gi.issue && gi.issue.issueNumber) || '');
-            out.remainingTime = gi.remainingTime;
+            out.currentIssue = String(gi.currentIssueNumber || gi.issueNumber || (gi.issue && gi.issue.issueNumber) || (gi.current && gi.current.issueNumber) || '');
+            var rem = gi.remainingTime || gi.remainTime || gi.seconds || gi.countdown || (gi.issue && (gi.issue.remainingTime || gi.issue.remainTime));
+            if (rem != null && rem !== '') out.remainingSeconds = parseInt(rem, 10);
+            var end = gi.endTime || gi.endTimestamp || (gi.issue && gi.issue.endTime) || (gi.current && gi.current.endTime);
+            if ((!out.remainingSeconds || isNaN(out.remainingSeconds)) && end) {
+              var endMs = Number(end);
+              if (endMs < 1000000000000) endMs = endMs * 1000;
+              out.remainingSeconds = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
+            }
           }
         } catch(e){}
         return out;
@@ -509,10 +540,13 @@ object JsHook {
         payload = payload || {};
         var issue = String(payload.issueNumber || '');
         if (!issue) return {ok:false, stage:'NO_ISSUE', note:'missing issueNumber'};
-        var key = issue + '|' + String(payload.betContent || '');
+        var key = issue;
         var prev = window.__dkBetSlots[key];
-        if (prev && (prev.status === 'SUBMITTED' || prev.status === 'DONE')) {
+        if (prev && prev.status === 'DONE') {
           return {ok:true, stage:'LOCKED', note:'already submitted for #' + issue.slice(-6)};
+        }
+        if (prev && prev.status === 'SUBMITTED' && Date.now() - (prev.at || 0) < 8000) {
+          return {ok:false, stage:'WAIT_ACK', note:'previous request still waiting for #' + issue.slice(-6)};
         }
 
         var body = sign(Object.assign({ language: payload.language || 'en' }, payload));
@@ -526,13 +560,14 @@ object JsHook {
           var j = null; try { j = JSON.parse(t); } catch(e){}
           var code = j && j.code, msg = (j && (j.msg || j.message)) || '';
           var ok = code === 0 || code === 200 || (j && (j.success === true || j.status === true));
+          if (!ok && /success|succeed|accepted|bet/i.test(String(msg))) ok = true;
           window.__dkBetSlots[key].status = ok ? 'DONE' : 'API_ERR';
-          window.__dkBetSlots[key].result = {code:code, msg:msg, raw:t};
-          window.__dkLastBetAck = {ok:ok, stage:(ok?'DONE':'API_ERR'), note:(ok?'API OK':'code='+code+' '+msg)};
+            window.__dkBetSlots[key].result = {code:code, msg:msg, raw:t};
+            window.__dkLastBetAck = {ok:ok, stage:(ok?'DONE':'API_ERR'), note:(ok?'API OK':'code='+code+' '+msg), issueNumber:issue};
         }).catch(function(e){
           window.__dkBetSlots[key].status = 'NET_ERR';
           window.__dkBetSlots[key].result = String(e);
-          window.__dkLastBetAck = {ok:false, stage:'NET_ERR', note:String(e)};
+            window.__dkLastBetAck = {ok:false, stage:'NET_ERR', note:String(e), issueNumber:issue};
         });
         return {ok:true, stage:'SUBMITTED', note:'request sent · '+(payload.betContent||'')+' x'+(payload.betMultiple||1)};
       } catch(e){ return {ok:false, stage:'EXC', note:String(e)}; }

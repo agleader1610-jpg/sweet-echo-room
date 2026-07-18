@@ -32,7 +32,7 @@ object AutoBetReconciler {
     private val ui = Handler(Looper.getMainLooper())
     private var wvRef: WeakReference<WebView>? = null
     private var running = false
-    private var gameCode: String = "WinGo_30S"
+    private var gameCode: String = ""
     private var inFlight = false
 
     fun attach(webView: WebView) {
@@ -50,6 +50,7 @@ object AutoBetReconciler {
 
     fun start() {
         if (running) return
+        WinGoStore.start()
         running = true
         ui.post(tick)
         Log.i(TAG, "reconciler started · game=$gameCode")
@@ -77,27 +78,41 @@ object AutoBetReconciler {
         val pending = AutoBetEngine.state.value?.stepPendingIssue != null
         if (!armed && !pending) return
 
-        val gc = JSONObject.quote(gameCode)
+        val gc = if (gameCode.isBlank()) "null" else JSONObject.quote(gameCode)
         val js = """
         (function(){
           try {
-            if (typeof window.__dkReconcile !== 'function') return JSON.stringify({ok:false, err:'NO_HELPER'});
-            return window.__dkReconcile($gc).then(function(x){ return JSON.stringify(x); });
-          } catch(e){ return JSON.stringify({ok:false, err:String(e)}); }
+            if (typeof window.__dkReconcile !== 'function') {
+              window.__NetSniffer.autoBetReconcile(JSON.stringify({ok:false, err:'NO_HELPER'}));
+              return 'NO_HELPER';
+            }
+            window.__dkReconcile($gc).then(function(x){
+              window.__NetSniffer.autoBetReconcile(JSON.stringify(x));
+            }).catch(function(e){
+              window.__NetSniffer.autoBetReconcile(JSON.stringify({ok:false, err:String(e)}));
+            });
+            return 'DISPATCHED';
+          } catch(e){
+            window.__NetSniffer.autoBetReconcile(JSON.stringify({ok:false, err:String(e)}));
+            return 'EXC';
+          }
         })();
         """.trimIndent()
         inFlight = true
         ui.post {
-            wv.evaluateJavascript(js) { raw ->
-                inFlight = false
-                handleRaw(raw)
-            }
+            wv.evaluateJavascript(js, null)
+            ui.postDelayed({ if (inFlight) inFlight = false }, 6_000L)
         }
     }
 
-    private fun handleRaw(raw: String?) {
+    fun handleJson(jsonText: String?) {
+        ui.post { handleRaw(jsonText, alreadyJson = true) }
+    }
+
+    private fun handleRaw(raw: String?, alreadyJson: Boolean = false) {
+        inFlight = false
         if (raw.isNullOrBlank() || raw == "null") return
-        val cleaned = try {
+        val cleaned = if (alreadyJson) raw else try {
             val v = JSONTokener(raw).nextValue()
             if (v is String) v else raw
         } catch (_: Exception) { raw }
@@ -105,7 +120,16 @@ object AutoBetReconciler {
         if (!json.optBoolean("ok", false)) return
 
         val balance = json.optDouble("balance", Double.NaN)
-        val currentIssue = json.optString("currentIssue", "")
+        val currentIssue = json.optString("currentIssue", "").ifBlank {
+            WinGoStore.live.value?.currentIssue.orEmpty()
+        }
+        val detectedGame = json.optString("gameCode", "")
+        if (detectedGame.isNotBlank()) {
+            gameCode = detectedGame
+            WinGoStore.setGameCode(detectedGame)
+        }
+        val remainingSeconds = if (json.has("remainingSeconds")) json.optInt("remainingSeconds") else null
+        val ackObj = json.optJSONObject("lastBetAck")
         val bets = json.optJSONArray("myBets") ?: JSONArray()
 
         val list = mutableListOf<AutoBetEngine.ApiBet>()
@@ -128,6 +152,19 @@ object AutoBetReconciler {
                 balance = if (balance.isNaN()) null else balance,
                 currentIssue = currentIssue.ifBlank { null },
                 myBets = list,
+                gameCode = detectedGame.ifBlank { gameCode.ifBlank { null } },
+                remainingSeconds = remainingSeconds,
+                tokenReady = json.optBoolean("tokenReady", false),
+                baseReady = json.optBoolean("baseReady", false),
+                lastError = json.optString("lastError", "").ifBlank { null },
+                lastBetAck = ackObj?.let {
+                    AutoBetEngine.ApiAck(
+                        ok = it.optBoolean("ok", false),
+                        stage = it.optString("stage", ""),
+                        note = it.optString("note", ""),
+                        issueNumber = it.optString("issueNumber", "").ifBlank { null },
+                    )
+                },
             )
         )
     }
