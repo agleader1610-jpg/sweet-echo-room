@@ -36,6 +36,7 @@ object AutoBetEngine {
     private const val PREF_MODE        = "autobet_mode"          // APP | RANDOM | PATTERN
     private const val PREF_DURATION_MIN = "autobet_duration_min"
     private const val PREF_SKIP_LOWCF  = "autobet_skip_lowconf"
+    private const val PREF_USE_API_BAL = "autobet_use_api_balance"
 
     data class Config(
         val enabled: Boolean = false,
@@ -45,6 +46,7 @@ object AutoBetEngine {
         val mode: String = "APP",         // APP | RANDOM | PATTERN
         val durationMinutes: Int = 10,    // auto-off timer; finishes active ladder before stopping
         val skipLowConfidence: Boolean = false,
+        val useApiBalance: Boolean = false,   // OFF = use manual balance input; ON = use live API balance
     )
 
     data class State(
@@ -155,6 +157,7 @@ object AutoBetEngine {
             mode = p.getString(PREF_MODE, "APP") ?: "APP",
             durationMinutes = p.getInt(PREF_DURATION_MIN, 10).coerceIn(1, 1440),
             skipLowConfidence = p.getBoolean(PREF_SKIP_LOWCF, false),
+            useApiBalance = p.getBoolean(PREF_USE_API_BAL, false),
         )
     }
 
@@ -172,6 +175,7 @@ object AutoBetEngine {
             ?.putString(PREF_MODE, newCfg.mode)
             ?.putInt(PREF_DURATION_MIN, newCfg.durationMinutes)
             ?.putBoolean(PREF_SKIP_LOWCF, newCfg.skipLowConfidence)
+            ?.putBoolean(PREF_USE_API_BAL, newCfg.useApiBalance)
             ?.apply()
         pushConfig(newCfg)
         if (!newCfg.enabled) {
@@ -290,15 +294,21 @@ object AutoBetEngine {
             }
         }
 
-        // ── Build ladder if needed (step 1 only). Prefer LIVE API balance;
-        //    fall back to user-entered balance if API not yet ready.
+        // ── Build ladder if needed (step 1 only).
+        //    Config toggle decides balance source:
+        //      useApiBalance = true  → require LIVE API balance; wait if not ready.
+        //      useApiBalance = false → always use manual balance input.
         //    Decimals/paisa are ALWAYS floored to whole taka.
         if (!st.ladderReady || st.ladder.isEmpty()) {
             val apiBal = st.apiBalance
             val liveBal: Int
             val src: String
-            if (apiBal != null && apiBal >= 1.0) {
-                liveBal = apiBal.toInt()           // floor decimals
+            if (cfg.useApiBalance) {
+                if (apiBal == null || apiBal < 1.0) {
+                    pushState(st.copy(lastNote = "WAITING · API balance not ready (toggle ON)"))
+                    return
+                }
+                liveBal = apiBal.toInt()
                 src = "API"
             } else {
                 liveBal = cfg.balance.coerceAtLeast(1)
