@@ -310,12 +310,13 @@ object AutoBetEngine {
                 " · step " + (if (stepNum > cfg.steps) "$stepNum/${cfg.steps}+" else "$stepNum/${cfg.steps}"),
         )
         if (updated.stopAfterClear && isStepClear(updated)) {
+            prefs?.edit()?.putBoolean(PREF_ENABLED, false)?.apply()
+            config.postValue(cfg.copy(enabled = false))
             state.postValue(updated.copy(
                 startedAtMs = 0L,
                 stopAfterClear = false,
-                lastNote = updated.lastNote + " · AUTO-OFF",
+                lastNote = updated.lastNote + " · OFF — time completed after step clear",
             ))
-            autoOff("OFF — time completed after step clear")
         } else {
             state.postValue(updated)
         }
