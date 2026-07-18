@@ -82,23 +82,37 @@ object AutoBetReconciler {
         val js = """
         (function(){
           try {
-            if (typeof window.__dkReconcile !== 'function') return JSON.stringify({ok:false, err:'NO_HELPER'});
-            return window.__dkReconcile($gc).then(function(x){ return JSON.stringify(x); });
-          } catch(e){ return JSON.stringify({ok:false, err:String(e)}); }
+            if (typeof window.__dkReconcile !== 'function') {
+              window.__NetSniffer.autoBetReconcile(JSON.stringify({ok:false, err:'NO_HELPER'}));
+              return 'NO_HELPER';
+            }
+            window.__dkReconcile($gc).then(function(x){
+              window.__NetSniffer.autoBetReconcile(JSON.stringify(x));
+            }).catch(function(e){
+              window.__NetSniffer.autoBetReconcile(JSON.stringify({ok:false, err:String(e)}));
+            });
+            return 'DISPATCHED';
+          } catch(e){
+            window.__NetSniffer.autoBetReconcile(JSON.stringify({ok:false, err:String(e)}));
+            return 'EXC';
+          }
         })();
         """.trimIndent()
         inFlight = true
         ui.post {
-            wv.evaluateJavascript(js) { raw ->
-                inFlight = false
-                handleRaw(raw)
-            }
+            wv.evaluateJavascript(js, null)
+            ui.postDelayed({ if (inFlight) inFlight = false }, 6_000L)
         }
     }
 
-    private fun handleRaw(raw: String?) {
+    fun handleJson(jsonText: String?) {
+        ui.post { handleRaw(jsonText, alreadyJson = true) }
+    }
+
+    private fun handleRaw(raw: String?, alreadyJson: Boolean = false) {
+        inFlight = false
         if (raw.isNullOrBlank() || raw == "null") return
-        val cleaned = try {
+        val cleaned = if (alreadyJson) raw else try {
             val v = JSONTokener(raw).nextValue()
             if (v is String) v else raw
         } catch (_: Exception) { raw }

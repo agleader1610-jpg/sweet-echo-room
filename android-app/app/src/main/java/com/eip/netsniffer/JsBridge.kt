@@ -38,6 +38,11 @@ class JsBridge {
     }
 
     @JavascriptInterface
+    fun autoBetReconcile(json: String) {
+        AutoBetReconciler.handleJson(json)
+    }
+
+    @JavascriptInterface
     fun relayUrl(originalUrl: String, relayBaseUrl: String): String {
         return try {
             val abs = originalUrl.trim()
