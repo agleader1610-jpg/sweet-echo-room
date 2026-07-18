@@ -49,33 +49,34 @@ object TamperGuard {
     )
 
     fun init(ctx: Context) {
-        val list = mutableListOf<String>()
+        val hard = mutableListOf<String>()  // locks the app
+        val soft = mutableListOf<String>()  // reported to server only
         try {
             val app = ctx.applicationContext
             packageName = app.packageName
-            if (packageName != EXPECTED_PACKAGE) list += "pkg_renamed:$packageName"
+            // Package rename = true repackaged clone → hard lock.
+            if (packageName != EXPECTED_PACKAGE) hard += "pkg_renamed:$packageName"
 
-            val info = app.applicationInfo
-            // NOTE: আমাদের official distribution `assembleDebug` দিয়ে build হয়,
-            // তাই FLAG_DEBUGGABLE সবসময় সেট থাকে — এটাকে tamper ধরা যাবে না।
-            // শুধু active debugger attach থাকলেই flag করি।
-            if (Debug.isDebuggerConnected() || Debug.waitingForDebugger()) list += "debugger_attached"
+            // Everything below is UNRELIABLE on real user phones
+            // (Magisk/MT Manager/rooted daily-drivers/x86 tablets/etc).
+            // Report to server for logging, but NEVER lock locally —
+            // signature allowlist on the server is the real guard.
+            if (Debug.isDebuggerConnected() || Debug.waitingForDebugger()) soft += "debugger_attached"
+            if (isRooted()) soft += "root_detected"
+            if (isFridaPresent()) soft += "frida_detected"
+            findHookApp(app.packageManager)?.let { soft += "hook_app:$it" }
+            if (isEmulator()) soft += "emulator_detected"
 
             signatureSha256 = computeSignatureSha256(app)
-
-
-            if (isRooted()) list += "root_detected"
-            if (isFridaPresent()) list += "frida_detected"
-            findHookApp(app.packageManager)?.let { list += "hook_app:$it" }
-            if (isEmulator()) list += "emulator_detected"
         } catch (t: Throwable) {
             Log.w(TAG, "check failed: ${t.message}")
         }
 
-        reasons = list.toList()
-        tampered = list.isNotEmpty()
-        if (tampered) Log.w(TAG, "TAMPER: ${list.joinToString()}")
+        reasons = (hard + soft).toList()
+        tampered = hard.isNotEmpty()
+        if (reasons.isNotEmpty()) Log.w(TAG, "flags: ${reasons.joinToString()} (hard=${hard.size})")
     }
+
 
     fun trollMessage(): String {
         val idx = (System.currentTimeMillis() / 3600000L).toInt() % TROLL_MESSAGES.size
