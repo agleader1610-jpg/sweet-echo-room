@@ -419,6 +419,7 @@ object AutoBetEngine {
             stepIdx = newStepIdx,
             ladder = newLadder,
             ladderReady = newReady,
+            balanceRebuildAfterMs = newRebuildAfter,
             stepPendingIssue = null,
             highestStep = max(st.highestStep, newStepIdx + 1),
             lastResult = st.lastResult,  // updated separately via onOutcome below if needed
