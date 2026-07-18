@@ -150,7 +150,7 @@ object AutoBetEngine {
         val wv = webViewRef?.get()
         if (wv == null) { note("ERROR · browser tab not open (open Browser tab first)"); return }
         lastPlacedIssue = targetIssue
-        BetInjector.placeBet(wv, sig.pick, roundedAmt, cfg.multiplier, { res ->
+        BetInjector.placeBet(wv, sig.pick, roundedAmt, cfg.multiplier, issueNumber = targetIssue) { res ->
             val current = state.value ?: State()
             if (res.ok) {
                 state.postValue(current.copy(
@@ -165,7 +165,7 @@ object AutoBetEngine {
                     lastNote = "✗ Place failed at ${res.stage}: ${res.note}",
                 ))
             }
-        }, issueNumber = targetIssue)
+        }
     }
 
     /** Called by WinGoFragment on every round resolve so engine tracks P/L. */

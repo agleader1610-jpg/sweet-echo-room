@@ -32,9 +32,9 @@ object BetInjector {
         pick: String,          // "BIG" or "SMALL"
         amount: Int,           // base amount unit — usually 1
         multiplier: Int,       // betMultiple — the real risk
-        onDone: (Result) -> Unit,
         issueNumber: String? = null,
         gameCodeOverride: String? = null,
+        onDone: (Result) -> Unit,
     ) {
         val js = buildApiJs(pick, amount, multiplier, issueNumber, gameCodeOverride)
         ui.post {
