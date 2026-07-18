@@ -26,7 +26,7 @@ import kotlin.concurrent.thread
  */
 object VersionChecker {
     private const val CONFIG_URL =
-        "https://project--f00d65ad-dcc3-4c22-8aeb-41f0a50a2b72.lovable.app/api/public/app-version"
+        "https://apiapk.eip.lat/api/public/app-version"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(6, TimeUnit.SECONDS)
