@@ -266,6 +266,8 @@ class WinGoFragment : Fragment() {
         WinGoStore.currentSignal.postValue(lockedSignal)
         WinGoStore.currentTargetIssue.postValue(armIssue)
         renderSignal(lockedSignal, armIssue)
+        // Auto-bet: fire once per issue when signal is stable
+        AutoBetEngine.onSignal(armIssue, lockedSignal)
     }
 
     private fun renderSignal(sig: WinGoLogic.Signal, forIssue: String) {
