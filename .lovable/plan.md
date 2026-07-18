@@ -1,81 +1,90 @@
 ## লক্ষ্য
 
-Aviator round শেষে instant AI signal → app-এ real-time show → সব data database-এ save → AI credit শেষ হলে automatic local logic fallback।
+WinGo game-এ auto-bet panel — signal অনুযায়ী নিজে নিজে bet দেবে। সব traffic user-এর ফোনের browser থেকেই যাবে, VPS/relay-এর কোনো ছোঁয়া থাকবে না।
 
-## Architecture
+## Approach: Path A — WebView JS Injection
 
+Browser tab-এ যে WebView-এ game খোলা, ওটার ভিতরেই JavaScript inject করে page-এর নিজস্ব bet function call করব। এতে:
+
+- Signature/random/timestamp page নিজেই generate করবে (crack করতে হবে না)
+- সব request phone-এর real IP + cookie + user-agent দিয়ে যাবে
+- VPS/backend-এ কোনো call নেই — সম্পূর্ণ on-device
+- Detection risk কম (normal user click-এর মতোই দেখাবে)
+
+## যা যা তৈরি হবে
+
+### 1. `AutoBetEngine.kt` (নতুন)
+- Signal source: existing `WinGoStore` + `PredictionTracker` (Round ID + BIG/SMALL lock)
+- State machine: IDLE → ARMED → PLACING → WAIT_RESULT → RESOLVED
+- Rules engine:
+  - Base amount (৳1 / ৳10 / ৳100 / ৳1000)
+  - Multiplier (x1 / x5 / x10 / x50 / x100)
+  - Strategy: Flat / Martingale (loss হলে double) / Anti-Martingale
+  - Stop-loss (নির্দিষ্ট loss হলে auto-off)
+  - Target profit (নির্দিষ্ট profit হলে auto-off)
+  - Max rounds cap
+  - Skip low-confidence signals option
+
+### 2. `BetInjector.kt` (নতুন)
+WebView-এ JS execute করার helper। দুইটা mode:
+
+**Mode 1 — DOM click simulation (safest):**
+- BIG/SMALL button element খুঁজে click event fire করে
+- Amount + multiplier button click করে
+- Confirm button click করে
+
+**Mode 2 — Direct fetch fallback:**
+- Page যদি global signing function expose করে থাকে (`window.Md5`, `window.sign`), সেটা call করে fetch দিয়ে bet post করি — এখনো WebView-এর ভিতরে, তাই cookie/IP phone-এর
+
+Round-এর প্রথম injection-এ probe script চালিয়ে dynamically detect করব কোনটা কাজ করে।
+
+### 3. `fragment_wingo.xml` — Auto-Bet Panel UI
+নতুন card যোগ হবে uppermost section-এ:
 ```text
-Android App (BrowserFragment/AviatorStore)
-   │  crash detect → POST /api/public/predict
-   ▼
-TanStack Server Route  ──► Supabase (round_history, predictions, session_stats)
-   │
-   ├─► Lovable AI Gateway (Gemini 3 Flash) ──► signal
-   │                                              │
-   └─► IF AI fails/402 → local logic engine ──────┤
-                                                  ▼
-   Response {signal, target, confidence, source: "ai"|"local", reasoning}
-                                                  │
-Android app displays instantly on AviatorFragment + BrowserFragment overlay
+┌─ 🤖 AUTO-BET PANEL ─────────────────┐
+│ Master Switch:        [ OFF ]       │
+│ Base amount:  [৳1] [৳10] [৳100]     │
+│ Multiplier:   [x1] [x5] [x10] [x50] │
+│ Strategy:     [Flat|Martingale|AntiM]│
+│ Stop-loss:    [ ৳500  ]              │
+│ Target win:   [ ৳1000 ]              │
+│ Max rounds:   [  50   ]              │
+├─ LIVE STATS ────────────────────────┤
+│ Placed: 12   Won: 7   Lost: 5       │
+│ P/L: +৳340   Streak: W2             │
+│ Next bet: BIG · ৳20  (Round …420)   │
+└──────────────────────────────────────┘
 ```
 
-WebSocket not strictly needed — HTTPS POST after each crash detect হলে latency 300-800ms, যেটা next round শুরু হওয়ার আগেই signal দিয়ে দিবে। এতে existing STREAM_SECRET/relay infrastructure-এ ঝামেলা কম, cost কম, reliability বেশি।
+### 4. `BrowserFragment.kt` update
+- Auto-bet ON হলে browser tab-এ game URL auto-load (ar-lottery01.com/WinGo)
+- Bet placement সময় small toast: "🤖 Auto-bet: BIG ৳20 placed"
+- Bet result detect করার জন্য existing `CaptureUploader`/`SniffingWebViewClient`-এর data ব্যবহার
 
-## Model Choice
+### 5. Safety layers
+- Manual override — user যেকোনো সময় switch OFF করলে current round শেষ হলে থামবে
+- Balance guard — GetBalance response থেকে balance parse করে, insufficient হলে auto-stop
+- Duplicate prevention — একই `issueNumber`-এ দুবার bet করবে না (lock in SharedPreferences)
+- Server-error backoff — 3 consecutive fail হলে 60s cooldown
 
-**Gemini 3 Flash** (`google/gemini-3-flash-preview`) — fastest, cheapest, multimodal ভবিষ্যতে video analysis-ও করতে পারবে (তোমার mentioned "video analysis" plan-এর জন্য perfect)।
+### 6. Local history (already exists)
+`PredictionTracker` extended করে auto-bet actual outcome + P/L save হবে — SharedPreferences-এ, on-device only।
 
-## Database (নতুন 3 tables)
+## VPS/Backend থেকে যা যা বাদ
 
-1. **round_history** — প্রতি crash: `round_id, multiplier, crashed_at, device_id`
-2. **predictions** — প্রতি signal: `round_id, target, action, confidence, source(ai/local), reasoning, ai_model, created_at`
-3. **prediction_results** — verify হওয়ার পর: `prediction_id, actual_multiplier, outcome(win/loss/skip), profit_ratio`
+- ❌ কোনো `/api/public/*` call auto-bet flow-এ নেই
+- ❌ Bet decision কোনো cloud AI-তে যাবে না — WinGo signal (BIG/SMALL) locally generate
+- ❌ Round data upload বন্ধ থাকবে auto-bet ON থাকা অবস্থায় (optional toggle)
+- ✅ শুধু existing version-check + license-check reachability check হবে (already cached 12h)
 
-সব table-এ RLS: anon read+insert (device_id filter), service_role full।
+## Version
 
-## Server Route: `/api/public/predict-signal`
+`versionCode = 62`, `versionName = "1.0.62-autobet"`
 
-Input: `{ device_id, history: [{round_id, multiplier}...last 20] }`
+## যা technical section
 
-Flow:
-1. History save → `round_history` table
-2. AI call try করে (Gemini 3 Flash, 5s timeout, structured JSON output)
-3. AI fail/timeout/402 হলে → local logic engine (existing PredictionTracker logic port করা)
-4. Signal `predictions` table-এ save
-5. Return signal + `source` field
-
-Local logic engine: current Kotlin-এর 9 scenario logic TypeScript-এ port — heat detection, cold streak, 10x+ skip, recovery bet ইত্যাদি।
-
-## Verification endpoint: `/api/public/verify-result`
-
-পরবর্তী crash-এর পর app call করবে — actual multiplier দিবে, `prediction_results` table update হবে, W/L stats accurate থাকবে।
-
-## Android Changes
-
-- **AviatorStore.kt**: crash detect হলে `PredictionClient.fetchSignal(history)` call → callback-এ AI/local signal UI-তে push
-- **PredictionClient.kt** (নতুন): OkHttp POST to server route, JSON parse, fallback to local `PredictionTracker` যদি network fail
-- **AviatorFragment.kt**: signal card-এ নতুন badge — "🤖 AI" (green) বা "⚙ LOGIC" (blue) source দেখাবে + AI reasoning text (2 lines)
-- **BrowserFragment.kt**: overlay-এ same signal source badge
-
-## Fallback Strategy
-
-Server side: AI 402/429/timeout → immediately local logic run → return with `source: "local"` (app কখনো blank signal পাবে না)।
-Client side: server unreachable → Kotlin-এর local `PredictionTracker` fallback → `source: "offline"`।
-
-তিন-layer resilience: AI → server logic → offline logic।
-
-## Files touched
-
-- Migration: 3 new tables + RLS + grants
-- New: `src/routes/api/public/predict-signal.ts`, `src/routes/api/public/verify-result.ts`, `src/lib/local-prediction-logic.ts`
-- Android new: `PredictionClient.kt`
-- Android edit: `AviatorStore.kt`, `AviatorFragment.kt`, `BrowserFragment.kt`, `fragment_aviator.xml` (source badge + reasoning text)
-- Version bump: **31**
-
-## Cost Estimate
-
-Gemini 3 Flash: প্রতি round ~500 input tokens + 100 output ≈ **0.03 credit/round**। ঘণ্টায় ~120 rounds = 3.6 credits/hour। Testing session (4 hours) ≈ 15 credits।
-
-## Confirmation
-
-শুরু করব? Approve করলে সব একসাথে ship করব — migration + server routes + Android update সহ v1.0.31 build।
+- `evaluateJavascript()` async — Handler post করে result parse
+- Injected JS-এ `MutationObserver` বসাব bet result popup detect করার জন্য
+- Signal lock: `PredictionTracker.getLockedSignal(issueNumber)` — যা আগেই আছে
+- Martingale sequence store: `SharedPreferences` key `wingo_autobet_seq`
+- Result parsing: existing `captures` table না, direct WebView network hook দিয়ে on-device
