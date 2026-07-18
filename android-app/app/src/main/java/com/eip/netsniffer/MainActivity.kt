@@ -179,6 +179,7 @@ class MainActivity : AppCompatActivity() {
         val tabBrowser = view.findViewById<Button>(R.id.tabBrowserBtn)
         val tabAviator = view.findViewById<Button>(R.id.tabAviatorBtn)
         val tabWinGo = view.findViewById<Button>(R.id.tabWinGoBtn)
+        val tabAutoBet = view.findViewById<Button>(R.id.tabAutoBetBtn)
         val tabProfile = view.findViewById<Button>(R.id.tabProfileBtn)
         val tabNetwork = view.findViewById<Button>(R.id.tabNetworkBtn)
         val urlInput = view.findViewById<EditText>(R.id.sheetUrlInput)
@@ -186,7 +187,8 @@ class MainActivity : AppCompatActivity() {
         val relayToggle = view.findViewById<SwitchCompat>(R.id.sheetRelayToggle)
         val relayInput = view.findViewById<EditText>(R.id.sheetRelayInput)
 
-        val tabs = listOf(tabBrowser, tabAviator, tabWinGo, tabProfile, tabNetwork)
+        // Order MUST match PagerAdapter positions: 0 Browser, 1 Aviator, 2 WinGo, 3 AutoBet, 4 Profile, 5 Network
+        val tabs = listOf(tabBrowser, tabAviator, tabWinGo, tabAutoBet, tabProfile, tabNetwork)
         fun selectTab(idx: Int) {
             tabs.forEachIndexed { i, btn -> btn.isSelected = i == idx }
             b.pager.setCurrentItem(idx, true)

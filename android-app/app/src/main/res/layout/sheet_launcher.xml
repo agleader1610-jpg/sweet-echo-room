@@ -177,6 +177,28 @@
                     android:minWidth="0dp"/>
             </LinearLayout>
 
+            <!-- Second row: Auto-Bet dedicated tab -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:baselineAligned="false">
+                <Button
+                    android:id="@+id/tabAutoBetBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="🤖  WIN GO AUTO-BET"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.16"
+                    android:background="@drawable/tab_chip_bg"
+                    android:textColor="@color/tab_chip_text"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"/>
+            </LinearLayout>
+
             <!-- Live status strip -->
             <LinearLayout
                 android:layout_width="match_parent"
