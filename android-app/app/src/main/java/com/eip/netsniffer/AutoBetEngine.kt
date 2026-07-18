@@ -84,12 +84,13 @@ object AutoBetEngine {
      *  (which was blocking every 2nd+ bet with "Waiting for previous"). */
     private fun pushState(s: State) {
         if (Looper.myLooper() == Looper.getMainLooper()) state.value = s
-        else pushState(s)
+        else state.postValue(s)
     }
     private fun pushConfig(c: Config) {
         if (Looper.myLooper() == Looper.getMainLooper()) config.value = c
-        else pushConfig(c)
+        else config.postValue(c)
     }
+
 
 
     fun init(ctx: Context) {
