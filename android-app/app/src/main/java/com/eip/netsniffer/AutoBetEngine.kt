@@ -2,6 +2,7 @@ package com.eip.netsniffer
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Looper
 import android.util.Log
 import android.webkit.WebView
 import androidx.lifecycle.MutableLiveData
@@ -9,6 +10,7 @@ import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+
 
 /**
  * WinGo Auto-Bet Engine (v2 — ported from working DK WIN userscript).
