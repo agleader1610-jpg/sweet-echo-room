@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/overlay_card_bg"
+    android:padding="22dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/overlay_brand_pill"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:text="⚡ EIP TEAM"
+        android:textColor="#FFFFFF"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.22"
+        android:shadowColor="#8022D3EE"
+        android:shadowDx="0"
+        android:shadowDy="0"
+        android:shadowRadius="8"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="📣  Join Our Telegram"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.02"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:lineSpacingExtra="2dp"
+        android:text="সবার আগে VIP signal, update এবং trick পেতে আমাদের অফিসিয়াল Telegram channel এ join করুন।"
+        android:textColor="#CBD5E1"
+        android:textSize="13sp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:text="@Eip_trader"
+        android:textColor="#22D3EE"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        android:letterSpacing="0.05"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/tgSkipBtn"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Skip"
+            android:textColor="#94A3B8"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:background="#1F2937"
+            android:stateListAnimator="@null"/>
+
+        <Button
+            android:id="@+id/tgJoinBtn"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1.4"
+            android:layout_marginStart="8dp"
+            android:text="🚀 JOIN NOW"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:letterSpacing="0.12"
+            android:background="@drawable/overlay_brand_pill"
+            android:stateListAnimator="@null"/>
+    </LinearLayout>
+</LinearLayout>
