@@ -118,19 +118,23 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginTop="10dp">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="4dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STOP-LOSS ৳" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
-                        <EditText android:id="@+id/stopLossInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="500" android:textColor="#F87171" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="6dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RUN TIME (MIN)" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/durationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="10" android:textColor="#22D3EE" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
                     </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp" android:layout_marginEnd="4dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TARGET WIN ৳" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
-                        <EditText android:id="@+id/targetWinInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="1000" android:textColor="#4ADE80" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="MAX ROUNDS" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
-                        <EditText android:id="@+id/maxRoundsInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="50" android:textColor="#22D3EE" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/abTimerText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="2"
+                        android:padding="9dp"
+                        android:background="#0F1B33"
+                        android:text="Timer: OFF"
+                        android:textColor="#F59E0B"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/roboto_mono"/>
                 </LinearLayout>
 
                 <CheckBox

@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.WebView
 import org.json.JSONObject
+import org.json.JSONTokener
 
 /**
  * Places a bet by calling the game's own signed API from the WebView.
@@ -56,16 +57,22 @@ object BetInjector {
 
     private fun parseResult(raw: String?): Result {
         val cleaned = (raw ?: "").trim()
+        val unwrapped = try {
+            val v = JSONTokener(cleaned).nextValue()
+            if (v is String) v.trim() else cleaned
+        } catch (_: Exception) {
+            cleaned
+        }
         // Result may be a JSON object (from Promise resolve) or a bare "OK|..." string.
-        if (cleaned.startsWith("{")) {
+        if (unwrapped.startsWith("{")) {
             return try {
-                val o = JSONObject(cleaned)
+                val o = JSONObject(unwrapped)
                 Result(o.optBoolean("ok"), o.optString("stage"), o.optString("note"))
             } catch (_: Exception) {
-                Result(false, "PARSE", cleaned)
+                Result(false, "PARSE", unwrapped)
             }
         }
-        val stripped = cleaned.trim('"').replace("\\\"", "\"")
+        val stripped = unwrapped.trim('"').replace("\\\"", "\"")
         val ok = stripped.startsWith("OK|")
         val parts = stripped.split("|", limit = 3)
         return Result(ok, parts.getOrNull(1) ?: "?", parts.getOrNull(2) ?: stripped)
@@ -83,10 +90,13 @@ object BetInjector {
         val gameLit = if (gameCodeOverride.isNullOrBlank()) "null" else JSONObject.quote(gameCodeOverride)
         // language=JavaScript
         return """
-        (async function(){
+        (function(){
           try {
             if (typeof window.__dkPlaceBet !== 'function') {
               return JSON.stringify({ok:false, stage:'NO_HELPER', note:'__dkPlaceBet not installed — reload page'});
+            }
+            if (!window.__DK_BASE || !window.__DK_TOKEN) {
+              return JSON.stringify({ok:false, stage:'NO_TOKEN', note:'open WinGo tab first so token is captured'});
             }
             var gameCode = ($gameLit) || window.__DK_GAME || 'WinGo_30S';
             var issue = ($issueLit);
@@ -105,7 +115,11 @@ object BetInjector {
               betMultiple: $multiplier,
               betContent: '$betContent'
             };
-            var r = await window.__dkPlaceBet(payload);
+            var r = window.__dkPlaceBet(payload);
+            if (r && typeof r.then === 'function') {
+              r.then(function(x){ try { window.__dkLastBetAck = x; } catch(e){} });
+              return JSON.stringify({ok:true, stage:'SUBMITTED', note:'request sent · '+(payload.betContent||'')+' x'+$multiplier});
+            }
             return JSON.stringify(r || {ok:false, stage:'NO_RES', note:'no result'});
           } catch(e){
             return JSON.stringify({ok:false, stage:'EXC', note:String(e && e.message || e)});
