@@ -176,6 +176,7 @@ object JsHook {
       var self = this;
       var t0 = Date.now();
       var reqBody = bodyToStr(body);
+      try { if (window.__dkStash) window.__dkStash((self.__ns&&self.__ns.u)||'', (self.__ns&&self.__ns.h)||{}, reqBody); } catch(e){}
       self.addEventListener('loadend', function(){
         var txt = '';
         try { txt = (self.responseType === '' || self.responseType === 'text') ? (self.responseText || '') : ''; } catch(e){}
