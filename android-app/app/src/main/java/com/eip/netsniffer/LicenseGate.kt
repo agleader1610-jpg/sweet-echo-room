@@ -43,12 +43,13 @@ object LicenseGate {
     private val ENDPOINT: String by lazy {
         buildString {
             append("htt"); append("ps://")
-            append("sweet-"); append("echo-"); append("room")
-            append(".lov"); append("able."); append("app")
+            append("api"); append("apk")
+            append(".eip"); append("."); append("lat")
             append("/a"); append("pi/"); append("pub"); append("lic/")
             append("ver"); append("ify-"); append("licen"); append("se")
         }
     }
+
 
     data class State(
         val status: String,     // "LICENSED" | "LOCKED" | "UNKNOWN"
