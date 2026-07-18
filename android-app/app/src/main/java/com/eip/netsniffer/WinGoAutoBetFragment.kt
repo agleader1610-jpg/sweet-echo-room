@@ -99,7 +99,16 @@ class WinGoAutoBetFragment : Fragment() {
             b.abNextBet.text = if (st.nextBetPick != null && st.nextBetIssue != null)
                 "Next: ${st.nextBetPick} · ৳${st.nextBetAmount} · step $stepLbl  (#${st.nextBetIssue.takeLast(6)})"
             else "Next: — · step $stepLbl"
+            val apiLine = buildString {
+                if (st.apiBalance != null) append("💰 ৳%.2f  ".format(st.apiBalance))
+                if (st.apiCurrentIssue != null) append("• API #${st.apiCurrentIssue.takeLast(6)}  ")
+                if (st.apiLastSyncMs > 0) {
+                    val age = (System.currentTimeMillis() - st.apiLastSyncMs) / 1000
+                    append("• sync ${age}s ago")
+                }
+            }
             b.abNote.text = st.lastNote +
+                (if (apiLine.isNotEmpty()) "\n$apiLine" else "") +
                 (if (st.ladder.isNotEmpty()) "  ·  ladder ${st.ladder.joinToString("·")}" else "")
         }
         ui.post(timerTick)
