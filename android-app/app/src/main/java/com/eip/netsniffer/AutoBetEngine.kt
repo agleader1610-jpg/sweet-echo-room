@@ -241,7 +241,7 @@ object AutoBetEngine {
             note("Waiting for #${st.stepPendingIssue!!.takeLast(6)} to resolve …")
             return
         }
-        if (awaitingBalanceRebuild) { note("Rebuilding ladder …"); return }
+        if (awaitingBalanceRebuild) { note("WIN · waiting API balance refresh …"); return }
 
         // ── API-TRUTH GATE: never bet on a period that isn't the running one ──
         val apiIssue = st.apiCurrentIssue
