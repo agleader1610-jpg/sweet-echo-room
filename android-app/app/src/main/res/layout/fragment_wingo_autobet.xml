@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#05060A"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="12dp">
+            <View android:layout_width="4dp" android:layout_height="22dp" android:background="#F59E0B"/>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="EIP TEAM • WIN GO AUTO-BET"
+                android:textColor="#F59E0B"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.28"/>
+        </LinearLayout>
+
+        <!-- ================= AUTO-BET PANEL ================= -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#0A1428"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="4dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🤖 AUTO-BET  •  100% ON-DEVICE"
+                        android:textColor="#F59E0B"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.2"/>
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/autoBetSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Places bets via your phone's browser tab — no VPS, no relay. Signal comes from the WIN GO tab."
+                    android:textColor="#64748B"
+                    android:textSize="10sp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="BASE AMOUNT"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.24"/>
+                <RadioGroup
+                    android:id="@+id/autoBetAmountGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+                    <RadioButton android:id="@+id/amt1"    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳1"    android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/amt10"   android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳10"   android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/amt100"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳100"  android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/amt1000" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳1000" android:textColor="#E2E8F0" android:textSize="12sp"/>
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="MULTIPLIER"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.24"/>
+                <RadioGroup
+                    android:id="@+id/autoBetMultGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+                    <RadioButton android:id="@+id/mult1"   android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x1"   android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/mult5"   android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x5"   android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/mult10"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x10"  android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/mult50"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x50"  android:textColor="#E2E8F0" android:textSize="12sp"/>
+                    <RadioButton android:id="@+id/mult100" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x100" android:textColor="#E2E8F0" android:textSize="12sp"/>
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="STRATEGY"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.24"/>
+                <RadioGroup
+                    android:id="@+id/autoBetStrategyGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+                    <RadioButton android:id="@+id/stratFlat" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Flat"        android:textColor="#E2E8F0" android:textSize="11sp"/>
+                    <RadioButton android:id="@+id/stratMart" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Martingale"  android:textColor="#E2E8F0" android:textSize="11sp"/>
+                    <RadioButton android:id="@+id/stratAnti" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Anti-Mart"   android:textColor="#E2E8F0" android:textSize="11sp"/>
+                </RadioGroup>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STOP-LOSS ৳" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/stopLossInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="500" android:textColor="#F87171" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp" android:layout_marginEnd="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TARGET WIN ৳" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/targetWinInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="1000" android:textColor="#4ADE80" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="MAX ROUNDS" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/maxRoundsInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="50" android:textColor="#22D3EE" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <CheckBox
+                    android:id="@+id/skipLowConfBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Skip LOW confidence signals"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp"/>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E293B" android:layout_marginTop="12dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/abPlaced" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#E2E8F0" android:textSize="20sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PLACED" android:textColor="#64748B" android:textSize="9sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/abWon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#4ADE80" android:textSize="20sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WON" android:textColor="#4ADE80" android:textSize="9sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/abLost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#F87171" android:textSize="20sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LOST" android:textColor="#F87171" android:textSize="9sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/abPnl" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="৳0" android:textColor="#22D3EE" android:textSize="20sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="P/L" android:textColor="#22D3EE" android:textSize="9sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/abNextBet"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:padding="8dp"
+                    android:background="#0F1B33"
+                    android:text="Next: —"
+                    android:textColor="#E2E8F0"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/roboto_mono"/>
+                <TextView
+                    android:id="@+id/abNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text=""
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/roboto_mono"/>
+
+                <Button
+                    android:id="@+id/abResetStats"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="RESET STATS"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
