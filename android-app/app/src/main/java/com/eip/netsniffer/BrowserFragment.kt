@@ -64,6 +64,9 @@ class BrowserFragment : Fragment() {
         // Register WebView with AutoBetEngine so it can inject bet clicks on-device.
         AutoBetEngine.init(requireContext())
         AutoBetEngine.attachWebView(wv)
+        // API-truth reconciler polls game server every ~2s via this WebView.
+        AutoBetReconciler.attach(wv)
+        AutoBetReconciler.start()
 
         // Inject hook at document-start in EVERY frame (main + iframes) BEFORE
         // any page script runs. This is what makes iframe players / chat widgets'
