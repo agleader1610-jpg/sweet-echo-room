@@ -181,6 +181,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Switch to the DK Win (browser) tab without wiping session — used by "please login first" overlay. */
+    fun switchToBrowserTab() {
+        b.pager.setCurrentItem(0, true)
+        prefs.edit().putInt(PREF_LAST_TAB, 0).apply()
+    }
+
+
+
 
     override fun onBackPressed() {
         // On Browser tab: let WebView walk its own history first
