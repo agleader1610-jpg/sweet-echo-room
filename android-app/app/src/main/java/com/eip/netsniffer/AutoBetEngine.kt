@@ -212,6 +212,13 @@ object AutoBetEngine {
         }
         if (awaitingBalanceRebuild) { note("Rebuilding ladder …"); return }
 
+        // ── API-TRUTH GATE: never bet on a period that isn't the running one ──
+        val apiIssue = st.apiCurrentIssue
+        if (apiIssue != null && apiIssue != targetIssue) {
+            note("API mismatch · running #${apiIssue.takeLast(6)} ≠ signal #${targetIssue.takeLast(6)}")
+            return
+        }
+
         // Per-issue lock — HARD guarantee: no duplicate bets on same period.
         val slot = issueSlots.getOrPut(targetIssue) { IssueSlot() }
         if (slot.success) return              // already bet successfully this period
@@ -235,12 +242,13 @@ object AutoBetEngine {
             }
         }
 
-        // ── Build ladder if needed ────────────────────────────────
+        // ── Build ladder if needed (prefer live API balance over user input) ──
         if (!st.ladderReady || st.ladder.isEmpty()) {
-            val lad = buildLadder(cfg.balance, cfg.steps)
+            val liveBal = st.apiBalance?.toInt()?.coerceAtLeast(1) ?: cfg.balance
+            val lad = buildLadder(liveBal, cfg.steps)
             anchorLadder = lad
             st = st.copy(ladder = lad, ladderReady = true, stepIdx = 0)
-            pushState(st.copy(lastNote = "Ladder ৳${cfg.balance} → ${lad.joinToString("·")}"))
+            pushState(st.copy(lastNote = "Ladder ৳$liveBal → ${lad.joinToString("·")}"))
         }
 
         val stakeIdx = min(st.stepIdx, st.ladder.size - 1)
