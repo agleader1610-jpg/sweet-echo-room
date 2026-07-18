@@ -275,10 +275,11 @@ object AutoBetEngine {
     fun onResolved(issue: String, win: Boolean) {
         val slot = issueSlots[issue] ?: return
         if (!slot.success) return  // we didn't place here — ignore
-        // Prevent double-counting: mark resolved by clearing pending pointer.
+        if (slot.resolved) return   // idempotent — WinGoFragment may poll this twice
+        slot.resolved = true
         val st = state.value ?: State()
-        if (st.stepPendingIssue != issue && st.lastIssue != issue) return
         val cfg = config.value ?: Config()
+
 
         val stake = st.nextBetAmount.takeIf { it > 0 } ?: 1
         val delta = if (win) (stake * 96) / 100 else -stake  // ~1.96x payout
