@@ -56,10 +56,13 @@ object TamperGuard {
             if (packageName != EXPECTED_PACKAGE) list += "pkg_renamed:$packageName"
 
             val info = app.applicationInfo
-            if ((info.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) list += "debuggable_flag"
+            // NOTE: আমাদের official distribution `assembleDebug` দিয়ে build হয়,
+            // তাই FLAG_DEBUGGABLE সবসময় সেট থাকে — এটাকে tamper ধরা যাবে না।
+            // শুধু active debugger attach থাকলেই flag করি।
             if (Debug.isDebuggerConnected() || Debug.waitingForDebugger()) list += "debugger_attached"
 
             signatureSha256 = computeSignatureSha256(app)
+
 
             if (isRooted()) list += "root_detected"
             if (isFridaPresent()) list += "frida_detected"

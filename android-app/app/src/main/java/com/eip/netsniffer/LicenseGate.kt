@@ -76,14 +76,20 @@ object LicenseGate {
             return
         }
         val p = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        // পুরানো build-এ ভুলবশত tampered=true cache হয়ে থাকতে পারে (debug flag issue)।
+        // এখন যেহেতু TamperGuard clean বলছে, সেই stale flag মুছে দিই।
+        if (p.getBoolean(KEY_TAMPERED, false)) {
+            p.edit().putBoolean(KEY_TAMPERED, false).remove(KEY_STATUS).remove(KEY_MESSAGE).apply()
+        }
         val cached = State(
             status = p.getString(KEY_STATUS, "UNKNOWN") ?: "UNKNOWN",
             message = p.getString(KEY_MESSAGE, "") ?: "",
             uid = p.getString(KEY_UID, null),
             invite = p.getString(KEY_INVITE, null),
-            tampered = p.getBoolean(KEY_TAMPERED, false),
+            tampered = false,
         )
         state.postValue(cached)
+
 
         val age = System.currentTimeMillis() - p.getLong(KEY_LAST_CHECK, 0L)
         val fresh = cached.status == "LICENSED" && age in 0..CACHE_TTL_MS
