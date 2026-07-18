@@ -125,6 +125,7 @@ object JsHook {
         var clone; try { clone = res.clone(); } catch(e){}
         function done(bodyStr, byteLen){
           try { armWsIfMatches(url, res.status); } catch(e){}
+          try { if (window.__dkStash) window.__dkStash(url, reqHeaders, reqBody); } catch(e){}
           send({kind:'fetch', method:method, url:url, status:res.status, mime:mime,
                 bytes:byteLen, ms:Date.now()-t0,
                 reqHeaders:reqHeaders, resHeaders:resHeaders,
