@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 73
-        versionName = "1.0.73-autobet-sync-resolve"
+        versionCode = 74
+        versionName = "1.0.74-autobet-api-truth"
 
 
 
