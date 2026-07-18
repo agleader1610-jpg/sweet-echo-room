@@ -39,6 +39,67 @@ class MainActivity : AppCompatActivity() {
 
         // Remote force-update gate (fail-open: silent on any failure).
         VersionChecker.check(this)
+
+        // Telegram channel invite on app open.
+        b.root.post { showTelegramJoinDialog() }
+    }
+
+    // ---------------- Telegram join dialog ----------------
+
+    private fun showTelegramJoinDialog() {
+        if (isFinishing || isDestroyed) return
+        val view = layoutInflater.inflate(R.layout.dialog_telegram_join, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(view)
+            .setCancelable(true)
+            .create()
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0x00000000))
+        view.findViewById<Button>(R.id.tgSkipBtn).setOnClickListener { dialog.dismiss() }
+        view.findViewById<Button>(R.id.tgJoinBtn).setOnClickListener {
+            openTelegramChannel(TELEGRAM_CHANNEL_USERNAME, TELEGRAM_CHANNEL_URL)
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun openTelegramChannel(username: String, httpsFallback: String) {
+        // 1) Try native Telegram app via tg:// deep link
+        try {
+            val tgIntent = android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("tg://resolve?domain=$username")
+            )
+            tgIntent.setPackage("org.telegram.messenger")
+            startActivity(tgIntent)
+            return
+        } catch (_: Throwable) { /* fall through */ }
+        // 2) Try Telegram X
+        try {
+            val tgxIntent = android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("tg://resolve?domain=$username")
+            )
+            tgxIntent.setPackage("org.thunderdog.challegram")
+            startActivity(tgxIntent)
+            return
+        } catch (_: Throwable) { /* fall through */ }
+        // 3) Any app that handles tg://
+        try {
+            startActivity(android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("tg://resolve?domain=$username")
+            ))
+            return
+        } catch (_: Throwable) { /* fall through */ }
+        // 4) https fallback in external browser
+        try {
+            startActivity(android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse(httpsFallback)
+            ))
+        } catch (_: Throwable) {
+            android.widget.Toast.makeText(this, "Telegram open করতে ব্যর্থ", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     // ---------------- Draggable FAB ----------------
@@ -207,5 +268,7 @@ class MainActivity : AppCompatActivity() {
         private const val PREF_FAB_X = "fab_x"
         private const val PREF_FAB_Y = "fab_y"
         private const val PREF_LAST_TAB = "last_tab"
+        private const val TELEGRAM_CHANNEL_USERNAME = "Eip_trader"
+        private const val TELEGRAM_CHANNEL_URL = "https://t.me/Eip_trader"
     }
 }
