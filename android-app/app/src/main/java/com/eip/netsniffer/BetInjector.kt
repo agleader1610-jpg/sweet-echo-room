@@ -118,7 +118,7 @@ object BetInjector {
             var r = window.__dkPlaceBet(payload);
             if (r && typeof r.then === 'function') {
               r.then(function(x){ try { window.__dkLastBetAck = x; } catch(e){} });
-              return JSON.stringify({ok:true, stage:'SUBMITTED', note:'request sent · '+betContent+' x'+$multiplier});
+              return JSON.stringify({ok:true, stage:'SUBMITTED', note:'request sent · '+(payload.betContent||'')+' x'+$multiplier});
             }
             return JSON.stringify(r || {ok:false, stage:'NO_RES', note:'no result'});
           } catch(e){

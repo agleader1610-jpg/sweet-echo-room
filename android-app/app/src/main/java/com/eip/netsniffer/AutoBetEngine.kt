@@ -81,7 +81,7 @@ object AutoBetEngine {
         if (prefs != null) return
         val p = ctx.applicationContext.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         prefs = p
-        config.postValue(Config(
+        config.value = Config(
             enabled = p.getBoolean(PREF_ENABLED, false),
             steps = p.getInt(PREF_STEPS, 7).coerceIn(1, 15),
             balance = p.getInt(PREF_BALANCE, 100),
