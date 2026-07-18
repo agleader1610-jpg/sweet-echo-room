@@ -571,6 +571,7 @@ class BrowserFragment : Fragment() {
         dotsAnim?.cancel(); dotsAnim = null
         ui.removeCallbacks(wingoTicker)
         AutoBetEngine.attachWebView(null)
+        AutoBetReconciler.detach()
         super.onDestroyView(); _b = null
     }
 
