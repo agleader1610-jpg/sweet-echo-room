@@ -498,9 +498,9 @@ object AutoBetEngine {
 
         st = st.copy(
             apiBalance = snap.balance ?: st.apiBalance,
-            apiCurrentIssue = snap.currentIssue,
+            apiCurrentIssue = snap.currentIssue ?: st.apiCurrentIssue,
             apiGameCode = snap.gameCode ?: st.apiGameCode,
-            apiRemainingSeconds = snap.remainingSeconds,
+            apiRemainingSeconds = snap.remainingSeconds ?: st.apiRemainingSeconds,
             apiTokenReady = snap.tokenReady,
             apiBaseReady = snap.baseReady,
             apiLastError = snap.lastError,
@@ -509,6 +509,18 @@ object AutoBetEngine {
             lastBetDetail = snap.lastBetAck?.note ?: st.lastBetDetail,
             lastBetAtMs = if (snap.lastBetAck != null) System.currentTimeMillis() else st.lastBetAtMs,
         )
+        // Post-WIN: once we have a fresh balance snapshot after the payout window,
+        // clear the rebuild gate so the next signal builds ladder from live balance.
+        if (awaitingBalanceRebuild
+            && snap.balance != null
+            && System.currentTimeMillis() >= st.balanceRebuildAfterMs
+        ) {
+            awaitingBalanceRebuild = false
+            st = st.copy(
+                balanceRebuildAfterMs = 0L,
+                lastNote = "Balance refreshed · API ৳${snap.balance.toInt()}",
+            )
+        }
         pushState(st)
         if (!cfg.enabled && st.stepPendingIssue == null) return
 
