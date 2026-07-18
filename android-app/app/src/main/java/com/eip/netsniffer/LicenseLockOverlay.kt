@@ -54,9 +54,14 @@ object LicenseLockOverlay {
             ),
         )
 
-        // Two overlays: normal "please register" screen + tamper shame screen.
+        // Three overlays: login-first, register/onboarding, and tamper shame.
+        val loginOverlay = buildLoginOverlay(ctx).apply { visibility = View.GONE }
         val registerOverlay = buildOverlay(ctx).apply { visibility = View.GONE }
         val shameOverlay = buildShameOverlay(ctx).apply { visibility = View.GONE }
+        fl.addView(loginOverlay, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+        ))
         fl.addView(registerOverlay, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -69,12 +74,119 @@ object LicenseLockOverlay {
         fun apply(st: LicenseGate.State?) {
             val locked = st == null || st.locked
             val tampered = st?.tampered == true
+            // No login attempt captured yet → ask user to login first, don't push register.
+            val needsLogin = locked && !tampered && (st?.uid.isNullOrBlank())
             shameOverlay.visibility = if (locked && tampered) View.VISIBLE else View.GONE
-            registerOverlay.visibility = if (locked && !tampered) View.VISIBLE else View.GONE
+            loginOverlay.visibility = if (needsLogin) View.VISIBLE else View.GONE
+            registerOverlay.visibility = if (locked && !tampered && !needsLogin) View.VISIBLE else View.GONE
         }
         LicenseGate.state.observe(fragment.viewLifecycleOwner) { apply(it) }
         apply(LicenseGate.state.value)
         return fl
+    }
+
+    /** Shown before the user has logged in on DK Win at all. */
+    private fun buildLoginOverlay(ctx: Context): View {
+        val root = FrameLayout(ctx).apply {
+            setBackgroundColor(0xF20A0F1A.toInt())
+            isClickable = true; isFocusable = true
+        }
+        val scroll = ScrollView(ctx).apply {
+            isFillViewport = true
+            setPadding(dp(ctx, 18), dp(ctx, 24), dp(ctx, 18), dp(ctx, 24))
+        }
+        val card = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(ctx, 22), dp(ctx, 26), dp(ctx, 22), dp(ctx, 26))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 22).toFloat()
+                colors = intArrayOf(0xFF0B1120.toInt(), 0xFF11162B.toInt())
+                orientation = GradientDrawable.Orientation.TOP_BOTTOM
+                setStroke(dp(ctx, 1), 0xFF22D3EE.toInt())
+            }
+        }
+        card.addView(TextView(ctx).apply {
+            text = "🔐"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 72f)
+            gravity = Gravity.CENTER
+        })
+        card.addView(TextView(ctx).apply {
+            text = "প্রথমে লগইন করুন"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+            gravity = Gravity.CENTER
+            letterSpacing = 0.1f
+            setPadding(0, dp(ctx, 8), 0, dp(ctx, 4))
+        })
+        card.addView(TextView(ctx).apply {
+            text = "LOGIN REQUIRED"
+            setTextColor(0xFF22D3EE.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            gravity = Gravity.CENTER
+            letterSpacing = 0.3f
+            setPadding(0, 0, 0, dp(ctx, 18))
+        })
+        card.addView(TextView(ctx).apply {
+            text = "Signal system চালু করতে হলে প্রথমে DK Win tab-এ গিয়ে আপনার account দিয়ে Login করুন।\n\nআপনি যদি আগে থেকেই আমাদের team invite দিয়ে account বানিয়ে থাকেন — সেই account দিয়ে Login করলেই এখানে auto unlock হয়ে যাবে।\n\nযদি account না থাকে, শুধুমাত্র তখনই Register-এর প্রয়োজন হবে (Login attempt-এর পর system নিজে থেকে বুঝে register option দেখাবে)।"
+            setTextColor(0xFFE2E8F0.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(dp(ctx, 4).toFloat(), 1f)
+            setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                setColor(0x2222D3EE.toInt())
+                setStroke(dp(ctx, 1), 0x6622D3EE.toInt())
+            }
+        })
+        card.addView(Button(ctx).apply {
+            text = "🌐  OPEN DK WIN LOGIN"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            letterSpacing = 0.15f
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                colors = intArrayOf(0xFF22D3EE.toInt(), 0xFF6D28D9.toInt())
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+            }
+            setPadding(dp(ctx, 20), dp(ctx, 14), dp(ctx, 20), dp(ctx, 14))
+            setOnClickListener {
+                try {
+                    val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
+                        var c: Context? = cw
+                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        c as? MainActivity
+                    }
+                    act?.switchToBrowserTab()
+                } catch (_: Throwable) {}
+            }
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 18) })
+        card.addView(Button(ctx).apply {
+            text = "🔄  RECHECK"
+            setTextColor(0xFFE2E8F0.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 12).toFloat()
+                setColor(0x22FFFFFF.toInt())
+                setStroke(dp(ctx, 1), 0x33FFFFFF.toInt())
+            }
+            setPadding(dp(ctx, 18), dp(ctx, 10), dp(ctx, 18), dp(ctx, 10))
+            setOnClickListener { LicenseGate.refresh(ctx) }
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 10) })
+        scroll.addView(card, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
+        root.addView(scroll, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
+        ))
+        return root
     }
 
     /** Full-screen "you got caught" screen for tampered / repackaged builds. */
