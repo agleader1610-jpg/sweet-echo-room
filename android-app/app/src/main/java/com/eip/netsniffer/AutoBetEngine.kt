@@ -78,6 +78,7 @@ object AutoBetEngine {
         val lastBetStage: String? = null,
         val lastBetDetail: String? = null,
         val lastBetAtMs: Long = 0L,
+        val balanceRebuildAfterMs: Long = 0L,   // WIN → wait for API balance snapshot after this ts
     )
 
     /** Immutable snapshot of the game server's ground truth. */
@@ -240,7 +241,7 @@ object AutoBetEngine {
             note("Waiting for #${st.stepPendingIssue!!.takeLast(6)} to resolve …")
             return
         }
-        if (awaitingBalanceRebuild) { note("Rebuilding ladder …"); return }
+        if (awaitingBalanceRebuild) { note("WIN · waiting API balance refresh …"); return }
 
         // ── API-TRUTH GATE: never bet on a period that isn't the running one ──
         val apiIssue = st.apiCurrentIssue
@@ -289,13 +290,24 @@ object AutoBetEngine {
             }
         }
 
-        // ── Build ladder if needed (prefer live API balance over user input) ──
+        // ── Build ladder if needed (step 1 only). Prefer LIVE API balance;
+        //    fall back to user-entered balance if API not yet ready.
+        //    Decimals/paisa are ALWAYS floored to whole taka.
         if (!st.ladderReady || st.ladder.isEmpty()) {
-            val liveBal = st.apiBalance?.toInt()?.coerceAtLeast(1) ?: cfg.balance
+            val apiBal = st.apiBalance
+            val liveBal: Int
+            val src: String
+            if (apiBal != null && apiBal >= 1.0) {
+                liveBal = apiBal.toInt()           // floor decimals
+                src = "API"
+            } else {
+                liveBal = cfg.balance.coerceAtLeast(1)
+                src = "input"
+            }
             val lad = buildLadder(liveBal, cfg.steps)
             anchorLadder = lad
             st = st.copy(ladder = lad, ladderReady = true, stepIdx = 0)
-            pushState(st.copy(lastNote = "Ladder ৳$liveBal → ${lad.joinToString("·")}"))
+            pushState(st.copy(lastNote = "Ladder [$src ৳$liveBal] → ${lad.joinToString("·")}"))
         }
 
         val stakeIdx = min(st.stepIdx, st.ladder.size - 1)
@@ -380,26 +392,23 @@ object AutoBetEngine {
             else -> -1
         }
 
-        // Ladder progression
+        // Ladder progression:
+        //   WIN  → back to step 1, drop ladder, force API balance re-detect for the NEXT cycle.
+        //   LOSS → advance step within the SAME ladder (no rebuild, no re-detect).
         var newStepIdx = st.stepIdx
         var newLadder = st.ladder
         var newReady = st.ladderReady
+        var newRebuildAfter = st.balanceRebuildAfterMs
         val stepNum = st.stepIdx + 1
         if (win) {
-            if (stepNum <= cfg.steps) {
-                // WIN within ladder → rebuild from new balance next signal
-                newStepIdx = 0
-                newLadder = emptyList()
-                newReady = false
-                awaitingBalanceRebuild = false
-            } else {
-                // WIN beyond ladder → reset step 1, anchor plan
-                newStepIdx = 0
-                newLadder = if (anchorLadder.isNotEmpty()) anchorLadder else st.ladder
-                newReady = true
-            }
+            newStepIdx = 0
+            newLadder = emptyList()
+            newReady = false
+            awaitingBalanceRebuild = true
+            // Wait ~1.8s after resolve so payout reflects in GetBalance before rebuild.
+            newRebuildAfter = System.currentTimeMillis() + 1800L
         } else {
-            newStepIdx = st.stepIdx + 1  // LOSS → advance step
+            newStepIdx = st.stepIdx + 1  // LOSS → advance step (keep ladder, no re-detect)
         }
 
         val updated = st.copy(
@@ -410,6 +419,7 @@ object AutoBetEngine {
             stepIdx = newStepIdx,
             ladder = newLadder,
             ladderReady = newReady,
+            balanceRebuildAfterMs = newRebuildAfter,
             stepPendingIssue = null,
             highestStep = max(st.highestStep, newStepIdx + 1),
             lastResult = st.lastResult,  // updated separately via onOutcome below if needed
@@ -488,9 +498,9 @@ object AutoBetEngine {
 
         st = st.copy(
             apiBalance = snap.balance ?: st.apiBalance,
-            apiCurrentIssue = snap.currentIssue,
+            apiCurrentIssue = snap.currentIssue ?: st.apiCurrentIssue,
             apiGameCode = snap.gameCode ?: st.apiGameCode,
-            apiRemainingSeconds = snap.remainingSeconds,
+            apiRemainingSeconds = snap.remainingSeconds ?: st.apiRemainingSeconds,
             apiTokenReady = snap.tokenReady,
             apiBaseReady = snap.baseReady,
             apiLastError = snap.lastError,
@@ -499,6 +509,18 @@ object AutoBetEngine {
             lastBetDetail = snap.lastBetAck?.note ?: st.lastBetDetail,
             lastBetAtMs = if (snap.lastBetAck != null) System.currentTimeMillis() else st.lastBetAtMs,
         )
+        // Post-WIN: once we have a fresh balance snapshot after the payout window,
+        // clear the rebuild gate so the next signal builds ladder from live balance.
+        if (awaitingBalanceRebuild
+            && snap.balance != null
+            && System.currentTimeMillis() >= st.balanceRebuildAfterMs
+        ) {
+            awaitingBalanceRebuild = false
+            st = st.copy(
+                balanceRebuildAfterMs = 0L,
+                lastNote = "Balance refreshed · API ৳${snap.balance.toInt()}",
+            )
+        }
         pushState(st)
         if (!cfg.enabled && st.stepPendingIssue == null) return
 
