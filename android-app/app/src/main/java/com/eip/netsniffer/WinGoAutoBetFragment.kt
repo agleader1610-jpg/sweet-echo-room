@@ -16,6 +16,7 @@ import com.eip.netsniffer.databinding.FragmentWingoAutobetBinding
 class WinGoAutoBetFragment : Fragment() {
     private var _b: FragmentWingoAutobetBinding? = null
     private val b get() = _b!!
+    private var syncingUi = false
     private val ui = Handler(Looper.getMainLooper())
     private val timerTick = object : Runnable {
         override fun run() {
@@ -58,9 +59,9 @@ class WinGoAutoBetFragment : Fragment() {
             ))
         }
 
-        b.autoBetSwitch.setOnCheckedChangeListener { _, _ -> push() }
-        b.autoBetModeGroup.setOnCheckedChangeListener { _, _ -> push() }
-        b.skipLowConfBox.setOnCheckedChangeListener { _, _ -> push() }
+        b.autoBetSwitch.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
+        b.autoBetModeGroup.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
+        b.skipLowConfBox.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
         val lostListener = View.OnFocusChangeListener { _, hasFocus -> if (!hasFocus) push() }
         b.balanceInput.onFocusChangeListener = lostListener
         b.stepsInput.onFocusChangeListener = lostListener
@@ -70,9 +71,14 @@ class WinGoAutoBetFragment : Fragment() {
 
         AutoBetEngine.config.observe(viewLifecycleOwner) { c ->
             c ?: return@observe
-            if (b.autoBetSwitch.isChecked != c.enabled) b.autoBetSwitch.isChecked = c.enabled
-            if (!b.durationInput.hasFocus() && b.durationInput.text.toString() != c.durationMinutes.toString()) {
-                b.durationInput.setText(c.durationMinutes.toString())
+            syncingUi = true
+            try {
+                if (b.autoBetSwitch.isChecked != c.enabled) b.autoBetSwitch.isChecked = c.enabled
+                if (!b.durationInput.hasFocus() && b.durationInput.text.toString() != c.durationMinutes.toString()) {
+                    b.durationInput.setText(c.durationMinutes.toString())
+                }
+            } finally {
+                syncingUi = false
             }
             renderTimer(AutoBetEngine.state.value)
         }
