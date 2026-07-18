@@ -74,40 +74,67 @@
             android:layout_weight="1"/>
     </LinearLayout>
 
-    <!-- ═════ EIP signal overlay pinned to top of Browser tab ═════ -->
+    <!-- ═════ EIP AVIATOR overlay (wide compact) ═════ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/vipOverlay"
-        android:layout_width="200dp"
+        android:layout_width="310dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:visibility="gone"
-        app:cardBackgroundColor="#F00A1226"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="8dp">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="7dp">
+            android:background="@drawable/overlay_card_bg"
+            android:padding="8dp">
 
+            <!-- Header: brand pill + score + close -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
                 <TextView
                     android:id="@+id/overlayDragHandle"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="⚡ EIP"
-                    android:textColor="#22D3EE"
+                    android:background="@drawable/overlay_brand_pill"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:text="⚡ EIP TEAM"
+                    android:textColor="#FFFFFF"
                     android:textSize="9sp"
                     android:textStyle="bold"
-                    android:letterSpacing="0.2"/>
+                    android:letterSpacing="0.22"
+                    android:shadowColor="#8022D3EE"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="6"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="AVIATOR"
+                    android:textColor="#22D3EE"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.28"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"/>
+
                 <TextView
                     android:id="@+id/overlayScore"
                     android:layout_width="wrap_content"
@@ -124,81 +151,104 @@
                     android:id="@+id/overlayClose"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="6dp"
+                    android:paddingStart="8dp"
                     android:text="✕"
                     android:textColor="#94A3B8"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:textStyle="bold"/>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/overlayPhase"
+            <!-- Hero row: big multiplier LEFT, meta stack RIGHT -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="SIGNAL • #—"
-                android:textColor="#94A3B8"
-                android:textSize="8sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.18"
-                android:fontFamily="@font/roboto_mono"/>
+                android:orientation="horizontal"
+                android:layout_marginTop="7dp"
+                android:background="@drawable/overlay_hero_bg"
+                android:padding="8dp"
+                android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/overlayLive"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="—"
-                android:textColor="#4ADE80"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:fontFamily="@font/orbitron"
-                android:includeFontPadding="false"
-                android:letterSpacing="-0.02"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.15"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/overlayPhase"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SIGNAL • #—"
+                        android:textColor="#64748B"
+                        android:textSize="7sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.2"
+                        android:fontFamily="@font/roboto_mono"/>
+                    <TextView
+                        android:id="@+id/overlayLive"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="—"
+                        android:textColor="#4ADE80"
+                        android:textSize="30sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/orbitron"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="-0.02"/>
+                </LinearLayout>
 
-            <TextView
-                android:id="@+id/overlaySignal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:paddingStart="7dp" android:paddingEnd="7dp"
-                android:paddingTop="2dp" android:paddingBottom="2dp"
-                android:background="#455A64"
-                android:text="ANALYZING"
-                android:textColor="#FFFFFF"
-                android:textSize="9sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.12"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="end">
 
+                    <TextView
+                        android:id="@+id/overlaySignal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="8dp" android:paddingEnd="8dp"
+                        android:paddingTop="3dp" android:paddingBottom="3dp"
+                        android:background="#455A64"
+                        android:text="ANALYZING"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.14"/>
+
+                    <TextView
+                        android:id="@+id/overlayResult"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:paddingStart="6dp" android:paddingEnd="6dp"
+                        android:paddingTop="2dp" android:paddingBottom="2dp"
+                        android:background="#1F2937"
+                        android:text="◌ WAIT"
+                        android:textColor="#94A3B8"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.12"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Footer: last + history strip -->
             <TextView
                 android:id="@+id/overlayPrev"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="6dp"
                 android:text="LAST —"
                 android:textColor="#94A3B8"
                 android:textSize="9sp"
                 android:fontFamily="@font/roboto_mono"/>
 
             <TextView
-                android:id="@+id/overlayResult"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:paddingStart="5dp" android:paddingEnd="5dp"
-                android:paddingTop="2dp" android:paddingBottom="2dp"
-                android:background="#1F2937"
-                android:text="◌ WAIT"
-                android:textColor="#94A3B8"
-                android:textSize="8sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.12"/>
-
-            <TextView
                 android:id="@+id/overlayHistory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:paddingStart="5dp" android:paddingEnd="5dp"
+                android:layout_marginTop="4dp"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
                 android:paddingTop="3dp" android:paddingBottom="3dp"
                 android:background="#0B1220"
                 android:text=""
@@ -214,39 +264,66 @@
     </androidx.cardview.widget.CardView>
 
 
-    <!-- ═════ EIP WIN GO overlay (compact) ═════ -->
+    <!-- ═════ EIP WIN GO overlay (wide compact) ═════ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/wingoOverlay"
-        android:layout_width="190dp"
+        android:layout_width="310dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:visibility="gone"
-        app:cardBackgroundColor="#F00A1226"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="8dp">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="7dp">
+            android:background="@drawable/overlay_card_bg"
+            android:padding="8dp">
 
+            <!-- Header: brand pill + subtitle + close -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="⚡ EIP • WIN GO"
-                    android:textColor="#22D3EE"
+                    android:background="@drawable/overlay_brand_pill"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:text="⚡ EIP TEAM"
+                    android:textColor="#FFFFFF"
                     android:textSize="9sp"
                     android:textStyle="bold"
-                    android:letterSpacing="0.18"/>
+                    android:letterSpacing="0.22"
+                    android:shadowColor="#8022D3EE"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="6"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="WIN GO"
+                    android:textColor="#22D3EE"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.28"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"/>
+
                 <TextView
                     android:id="@+id/wingoOverlayScore"
                     android:layout_width="wrap_content"
@@ -263,76 +340,90 @@
                     android:id="@+id/wingoOverlayClose"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="6dp"
+                    android:paddingStart="8dp"
                     android:text="✕"
                     android:textColor="#94A3B8"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:textStyle="bold"/>
             </LinearLayout>
 
+            <!-- Hero row: PICK big LEFT, period+countdown+confidence RIGHT -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="5dp">
+                android:layout_marginTop="7dp"
+                android:background="@drawable/overlay_hero_bg"
+                android:padding="8dp"
+                android:gravity="center_vertical">
+
                 <TextView
-                    android:id="@+id/wingoOverlayPeriod"
+                    android:id="@+id/wingoOverlayPick"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.15"
+                    android:gravity="center"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:text="—"
+                    android:textColor="#FFFFFF"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/orbitron"
+                    android:letterSpacing="0.06"
+                    android:background="#334155"/>
+
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="#—"
-                    android:textColor="#94A3B8"
-                    android:textSize="9sp"
-                    android:fontFamily="@font/roboto_mono"
-                    android:textStyle="bold"/>
-                <TextView
-                    android:id="@+id/wingoOverlayCountdown"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="6dp" android:paddingEnd="6dp"
-                    android:paddingTop="1dp" android:paddingBottom="1dp"
-                    android:background="#0A0F1E"
-                    android:text="—:—"
-                    android:textColor="#4ADE80"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/roboto_mono"/>
+                    android:orientation="vertical"
+                    android:paddingStart="8dp"
+                    android:gravity="end">
+
+                    <TextView
+                        android:id="@+id/wingoOverlayPeriod"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="#—"
+                        android:textColor="#94A3B8"
+                        android:textSize="9sp"
+                        android:fontFamily="@font/roboto_mono"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/wingoOverlayCountdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:paddingStart="8dp" android:paddingEnd="8dp"
+                        android:paddingTop="2dp" android:paddingBottom="2dp"
+                        android:background="#0A0F1E"
+                        android:text="—:—"
+                        android:textColor="#4ADE80"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/roboto_mono"/>
+
+                    <TextView
+                        android:id="@+id/wingoOverlayConfidence"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="—"
+                        android:textColor="#94A3B8"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.16"/>
+                </LinearLayout>
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/wingoOverlayPick"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:gravity="center"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:text="—"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:fontFamily="@font/orbitron"
-                android:letterSpacing="0.05"
-                android:background="#334155"/>
-
-            <TextView
-                android:id="@+id/wingoOverlayConfidence"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="—"
-                android:textColor="#94A3B8"
-                android:textSize="8sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.16"/>
 
             <TextView
                 android:id="@+id/wingoOverlayResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:paddingStart="5dp" android:paddingEnd="5dp"
+                android:layout_marginTop="6dp"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
                 android:paddingTop="2dp" android:paddingBottom="2dp"
                 android:background="#1F2937"
                 android:text="◌ WAIT"
@@ -345,8 +436,8 @@
                 android:id="@+id/wingoOverlayHistory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:paddingStart="5dp" android:paddingEnd="5dp"
+                android:layout_marginTop="4dp"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
                 android:paddingTop="3dp" android:paddingBottom="3dp"
                 android:background="#0B1220"
                 android:text=""
@@ -360,6 +451,7 @@
                 android:scrollHorizontally="true"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
 
 
     <!-- Loading overlay: "Connecting EIP Team..." -->
