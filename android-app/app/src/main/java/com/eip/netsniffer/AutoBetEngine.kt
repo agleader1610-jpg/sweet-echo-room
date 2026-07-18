@@ -93,7 +93,7 @@ object AutoBetEngine {
 
     // Per-issue state so we never fire more than 1 submit attempt on same period.
     // Once success = true, no more attempts on this issue, ever.
-    private data class IssueSlot(var tries: Int = 0, var success: Boolean = false, var inflight: Boolean = false, var resolved: Boolean = false)
+    private data class IssueSlot(var tries: Int = 0, var success: Boolean = false, var inflight: Boolean = false, var resolved: Boolean = false, var submittedAtMs: Long = 0L)
     private val issueSlots = HashMap<String, IssueSlot>()
     private var anchorLadder: List<Int> = emptyList()
     private var awaitingBalanceRebuild = false
