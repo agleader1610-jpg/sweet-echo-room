@@ -107,7 +107,10 @@ object AutoBetReconciler {
         val balance = json.optDouble("balance", Double.NaN)
         val currentIssue = json.optString("currentIssue", "")
         val detectedGame = json.optString("gameCode", "")
-        if (detectedGame.isNotBlank()) gameCode = detectedGame
+        if (detectedGame.isNotBlank()) {
+            gameCode = detectedGame
+            WinGoStore.setGameCode(detectedGame)
+        }
         val remainingSeconds = if (json.has("remainingSeconds")) json.optInt("remainingSeconds") else null
         val ackObj = json.optJSONObject("lastBetAck")
         val bets = json.optJSONArray("myBets") ?: JSONArray()
