@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 66
-        versionName = "1.0.66-autobet-tab"
+        versionCode = 67
+        versionName = "1.0.67-fix-lambda"
 
 
 
