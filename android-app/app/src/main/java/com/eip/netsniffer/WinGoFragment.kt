@@ -227,22 +227,6 @@ class WinGoFragment : Fragment() {
                 renderLog()
             }
         }
-                b.lastResultBadge.setTextColor(0xFFFFFFFF.toInt())
-                b.lastResultBadge.background = bg(
-                    if (win) 0xFF16A34A.toInt() else 0xFFDC2626.toInt(), 6f
-                )
-                b.lastResultDetail.text =
-                    "#${match.issue.takeLast(6)} → ${match.number} " +
-                    "• bet ${armed.pick}"
-                WinGoStore.lastResult.postValue(
-                    WinGoStore.LastResult(match.issue, win, match.number, match.colors, armed.pick)
-                )
-                WinGoStore.score.postValue(wins to losses)
-                armedIssue = null; armedSignal = null
-                renderScoreboard()
-                renderLog()
-            }
-        }
 
         // 2) Render history strip
         renderHistoryStrip(list)
