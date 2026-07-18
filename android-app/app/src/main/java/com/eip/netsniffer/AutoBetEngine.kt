@@ -78,6 +78,7 @@ object AutoBetEngine {
         val lastBetStage: String? = null,
         val lastBetDetail: String? = null,
         val lastBetAtMs: Long = 0L,
+        val balanceRebuildAfterMs: Long = 0L,   // WIN → wait for API balance snapshot after this ts
     )
 
     /** Immutable snapshot of the game server's ground truth. */
