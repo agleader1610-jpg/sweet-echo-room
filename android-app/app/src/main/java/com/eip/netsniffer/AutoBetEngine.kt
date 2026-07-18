@@ -294,15 +294,22 @@ object AutoBetEngine {
             }
         }
 
-        // ── Build ladder if needed (step 1 only). Prefer LIVE API balance;
-        //    fall back to user-entered balance if API not yet ready.
+        // ── Build ladder if needed (step 1 only).
+        //    Config toggle decides balance source:
+        //      useApiBalance = true  → require LIVE API balance; wait if not ready.
+        //      useApiBalance = false → always use manual balance input.
         //    Decimals/paisa are ALWAYS floored to whole taka.
         if (!st.ladderReady || st.ladder.isEmpty()) {
             val apiBal = st.apiBalance
             val liveBal: Int
             val src: String
-            if (apiBal != null && apiBal >= 1.0) {
-                liveBal = apiBal.toInt()           // floor decimals
+            if (cfg.useApiBalance) {
+                if (apiBal == null || apiBal < 1.0) {
+                    pushState(st.copy(lastNote = "WAITING · API balance not ready (toggle ON)"))
+                    slot.inflight = false
+                    return
+                }
+                liveBal = apiBal.toInt()
                 src = "API"
             } else {
                 liveBal = cfg.balance.coerceAtLeast(1)
