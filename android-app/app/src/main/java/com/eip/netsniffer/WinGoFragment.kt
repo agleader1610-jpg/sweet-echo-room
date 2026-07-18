@@ -165,7 +165,7 @@ class WinGoFragment : Fragment() {
 
         // 3) Lock one signal per target period. Do not recalculate/randomize while
         // the same period is still running, otherwise the prediction flips.
-        val runningId = WinGoStore.live.value?.currentIssue
+        val runningId = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
         val armIssue = when {
             runningId != null && runningId != newest.issue -> runningId
             else -> nextIssueOf(newest.issue)

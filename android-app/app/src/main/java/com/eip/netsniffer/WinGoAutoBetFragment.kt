@@ -100,12 +100,17 @@ class WinGoAutoBetFragment : Fragment() {
                 "Next: ${st.nextBetPick} · ৳${st.nextBetAmount} · step $stepLbl  (#${st.nextBetIssue.takeLast(6)})"
             else "Next: — · step $stepLbl"
             val apiLine = buildString {
+                append("GAME ${st.apiGameCode ?: \"detecting\"}  ")
                 if (st.apiBalance != null) append("💰 ৳%.2f  ".format(st.apiBalance))
                 if (st.apiCurrentIssue != null) append("• API #${st.apiCurrentIssue.takeLast(6)}  ")
+                if (st.apiRemainingSeconds != null) append("• ${st.apiRemainingSeconds}s left  ")
                 if (st.apiLastSyncMs > 0) {
                     val age = (System.currentTimeMillis() - st.apiLastSyncMs) / 1000
                     append("• sync ${age}s ago")
                 }
+                if (!st.apiTokenReady || !st.apiBaseReady) append("\nWAITING: open/login DK Win tab")
+                if (!st.apiLastError.isNullOrBlank()) append("\nAPI: ${st.apiLastError}")
+                if (!st.lastBetStage.isNullOrBlank()) append("\nBET: ${st.lastBetStage} ${st.lastBetDetail ?: \"\"}")
             }
             b.abNote.text = st.lastNote +
                 (if (apiLine.isNotEmpty()) "\n$apiLine" else "") +

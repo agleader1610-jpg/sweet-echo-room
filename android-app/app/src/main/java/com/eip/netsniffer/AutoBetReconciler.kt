@@ -32,7 +32,7 @@ object AutoBetReconciler {
     private val ui = Handler(Looper.getMainLooper())
     private var wvRef: WeakReference<WebView>? = null
     private var running = false
-    private var gameCode: String = "WinGo_30S"
+    private var gameCode: String = ""
     private var inFlight = false
 
     fun attach(webView: WebView) {
@@ -77,7 +77,7 @@ object AutoBetReconciler {
         val pending = AutoBetEngine.state.value?.stepPendingIssue != null
         if (!armed && !pending) return
 
-        val gc = JSONObject.quote(gameCode)
+        val gc = if (gameCode.isBlank()) "null" else JSONObject.quote(gameCode)
         val js = """
         (function(){
           try {
@@ -106,6 +106,10 @@ object AutoBetReconciler {
 
         val balance = json.optDouble("balance", Double.NaN)
         val currentIssue = json.optString("currentIssue", "")
+        val detectedGame = json.optString("gameCode", "")
+        if (detectedGame.isNotBlank()) gameCode = detectedGame
+        val remainingSeconds = if (json.has("remainingSeconds")) json.optInt("remainingSeconds") else null
+        val ackObj = json.optJSONObject("lastBetAck")
         val bets = json.optJSONArray("myBets") ?: JSONArray()
 
         val list = mutableListOf<AutoBetEngine.ApiBet>()
@@ -128,6 +132,18 @@ object AutoBetReconciler {
                 balance = if (balance.isNaN()) null else balance,
                 currentIssue = currentIssue.ifBlank { null },
                 myBets = list,
+                gameCode = detectedGame.ifBlank { gameCode.ifBlank { null } },
+                remainingSeconds = remainingSeconds,
+                tokenReady = json.optBoolean("tokenReady", false),
+                baseReady = json.optBoolean("baseReady", false),
+                lastError = json.optString("lastError", "").ifBlank { null },
+                lastBetAck = ackObj?.let {
+                    AutoBetEngine.ApiAck(
+                        ok = it.optBoolean("ok", false),
+                        stage = it.optString("stage", ""),
+                        note = it.optString("note", ""),
+                    )
+                },
             )
         )
     }
