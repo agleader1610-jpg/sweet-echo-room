@@ -238,7 +238,7 @@ object AutoBetEngine {
                     lastNote = "✓ Placed $pick ৳$stake · step $stepLabel · ${res.stage}",
                 ))
             } else {
-                // Do NOT clear the slot — tries counter naturally caps at 3.
+                // Do NOT clear the slot — no retry this period, so duplicate bets cannot loop.
                 state.postValue(cur.copy(
                     lastNote = "✗ ${res.stage}: ${res.note} · no retry this period",
                 ))
