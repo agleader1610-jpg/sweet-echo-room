@@ -43,6 +43,8 @@ class WinGoAutoBetFragment : Fragment() {
         val modeId = when (cfg.mode) { "RANDOM" -> R.id.modeRandom; "PATTERN" -> R.id.modePattern; else -> R.id.modeApp }
         b.autoBetModeGroup.check(modeId)
         b.skipLowConfBox.isChecked = cfg.skipLowConfidence
+        b.useApiBalanceSwitch.isChecked = cfg.useApiBalance
+        b.balanceInput.isEnabled = !cfg.useApiBalance
 
         val push = {
             val mode = when (b.autoBetModeGroup.checkedRadioButtonId) {
@@ -56,12 +58,17 @@ class WinGoAutoBetFragment : Fragment() {
                 mode = mode,
                 durationMinutes = (b.durationInput.text.toString().toIntOrNull() ?: 10).coerceIn(1, 1440),
                 skipLowConfidence = b.skipLowConfBox.isChecked,
+                useApiBalance = b.useApiBalanceSwitch.isChecked
             ))
         }
 
         b.autoBetSwitch.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
         b.autoBetModeGroup.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
         b.skipLowConfBox.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
+        b.useApiBalanceSwitch.setOnCheckedChangeListener { _, checked ->
+            b.balanceInput.isEnabled = !checked
+            if (!syncingUi) push()
+        }
         val lostListener = View.OnFocusChangeListener { _, hasFocus -> if (!hasFocus) push() }
         b.balanceInput.onFocusChangeListener = lostListener
         b.stepsInput.onFocusChangeListener = lostListener
