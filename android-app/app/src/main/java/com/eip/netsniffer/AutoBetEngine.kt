@@ -84,11 +84,11 @@ object AutoBetEngine {
      *  (which was blocking every 2nd+ bet with "Waiting for previous"). */
     private fun pushState(s: State) {
         if (Looper.myLooper() == Looper.getMainLooper()) state.value = s
-        else state.postValue(s)
+        else pushState(s)
     }
     private fun pushConfig(c: Config) {
         if (Looper.myLooper() == Looper.getMainLooper()) config.value = c
-        else config.postValue(c)
+        else pushConfig(c)
     }
 
 
@@ -122,17 +122,17 @@ object AutoBetEngine {
             ?.putInt(PREF_DURATION_MIN, newCfg.durationMinutes)
             ?.putBoolean(PREF_SKIP_LOWCF, newCfg.skipLowConfidence)
             ?.apply()
-        config.postValue(newCfg)
+        pushConfig(newCfg)
         if (!newCfg.enabled) {
             val st = state.value ?: State()
-            state.postValue(st.copy(startedAtMs = 0L, stopAfterClear = false, lastNote = "OFF — auto-bet disabled"))
+            pushState(st.copy(startedAtMs = 0L, stopAfterClear = false, lastNote = "OFF — auto-bet disabled"))
         } else if (!oldCfg.enabled) {
             // Fresh run: keep visible stats, but start a clean ladder + timer.
             val st = state.value ?: State()
             issueSlots.clear()
             awaitingBalanceRebuild = false
             anchorLadder = emptyList()
-            state.postValue(st.copy(
+            pushState(st.copy(
                 ladderReady = false,
                 ladder = emptyList(),
                 stepIdx = 0,
@@ -152,7 +152,7 @@ object AutoBetEngine {
         anchorLadder = emptyList()
         awaitingBalanceRebuild = false
         val started = if (config.value?.enabled == true) System.currentTimeMillis() else 0L
-        state.postValue(State(startedAtMs = started, lastNote = "Stats reset"))
+        pushState(State(startedAtMs = started, lastNote = "Stats reset"))
     }
 
     fun tick() {
@@ -205,7 +205,7 @@ object AutoBetEngine {
             else      -> {
                 if (cfg.skipLowConfidence && sig.confidence == "LOW") {
                     slot.success = true       // treat as "handled" so we don't retry
-                    state.postValue(st.copy(
+                    pushState(st.copy(
                         nextBetIssue = targetIssue, nextBetPick = "SKIP",
                         nextBetAmount = 0, lastNote = "SKIP · low confidence",
                     ))
@@ -220,7 +220,7 @@ object AutoBetEngine {
             val lad = buildLadder(cfg.balance, cfg.steps)
             anchorLadder = lad
             st = st.copy(ladder = lad, ladderReady = true, stepIdx = 0)
-            state.postValue(st.copy(lastNote = "Ladder ৳${cfg.balance} → ${lad.joinToString("·")}"))
+            pushState(st.copy(lastNote = "Ladder ৳${cfg.balance} → ${lad.joinToString("·")}"))
         }
 
         val stakeIdx = min(st.stepIdx, st.ladder.size - 1)
@@ -228,7 +228,7 @@ object AutoBetEngine {
         val stepNum = st.stepIdx + 1
         val stepLabel = if (stepNum > cfg.steps) "$stepNum/${cfg.steps}+" else "$stepNum/${cfg.steps}"
 
-        state.postValue(st.copy(
+        pushState(st.copy(
             nextBetIssue = targetIssue,
             nextBetPick = pick,
             nextBetAmount = stake,
@@ -246,7 +246,7 @@ object AutoBetEngine {
             val cur = state.value ?: State()
             if (res.ok) {
                 slot.success = true
-                state.postValue(cur.copy(
+                pushState(cur.copy(
                     placed = cur.placed + 1,
                     lastIssue = targetIssue,
                     stepPendingIssue = targetIssue,
@@ -254,7 +254,7 @@ object AutoBetEngine {
                 ))
             } else {
                 // Do NOT clear the slot — no retry this period, so duplicate bets cannot loop.
-                state.postValue(cur.copy(
+                pushState(cur.copy(
                     lastNote = "✗ ${res.stage}: ${res.note} · no retry this period",
                 ))
             }
@@ -326,14 +326,14 @@ object AutoBetEngine {
         )
         if (updated.stopAfterClear && isStepClear(updated)) {
             prefs?.edit()?.putBoolean(PREF_ENABLED, false)?.apply()
-            config.postValue(cfg.copy(enabled = false))
-            state.postValue(updated.copy(
+            pushConfig(cfg.copy(enabled = false))
+            pushState(updated.copy(
                 startedAtMs = 0L,
                 stopAfterClear = false,
                 lastNote = updated.lastNote + " · OFF — time completed after step clear",
             ))
         } else {
-            state.postValue(updated)
+            pushState(updated)
         }
         Log.i(TAG, "resolved $issue win=$win Δ$delta nextStep=${newStepIdx+1}")
     }
@@ -343,7 +343,7 @@ object AutoBetEngine {
         val v = bigOrSmall.uppercase()
         if (v != "BIG" && v != "SMALL") return
         val st = state.value ?: return
-        state.postValue(st.copy(lastResult = v))
+        pushState(st.copy(lastResult = v))
     }
 
     private fun handleDuration(cfg: Config, st: State): Boolean {
@@ -356,7 +356,7 @@ object AutoBetEngine {
             return true
         }
         if (!st.stopAfterClear) {
-            state.postValue(st.copy(
+            pushState(st.copy(
                 stopAfterClear = true,
                 lastNote = "Time complete · finishing active step before OFF",
             ))
@@ -369,14 +369,14 @@ object AutoBetEngine {
     private fun autoOff(message: String = "OFF — auto-bet disabled") {
         val c = config.value ?: return
         prefs?.edit()?.putBoolean(PREF_ENABLED, false)?.apply()
-        config.postValue(c.copy(enabled = false))
+        pushConfig(c.copy(enabled = false))
         val st = state.value ?: State()
-        state.postValue(st.copy(startedAtMs = 0L, stopAfterClear = false, lastNote = message))
+        pushState(st.copy(startedAtMs = 0L, stopAfterClear = false, lastNote = message))
     }
 
     private fun note(msg: String) {
         val st = state.value ?: State()
-        state.postValue(st.copy(lastNote = msg))
+        pushState(st.copy(lastNote = msg))
         Log.i(TAG, msg)
     }
 }
