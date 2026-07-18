@@ -50,6 +50,7 @@ object AutoBetReconciler {
 
     fun start() {
         if (running) return
+        WinGoStore.start()
         running = true
         ui.post(tick)
         Log.i(TAG, "reconciler started · game=$gameCode")

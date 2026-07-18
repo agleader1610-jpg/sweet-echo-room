@@ -534,8 +534,11 @@ object JsHook {
         if (!issue) return {ok:false, stage:'NO_ISSUE', note:'missing issueNumber'};
         var key = issue;
         var prev = window.__dkBetSlots[key];
-        if (prev && (prev.status === 'SUBMITTED' || prev.status === 'DONE')) {
+        if (prev && prev.status === 'DONE') {
           return {ok:true, stage:'LOCKED', note:'already submitted for #' + issue.slice(-6)};
+        }
+        if (prev && prev.status === 'SUBMITTED' && Date.now() - (prev.at || 0) < 8000) {
+          return {ok:false, stage:'WAIT_ACK', note:'previous request still waiting for #' + issue.slice(-6)};
         }
 
         var body = sign(Object.assign({ language: payload.language || 'en' }, payload));
