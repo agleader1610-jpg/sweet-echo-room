@@ -52,6 +52,51 @@
                 android:letterSpacing="0.15"/>
         </LinearLayout>
 
+        <!-- ═════════════ BROWSER OVERLAY TOGGLE (moved to top) ═════════════ -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#111C33"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BROWSER TAB OVERLAY"
+                        android:textColor="#22D3EE"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.2"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Show live signal card on the game screen"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"/>
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/overlaySwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <TextView
             android:id="@+id/emptyText"
             android:layout_width="match_parent"
@@ -714,49 +759,103 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- ═════════════ BROWSER OVERLAY TOGGLE ═════════════ -->
-
+        <!-- ═════════════ SIGNAL HISTORY (local, per-user) ═════════════ -->
         <androidx.cardview.widget.CardView
+            android:id="@+id/signalHistoryCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            app:cardBackgroundColor="#111C33"
+            android:visibility="gone"
+            app:cardBackgroundColor="#0A0F1E"
             app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
+            app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:orientation="vertical"
                 android:padding="14dp">
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="BROWSER TAB OVERLAY"
+                        android:layout_weight="1"
+                        android:text="◂ SIGNAL HISTORY"
                         android:textColor="#22D3EE"
                         android:textStyle="bold"
                         android:textSize="12sp"
-                        android:letterSpacing="0.2"/>
+                        android:letterSpacing="0.22"/>
                     <TextView
+                        android:id="@+id/signalHistoryStats"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Show live signal card on the game screen"
+                        android:text=""
                         android:textColor="#94A3B8"
-                        android:textSize="11sp"/>
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/roboto_mono"/>
                 </LinearLayout>
 
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/overlaySwitch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp"
+                    android:paddingBottom="4dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.1"
+                        android:text="ROUND"
+                        android:textColor="#64748B"
+                        android:textSize="9sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.18"/>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="TARGET"
+                        android:textColor="#64748B"
+                        android:textSize="9sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.18"/>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="CRASH"
+                        android:textColor="#64748B"
+                        android:textSize="9sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.18"/>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.9"
+                        android:gravity="end"
+                        android:text="RESULT"
+                        android:textColor="#64748B"
+                        android:textSize="9sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.18"/>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1F2937"/>
+
+                <LinearLayout
+                    android:id="@+id/signalHistoryList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
