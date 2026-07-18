@@ -89,7 +89,7 @@ object AutoBetEngine {
             mode = p.getString(PREF_MODE, "APP") ?: "APP",
             durationMinutes = p.getInt(PREF_DURATION_MIN, 10).coerceIn(1, 1440),
             skipLowConfidence = p.getBoolean(PREF_SKIP_LOWCF, false),
-        ))
+        )
     }
 
     fun attachWebView(wv: WebView?) {
