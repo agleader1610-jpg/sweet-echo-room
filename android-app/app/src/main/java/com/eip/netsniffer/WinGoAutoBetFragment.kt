@@ -81,6 +81,8 @@ class WinGoAutoBetFragment : Fragment() {
             syncingUi = true
             try {
                 if (b.autoBetSwitch.isChecked != c.enabled) b.autoBetSwitch.isChecked = c.enabled
+                if (b.useApiBalanceSwitch.isChecked != c.useApiBalance) b.useApiBalanceSwitch.isChecked = c.useApiBalance
+                b.balanceInput.isEnabled = !c.useApiBalance
                 if (!b.durationInput.hasFocus() && b.durationInput.text.toString() != c.durationMinutes.toString()) {
                     b.durationInput.setText(c.durationMinutes.toString())
                 }
