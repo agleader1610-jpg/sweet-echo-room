@@ -33,6 +33,12 @@ jobs:
       - name: Generate Gradle wrapper
         run: gradle wrapper --gradle-version 8.7
 
+      - name: Keep official debug signature stable
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: eip-official-debug-keystore-v1
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 

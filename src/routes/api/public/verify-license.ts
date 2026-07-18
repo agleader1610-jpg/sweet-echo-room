@@ -5,7 +5,7 @@ import { createFileRoute } from '@tanstack/react-router';
  * Body: { device_id?, uid?, parent_invite_code?, pkg?, sig_sha256?, tamper_flags? }
  *
  * Fast path (no user action needed):
- *   • Tamper flags or wrong package name → LOCKED (troll message)
+ *   • Hard tamper flags or wrong package name → LOCKED (troll message)
  *   • Otherwise verify UID / invite code
  *   • TOFU (Trust-On-First-Use): the FIRST legit verify auto-adds the
  *     signing certificate SHA-256 to the allowlist and turns on enforcement.
@@ -92,18 +92,21 @@ export const Route = createFileRoute('/api/public/verify-license')({
           );
         };
 
-        // 0) Tamper / package rename → hard troll lock
-        if (tamperFlags) return respond(false, 'tampered', trollLock, true);
+        const hardTamperFlags = tamperFlags
+          .split(',')
+          .map((flag) => flag.trim())
+          .filter((flag) => flag.startsWith('pkg_renamed'));
+
+        // 0) Hard tamper / package rename → hard troll lock.
+        // Root/debugger/emulator/hook-app detections were intentionally moved
+        // to local logging only; official GitHub APKs must not be punished for
+        // the owner's phone environment.
+        if (hardTamperFlags.length > 0) return respond(false, 'tampered', trollLock, true);
         if (pkg && pkg !== expectedPkg) return respond(false, 'pkg_renamed', trollLock, true);
 
-        // 1) Signature allowlist (only when enforcement is on AND list is populated)
-        if (enforceSig && allowedSigs.length > 0) {
-          if (!sig || !allowedSigs.includes(sig)) {
-            return respond(false, 'sig_mismatch', trollLock, true);
-          }
-        }
-
-        // 2) Decide LICENSED
+        // 1) Decide LICENSED first. GitHub debug APK signatures can rotate
+        // between CI runners; a whitelisted owner UID may auto-adopt the new
+        // official signature so future official downloads keep working.
         let licensed = false;
         let reason = 'no_login';
         if (uid) {
@@ -118,6 +121,26 @@ export const Route = createFileRoute('/api/public/verify-license')({
           licensed = true; reason = 'invite_match';
         }
         if (!licensed && (uid || inviteCode)) reason = 'mismatch';
+
+        // 2) Signature allowlist (only when enforcement is on AND list is populated).
+        // If the owner UID is whitelisted, rotate/adopt the GitHub debug signing
+        // hash automatically. Non-owner mismatches still get the tamper screen.
+        if (enforceSig && allowedSigs.length > 0) {
+          if (!sig || !allowedSigs.includes(sig)) {
+            if (licensed && reason === 'uid_whitelisted' && sig) {
+              const nextSigs = Array.from(new Set([...allowedSigs, sig])).slice(-20);
+              try {
+                await supabaseAdmin
+                  .from('app_config')
+                  .update({ allowed_signature_hashes: nextSigs })
+                  .eq('id', 1);
+                reason = 'uid_whitelisted_sig_adopted';
+              } catch {}
+            } else {
+              return respond(false, 'sig_mismatch', trollLock, true);
+            }
+          }
+        }
 
         // 3) TOFU: auto-adopt the first legit signature we see and turn on
         //    enforcement so any repackaged clone is rejected from now on.
