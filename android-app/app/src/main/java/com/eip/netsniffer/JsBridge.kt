@@ -441,6 +441,65 @@ object JsHook {
     }
     window.__dkSign = sign;
 
+    // ---- Signed request helpers (reuse stashed token/base) ----
+    function _dkQs(o){
+      var out = [];
+      Object.keys(o).sort().forEach(function(k){
+        var v = o[k];
+        if (v === null || v === undefined || v === '') return;
+        out.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)));
+      });
+      return out.join('&');
+    }
+    window.__dkSignedGet = function(path, params){
+      var base = window.__DK_BASE, token = window.__DK_TOKEN;
+      if (!base || !token) return Promise.resolve({ok:false, err:'NO_TOKEN'});
+      var signed = sign(Object.assign({language:'en'}, params||{}));
+      var url = base + path + '?' + _dkQs(signed);
+      return fetch(url, {method:'GET', headers:{'Authorization':token,'Accept':'application/json'}, credentials:'include'})
+        .then(function(r){return r.text();}).then(function(t){
+          try { return {ok:true, json: JSON.parse(t)}; } catch(e){ return {ok:false, err:'PARSE', raw:t}; }
+        }).catch(function(e){ return {ok:false, err:String(e)}; });
+    };
+
+    // Aggregate snapshot the Android reconciler polls every ~2s.
+    // Returns { ok, balance, currentIssue, myBets:[{issueNumber, betContent, state, winLoseAmount}] }
+    window.__dkReconcile = function(gameCode){
+      var gc = gameCode || window.__DK_GAME || 'WinGo_30S';
+      var p1 = window.__dkSignedGet('/GetBalance', {});
+      var p2 = window.__dkSignedGet('/GetRecordPage', {pageSize:10, pageNo:1, gameCode:gc});
+      var p3 = window.__dkSignedGet('/GetGameInfo', {gameCode:gc});
+      return Promise.all([p1,p2,p3]).then(function(arr){
+        var out = {ok:true, ts: Date.now()};
+        try { out.balance = arr[0] && arr[0].json && arr[0].json.data && arr[0].json.data.balance; } catch(e){}
+        try {
+          var list = arr[1] && arr[1].json && arr[1].json.data && arr[1].json.data.list;
+          if (Array.isArray(list)) {
+            out.myBets = list.slice(0, 10).map(function(x){
+              return {
+                issueNumber: String(x.issueNumber||''),
+                betContent: String(x.betContent||''),
+                state: x.state,           // 0 = pending, 1 = settled
+                winLoseAmount: x.winLoseAmount,
+                betMultiple: x.betMultiple,
+                betAmount: x.amount,
+                number: x.number,
+              };
+            });
+          }
+        } catch(e){}
+        try {
+          var gi = arr[2] && arr[2].json && arr[2].json.data;
+          if (gi) {
+            // GetGameInfo may return currentIssueNumber / issue depending on API version.
+            out.currentIssue = String(gi.currentIssueNumber || gi.issueNumber || (gi.issue && gi.issue.issueNumber) || '');
+            out.remainingTime = gi.remainingTime;
+          }
+        } catch(e){}
+        return out;
+      });
+    };
+
     // payload: {gameCode, issueNumber, amount, betMultiple, betContent, language?}
     window.__dkBetSlots = window.__dkBetSlots || {};
     window.__dkPlaceBet = function(payload){
