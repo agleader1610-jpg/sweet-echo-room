@@ -74,10 +74,23 @@ object AutoBetEngine {
 
     // Per-issue state so we never fire more than 1 submit attempt on same period.
     // Once success = true, no more attempts on this issue, ever.
-    private data class IssueSlot(var tries: Int = 0, var success: Boolean = false, var inflight: Boolean = false)
+    private data class IssueSlot(var tries: Int = 0, var success: Boolean = false, var inflight: Boolean = false, var resolved: Boolean = false)
     private val issueSlots = HashMap<String, IssueSlot>()
     private var anchorLadder: List<Int> = emptyList()
     private var awaitingBalanceRebuild = false
+
+    /** Synchronous state push — avoids postValue race where the next
+     *  onSignal in the same call-chain still reads the pre-resolve state
+     *  (which was blocking every 2nd+ bet with "Waiting for previous"). */
+    private fun pushState(s: State) {
+        if (Looper.myLooper() == Looper.getMainLooper()) state.value = s
+        else state.postValue(s)
+    }
+    private fun pushConfig(c: Config) {
+        if (Looper.myLooper() == Looper.getMainLooper()) config.value = c
+        else config.postValue(c)
+    }
+
 
     fun init(ctx: Context) {
         if (prefs != null) return
