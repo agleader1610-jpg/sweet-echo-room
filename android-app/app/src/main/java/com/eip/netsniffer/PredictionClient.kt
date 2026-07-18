@@ -19,9 +19,9 @@ import java.util.concurrent.Executors
 object PredictionClient {
     private const val TAG = "PredictionClient"
     private const val ENDPOINT =
-        "https://sweet-echo-room.lovable.app/api/public/predict-signal"
+        "https://apiapk.eip.lat/api/public/predict-signal"
     private const val VERIFY_ENDPOINT =
-        "https://sweet-echo-room.lovable.app/api/public/verify-result"
+        "https://apiapk.eip.lat/api/public/verify-result"
     private const val TIMEOUT_MS = 10000
 
     private val exec = Executors.newSingleThreadExecutor()

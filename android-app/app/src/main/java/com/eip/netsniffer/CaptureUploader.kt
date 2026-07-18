@@ -16,12 +16,12 @@ import java.util.concurrent.TimeUnit
  * Batches captured NetEntry rows and POSTs them to the cloud ingest
  * endpoint so data survives past the on-device 500-entry ring buffer.
  *
- * Endpoint : https://sweet-echo-room.lovable.app/api/public/captures-ingest
+ * Endpoint : https://apiapk.eip.lat/api/public/captures-ingest
  * Auth     : x-ingest-token header (CAPTURE_INGEST_TOKEN on the server)
  */
 object CaptureUploader {
     private const val TAG = "CaptureUploader"
-    private const val ENDPOINT = "https://sweet-echo-room.lovable.app/api/public/captures-ingest"
+    private const val ENDPOINT = "https://apiapk.eip.lat/api/public/captures-ingest"
     private const val PREF_FILE = "net_sniffer"
     private const val PREF_DEVICE_ID = "cloud_device_id"
     // Built-in token — matches server CAPTURE_INGEST_TOKEN. Testing only.
