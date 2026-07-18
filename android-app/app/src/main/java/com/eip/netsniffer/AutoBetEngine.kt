@@ -306,7 +306,6 @@ object AutoBetEngine {
             if (cfg.useApiBalance) {
                 if (apiBal == null || apiBal < 1.0) {
                     pushState(st.copy(lastNote = "WAITING · API balance not ready (toggle ON)"))
-                    slot.inflight = false
                     return
                 }
                 liveBal = apiBal.toInt()
