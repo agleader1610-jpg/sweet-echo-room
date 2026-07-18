@@ -74,67 +74,44 @@
                     android:textColor="#64748B"
                     android:textSize="10sp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="BASE AMOUNT"
-                    android:textColor="#94A3B8"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.24"/>
-                <RadioGroup
-                    android:id="@+id/autoBetAmountGroup"
+                <!-- Balance + Steps + Multiplier -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:orientation="horizontal">
-                    <RadioButton android:id="@+id/amt1"    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳1"    android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/amt10"   android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳10"   android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/amt100"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳100"  android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/amt1000" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="৳1000" android:textColor="#E2E8F0" android:textSize="12sp"/>
-                </RadioGroup>
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BALANCE ৳" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/balanceInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="100" android:textColor="#22D3EE" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp" android:layout_marginEnd="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STEPS (N)" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/stepsInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="7" android:textColor="#F59E0B" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="MULTIPLE" android:textColor="#94A3B8" android:textSize="9sp" android:textStyle="bold"/>
+                        <EditText android:id="@+id/multInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="1" android:textColor="#A78BFA" android:textSize="14sp" android:background="#111C33" android:padding="8dp"/>
+                    </LinearLayout>
+                </LinearLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="MULTIPLIER"
+                    android:text="SIGNAL MODE"
                     android:textColor="#94A3B8"
                     android:textSize="9sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.24"/>
                 <RadioGroup
-                    android:id="@+id/autoBetMultGroup"
+                    android:id="@+id/autoBetModeGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:orientation="horizontal">
-                    <RadioButton android:id="@+id/mult1"   android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x1"   android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/mult5"   android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x5"   android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/mult10"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x10"  android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/mult50"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x50"  android:textColor="#E2E8F0" android:textSize="12sp"/>
-                    <RadioButton android:id="@+id/mult100" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="x100" android:textColor="#E2E8F0" android:textSize="12sp"/>
-                </RadioGroup>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="STRATEGY"
-                    android:textColor="#94A3B8"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.24"/>
-                <RadioGroup
-                    android:id="@+id/autoBetStrategyGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:orientation="horizontal">
-                    <RadioButton android:id="@+id/stratFlat" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Flat"        android:textColor="#E2E8F0" android:textSize="11sp"/>
-                    <RadioButton android:id="@+id/stratMart" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Martingale"  android:textColor="#E2E8F0" android:textSize="11sp"/>
-                    <RadioButton android:id="@+id/stratAnti" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Anti-Mart"   android:textColor="#E2E8F0" android:textSize="11sp"/>
+                    <RadioButton android:id="@+id/modeApp"     android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="App Signal" android:textColor="#E2E8F0" android:textSize="11sp"/>
+                    <RadioButton android:id="@+id/modeRandom"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Random"     android:textColor="#E2E8F0" android:textSize="11sp"/>
+                    <RadioButton android:id="@+id/modePattern" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Pattern"    android:textColor="#E2E8F0" android:textSize="11sp"/>
                 </RadioGroup>
 
                 <LinearLayout
