@@ -362,6 +362,96 @@ class AviatorFragment : Fragment() {
         }
     }
 
+    private fun renderSignalHistory(list: List<PredictionTracker.Result>) {
+        val ctx = context ?: return
+        if (list.isEmpty()) {
+            b.signalHistoryCard.visibility = View.GONE
+            return
+        }
+        b.signalHistoryCard.visibility = View.VISIBLE
+
+        val betOnly = list.filterNot { it.skipped }
+        val wins = betOnly.count { it.win }
+        val losses = betOnly.count { !it.win }
+        val skips = list.count { it.skipped }
+        val acc = if (wins + losses > 0) (wins * 100) / (wins + losses) else 0
+        b.signalHistoryStats.text = "${wins}W · ${losses}L · ${skips}S · ${acc}%"
+        b.signalHistoryStats.setTextColor(
+            when {
+                acc >= 60 -> 0xFF4ADE80.toInt()
+                acc >= 40 -> 0xFFFACC15.toInt()
+                else -> 0xFFF87171.toInt()
+            }
+        )
+
+        b.signalHistoryList.removeAllViews()
+        list.take(20).forEach { r -> b.signalHistoryList.addView(makeHistoryRow(ctx, r)) }
+    }
+
+    private fun makeHistoryRow(ctx: Context, r: PredictionTracker.Result): View {
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val pv = dp(ctx, 8f).toInt()
+            setPadding(0, pv, 0, pv)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        // divider background via bottom border
+        val divider = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(0x00000000)
+            setStroke(0, 0)
+        }
+        row.background = divider
+
+        fun cell(text: String, weight: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START or Gravity.CENTER_VERTICAL): TextView {
+            val tv = TextView(ctx)
+            tv.text = text
+            tv.setTextColor(color)
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            if (bold) tv.setTypeface(tv.typeface, android.graphics.Typeface.BOLD)
+            tv.gravity = gravity
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, weight)
+            tv.layoutParams = lp
+            return tv
+        }
+
+        row.addView(cell("#${r.roundId}", 1.1f, 0xFFCBD5F5.toInt(), bold = true))
+        row.addView(cell(r.label, 1f, 0xFF94A3B8.toInt()))
+        val crashColor = when {
+            r.crashX >= 10.0 -> 0xFFA78BFA.toInt()
+            r.crashX >= 2.0 -> 0xFF4ADE80.toInt()
+            else -> 0xFFEF4444.toInt()
+        }
+        row.addView(cell("%.2fx".format(r.crashX), 1f, crashColor, bold = true))
+
+        // Result badge
+        val badge = TextView(ctx)
+        val (bg, fg, txt) = when {
+            r.skipped -> Triple(0xFF3B82F6.toInt(), 0xFFFFFFFF.toInt(), "◌ SKIP")
+            r.win -> Triple(0xFF16A34A.toInt(), 0xFFFFFFFF.toInt(), "✓ WIN")
+            else -> Triple(0xFFDC2626.toInt(), 0xFFFFFFFF.toInt(), "✗ LOSS")
+        }
+        badge.text = txt
+        badge.setTextColor(fg)
+        badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        badge.setTypeface(badge.typeface, android.graphics.Typeface.BOLD)
+        badge.background = roundedBg(bg, 6f)
+        val padH = dp(ctx, 8f).toInt(); val padV = dp(ctx, 3f).toInt()
+        badge.setPadding(padH, padV, padH, padV)
+        badge.gravity = Gravity.CENTER
+        val badgeWrap = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.9f)
+            addView(badge)
+        }
+        row.addView(badgeWrap)
+        return row
+    }
+
     private fun makeChip(ctx: Context, x: Double): View {
         val tv = TextView(ctx)
         val (bg, fg) = when {
