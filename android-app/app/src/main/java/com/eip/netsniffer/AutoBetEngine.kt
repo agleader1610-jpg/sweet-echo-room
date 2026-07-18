@@ -11,7 +11,7 @@ import java.lang.ref.WeakReference
  * WinGo Auto-Bet Engine.
  *
  * 100% on-device. Reads WinGoStore signals, drives BetInjector against the
- * user's own WebView (BrowserFragment). No VPS, no /api/public/* traffic.
+ * user's own WebView (BrowserFragment). No VPS, no public API traffic.
  *
  * State machine (per period):
  *   IDLE       ─ engine off or no signal
