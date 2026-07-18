@@ -64,6 +64,25 @@ object AutoBetEngine {
         val nextBetAmount: Int = 0,
         val startedAtMs: Long = 0L,
         val stopAfterClear: Boolean = false,
+        // ---- API-truth fields (populated by AutoBetReconciler) ----
+        val apiBalance: Double? = null,           // real live balance from GetBalance
+        val apiCurrentIssue: String? = null,      // running issue from GetGameInfo
+        val apiLastSyncMs: Long = 0L,             // last successful reconciliation
+    )
+
+    /** Immutable snapshot of the game server's ground truth. */
+    data class ApiSnapshot(
+        val balance: Double?,
+        val currentIssue: String?,
+        val myBets: List<ApiBet>,
+    )
+    data class ApiBet(
+        val issueNumber: String,
+        val betContent: String,           // "BigSmall_Big" | "BigSmall_Small"
+        val state: Int,                   // 0 = pending, 1 = settled
+        val winLoseAmount: Double,        // >0 win, <0 loss (after settlement)
+        val betMultiple: Int,
+        val number: String,               // "0".."9" — resolved result
     )
 
     val config = MutableLiveData(Config())
