@@ -165,7 +165,7 @@ object AutoBetEngine {
                     lastNote = "✗ Place failed at ${res.stage}: ${res.note}",
                 ))
             }
-        }
+        }, issueNumber = targetIssue)
     }
 
     /** Called by WinGoFragment on every round resolve so engine tracks P/L. */
