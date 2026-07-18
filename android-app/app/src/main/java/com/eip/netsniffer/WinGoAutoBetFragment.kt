@@ -97,8 +97,8 @@ class WinGoAutoBetFragment : Fragment() {
                 if (n > cfgNow.steps) "$n/${cfgNow.steps}+" else "$n/${cfgNow.steps}"
             } else "—"
             b.abNextBet.text = if (st.nextBetPick != null && st.nextBetIssue != null)
-                "Next: ${st.nextBetPick} · ৳${st.nextBetAmount} · step $stepLbl  (#${st.nextBetIssue.takeLast(6)})"
-            else "Next: — · step $stepLbl"
+                "Trade: ${st.nextBetPick} · ৳${st.nextBetAmount} · step $stepLbl  (#${st.nextBetIssue.takeLast(6)})"
+            else "Trade: — · step $stepLbl"
             val apiLine = buildString {
                 append("GAME ${st.apiGameCode ?: \"detecting\"}  ")
                 if (st.apiBalance != null) append("💰 ৳%.2f  ".format(st.apiBalance))

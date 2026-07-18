@@ -177,7 +177,7 @@
                     android:layout_marginTop="10dp"
                     android:padding="8dp"
                     android:background="#0F1B33"
-                    android:text="Next: —"
+                    android:text="Trade: —"
                     android:textColor="#E2E8F0"
                     android:textSize="12sp"
                     android:fontFamily="@font/roboto_mono"/>
