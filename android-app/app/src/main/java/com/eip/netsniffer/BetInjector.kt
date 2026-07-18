@@ -3,25 +3,26 @@ package com.eip.netsniffer
 import android.os.Handler
 import android.os.Looper
 import android.webkit.WebView
+import org.json.JSONObject
 
 /**
- * Injects JavaScript into the game WebView to simulate a bet click flow.
+ * Places a bet by calling the game's own signed API from the WebView.
  *
- * Strategy: pure DOM click simulation of the game page's own UI, so every
- * request keeps the user's real cookies, session, User-Agent and phone IP.
- * No VPS/relay involvement, no signature reverse-engineering.
+ * Approach (learned from the working DK WIN userscript):
+ *   1) JsHook script sniffs Authorization + base + gameCode from any
+ *      /api/Lottery/* traffic and stashes them on window.__DK_TOKEN,
+ *      window.__DK_BASE, window.__DK_GAME.
+ *   2) window.__dkPlaceBet(payload) signs (MD5, sorted-scalar) and POSTs
+ *      directly to <base>/WinGoBet using the page's cookies + phone IP.
  *
- * Flow inside the injected JS:
- *   1) Find BIG/SMALL button by visible text (multiple fallbacks).
- *   2) Click it → opens the bet modal.
- *   3) Click amount preset (1 / 10 / 100 / 1000).
- *   4) Click multiplier preset (x1 / x5 / x10 / x50 / x100).
- *   5) Click Confirm button.
- *   6) Report result back via console log + callback.
+ * This bypasses the fragile DOM click flow (which was freezing at the
+ * "Total amount / Confirm" step) and is far more reliable.
+ *
+ * DOM click is kept as a last-resort fallback in case the token has not
+ * been captured yet (user hasn't opened WinGo tab this session).
  */
 object BetInjector {
 
-    /** Result of a placement attempt. */
     data class Result(val ok: Boolean, val stage: String, val note: String)
 
     private val ui = Handler(Looper.getMainLooper())
@@ -29,120 +30,121 @@ object BetInjector {
     fun placeBet(
         webView: WebView,
         pick: String,          // "BIG" or "SMALL"
-        amount: Int,           // 1, 10, 100, 1000
-        multiplier: Int,       // 1, 5, 10, 50, 100
+        amount: Int,           // base amount unit — usually 1
+        multiplier: Int,       // betMultiple — the real risk
         onDone: (Result) -> Unit,
+        issueNumber: String? = null,
+        gameCodeOverride: String? = null,
     ) {
-        val js = buildJs(pick, amount, multiplier)
+        val js = buildApiJs(pick, amount, multiplier, issueNumber, gameCodeOverride)
         ui.post {
             webView.evaluateJavascript(js) { raw ->
-                val cleaned = raw?.trim()?.trim('"')?.replace("\\\"", "\"") ?: ""
-                val ok = cleaned.startsWith("OK|")
-                val parts = cleaned.split("|", limit = 3)
-                val stage = parts.getOrNull(1) ?: "unknown"
-                val note = parts.getOrNull(2) ?: cleaned
-                onDone(Result(ok, stage, note))
+                val res = parseResult(raw)
+                if (res.ok) {
+                    onDone(res)
+                } else if (res.stage == "NO_TOKEN") {
+                    // Token not captured yet — fall back to DOM click once.
+                    webView.evaluateJavascript(buildDomJs(pick, amount, multiplier)) { raw2 ->
+                        onDone(parseResult(raw2))
+                    }
+                } else {
+                    onDone(res)
+                }
             }
         }
     }
 
-    private fun buildJs(pick: String, amount: Int, multiplier: Int): String {
+    private fun parseResult(raw: String?): Result {
+        val cleaned = (raw ?: "").trim()
+        // Result may be a JSON object (from Promise resolve) or a bare "OK|..." string.
+        if (cleaned.startsWith("{")) {
+            return try {
+                val o = JSONObject(cleaned)
+                Result(o.optBoolean("ok"), o.optString("stage"), o.optString("note"))
+            } catch (_: Exception) {
+                Result(false, "PARSE", cleaned)
+            }
+        }
+        val stripped = cleaned.trim('"').replace("\\\"", "\"")
+        val ok = stripped.startsWith("OK|")
+        val parts = stripped.split("|", limit = 3)
+        return Result(ok, parts.getOrNull(1) ?: "?", parts.getOrNull(2) ?: stripped)
+    }
+
+    private fun buildApiJs(
+        pick: String,
+        amount: Int,
+        multiplier: Int,
+        issueNumber: String?,
+        gameCodeOverride: String?,
+    ): String {
+        val betContent = if (pick.equals("BIG", true)) "BigSmall_Big" else "BigSmall_Small"
+        val issueLit = if (issueNumber.isNullOrBlank()) "null" else JSONObject.quote(issueNumber)
+        val gameLit = if (gameCodeOverride.isNullOrBlank()) "null" else JSONObject.quote(gameCodeOverride)
         // language=JavaScript
+        return """
+        (async function(){
+          try {
+            if (typeof window.__dkPlaceBet !== 'function') {
+              return JSON.stringify({ok:false, stage:'NO_HELPER', note:'__dkPlaceBet not installed — reload page'});
+            }
+            var gameCode = ($gameLit) || window.__DK_GAME || 'WinGo_30S';
+            var issue = ($issueLit);
+            if (!issue) {
+              // Best-effort: read the visible issue number from the page.
+              try {
+                var m = document.body.innerText.match(/\d{15,20}/);
+                if (m) issue = m[0];
+              } catch(e){}
+            }
+            if (!issue) return JSON.stringify({ok:false, stage:'NO_ISSUE', note:'could not resolve issueNumber'});
+            var payload = {
+              gameCode: gameCode,
+              issueNumber: String(issue),
+              amount: $amount,
+              betMultiple: $multiplier,
+              betContent: '$betContent'
+            };
+            var r = await window.__dkPlaceBet(payload);
+            return JSON.stringify(r || {ok:false, stage:'NO_RES', note:'no result'});
+          } catch(e){
+            return JSON.stringify({ok:false, stage:'EXC', note:String(e && e.message || e)});
+          }
+        })();
+        """.trimIndent()
+    }
+
+    /** Legacy DOM click fallback — used only if the token has not been captured. */
+    private fun buildDomJs(pick: String, amount: Int, multiplier: Int): String {
         return """
         (function(){
           try {
-            var PICK = '${pick.uppercase()}';           // BIG | SMALL
-            var AMT  = '${amount}';
-            var MULT = 'X${multiplier}';                 // X1, X5, X10, X50, X100
-            var log = [];
-            var report = function(ok, stage, note){
-              return (ok?'OK|':'ERR|') + stage + '|' + note + ' :: ' + log.join(' > ');
-            };
-            var norm = function(s){ return (s||'').replace(/\s+/g,' ').trim().toUpperCase(); };
-            var visible = function(el){
-              if(!el) return false;
-              var r = el.getBoundingClientRect();
-              return r.width>2 && r.height>2 && getComputedStyle(el).visibility!=='hidden' &&
-                     getComputedStyle(el).display!=='none';
-            };
-            var findByText = function(text, tags){
-              text = norm(text);
-              tags = tags || ['button','div','span','a','li'];
-              var out = [];
-              for (var i=0;i<tags.length;i++){
-                var els = document.querySelectorAll(tags[i]);
-                for (var j=0;j<els.length;j++){
-                  var el = els[j];
-                  var t = norm(el.textContent);
-                  if (!visible(el)) continue;
-                  if (t === text) out.push(el);
-                }
-              }
-              // shortest DOM depth first (usually more specific button)
-              out.sort(function(a,b){ return depth(a) - depth(b); });
-              return out;
-            };
-            var depth = function(el){ var n=0; while(el){ n++; el=el.parentElement; } return n; };
-            var click = function(el){
-              if (!el) return false;
-              try {
-                el.scrollIntoView({block:'center'});
-                var opts = {bubbles:true, cancelable:true, view:window};
-                el.dispatchEvent(new MouseEvent('mousedown', opts));
-                el.dispatchEvent(new MouseEvent('mouseup', opts));
-                el.dispatchEvent(new MouseEvent('click', opts));
-                return true;
-              } catch(e){ return false; }
-            };
-            var wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
-
-            // ---------- 1) Click BIG/SMALL ----------
-            var sizeTargets = findByText(PICK==='BIG'?'Big':'Small', ['div','button','span']);
-            if (sizeTargets.length === 0) {
-              // fallback: class hints
-              var cls = PICK==='BIG' ? '.big,.van-button--warning' : '.small,.van-button--info';
-              var alt = document.querySelectorAll(cls);
-              for (var k=0;k<alt.length;k++) if(visible(alt[k])) sizeTargets.push(alt[k]);
-            }
-            if (sizeTargets.length === 0) return report(false,'PICK','no '+PICK+' button found');
-            log.push('pick='+PICK);
-            click(sizeTargets[0]);
-
-            // ---------- 2) Wait for modal, pick amount + multiplier ----------
+            var PICK='${pick.uppercase()}', AMT='$amount', MULT='X$multiplier', log=[];
+            var norm=function(s){return (s||'').replace(/\s+/g,' ').trim().toUpperCase();};
+            var visible=function(el){if(!el)return false;var r=el.getBoundingClientRect();return r.width>2&&r.height>2;};
+            var findByText=function(text,tags){text=norm(text);tags=tags||['button','div','span','a','li'];var out=[];
+              for(var i=0;i<tags.length;i++){var els=document.querySelectorAll(tags[i]);for(var j=0;j<els.length;j++){var el=els[j];if(!visible(el))continue;if(norm(el.textContent)===text)out.push(el);}}
+              return out;};
+            var click=function(el){if(!el)return false;try{var o={bubbles:true,cancelable:true,view:window};el.dispatchEvent(new MouseEvent('mousedown',o));el.dispatchEvent(new MouseEvent('mouseup',o));el.dispatchEvent(new MouseEvent('click',o));return true;}catch(e){return false;}};
+            var wait=function(ms){return new Promise(function(r){setTimeout(r,ms);});};
+            var s=findByText(PICK==='BIG'?'Big':'Small',['div','button','span']);
+            if(!s.length) return 'ERR|PICK|no '+PICK;
+            click(s[0]); log.push('pick='+PICK);
             return (async function(){
-              await wait(350);
-              // amount preset
-              var amtBtns = findByText(AMT, ['div','span','button']);
-              if (amtBtns.length){ click(amtBtns[0]); log.push('amt='+AMT); }
-              else log.push('amt=MISSING');
-
+              await wait(300);
+              var a=findByText(AMT,['div','span','button']); if(a.length){click(a[0]);log.push('amt='+AMT);}
               await wait(150);
-              // multiplier preset (X1..X100)
-              var multBtns = findByText(MULT, ['div','span','button']);
-              if (!multBtns.length) multBtns = findByText(MULT.toLowerCase(), ['div','span','button']);
-              if (multBtns.length){ click(multBtns[0]); log.push('mult='+MULT); }
-              else log.push('mult=MISSING');
-
+              var mm=findByText(MULT,['div','span','button']); if(mm.length){click(mm[0]);log.push('mult='+MULT);}
               await wait(180);
-              // confirm — try many labels
-              var confirmLabels = ['Confirm','TOTAL AMOUNT','Total amount','Submit','OK','Ok','ঠিক আছে'];
-              var confirmBtn = null;
-              for (var i=0;i<confirmLabels.length;i++){
-                var arr = findByText(confirmLabels[i], ['button','div','span']);
-                if (arr.length){ confirmBtn = arr[arr.length-1]; break; }
-              }
-              if (!confirmBtn){
-                var alt = document.querySelector('.van-dialog__confirm, .btn-confirm, .confirm-btn, [class*="confirm"]');
-                if (alt && visible(alt)) confirmBtn = alt;
-              }
-              if (!confirmBtn) return report(false,'CONFIRM','no confirm button');
-              click(confirmBtn);
-              log.push('confirmed');
-              return report(true,'DONE', PICK+' amt='+AMT+' mult='+MULT);
+              var labels=['Confirm','TOTAL AMOUNT','Total amount','Submit','OK'];
+              var cb=null;
+              for(var i=0;i<labels.length;i++){var arr=findByText(labels[i],['button','div','span']);if(arr.length){cb=arr[arr.length-1];break;}}
+              if(!cb){cb=document.querySelector('.van-dialog__confirm,.btn-confirm,.confirm-btn,[class*="confirm"]');}
+              if(!cb) return 'ERR|CONFIRM|none';
+              click(cb); log.push('confirmed');
+              return 'OK|DOM|'+log.join('>');
             })();
-          } catch(e){
-            return 'ERR|EXCEPTION|'+(e && e.message ? e.message : e);
-          }
+          } catch(e){ return 'ERR|EXC|'+(e&&e.message||e); }
         })();
         """.trimIndent()
     }
