@@ -47,6 +47,7 @@ class AviatorFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, s: Bundle?) {
+        PredictionTracker.init(requireContext())
         AviatorStore.state.observe(viewLifecycleOwner) { renderState(it) }
         AviatorStore.rounds.observe(viewLifecycleOwner) { list ->
             list.firstOrNull()?.let { newest ->
@@ -61,6 +62,7 @@ class AviatorFragment : Fragment() {
             renderRounds(list)
         }
         PredictionTracker.stats.observe(viewLifecycleOwner) { renderTrackerStats(it) }
+        PredictionTracker.history.observe(viewLifecycleOwner) { renderSignalHistory(it) }
         b.clearBtn.setOnClickListener {
             AviatorStore.clear()
             PredictionTracker.reset()
