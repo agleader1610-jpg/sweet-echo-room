@@ -157,6 +157,7 @@ object AutoBetEngine {
             mode = p.getString(PREF_MODE, "APP") ?: "APP",
             durationMinutes = p.getInt(PREF_DURATION_MIN, 10).coerceIn(1, 1440),
             skipLowConfidence = p.getBoolean(PREF_SKIP_LOWCF, false),
+            useApiBalance = p.getBoolean(PREF_USE_API_BAL, false),
         )
     }
 
@@ -174,6 +175,7 @@ object AutoBetEngine {
             ?.putString(PREF_MODE, newCfg.mode)
             ?.putInt(PREF_DURATION_MIN, newCfg.durationMinutes)
             ?.putBoolean(PREF_SKIP_LOWCF, newCfg.skipLowConfidence)
+            ?.putBoolean(PREF_USE_API_BAL, newCfg.useApiBalance)
             ?.apply()
         pushConfig(newCfg)
         if (!newCfg.enabled) {
