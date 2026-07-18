@@ -26,6 +26,8 @@ import kotlin.math.pow
  */
 object AutoBetEngine {
     private const val TAG = "AutoBetEngine"
+    private const val MAX_SUBMIT_TRIES = 2
+    private const val SAFE_BET_SECONDS = 3
     private const val PREF = "net_sniffer"
     private const val PREF_ENABLED     = "autobet_on"
     private const val PREF_STEPS       = "autobet_steps"
@@ -67,7 +69,15 @@ object AutoBetEngine {
         // ---- API-truth fields (populated by AutoBetReconciler) ----
         val apiBalance: Double? = null,           // real live balance from GetBalance
         val apiCurrentIssue: String? = null,      // running issue from GetGameInfo
+        val apiGameCode: String? = null,          // WinGo_30S / WinGo_1M / etc from captured API
+        val apiRemainingSeconds: Int? = null,     // server-side seconds left for current issue
+        val apiTokenReady: Boolean = false,       // Authorization/base captured from DK Win WebView
+        val apiBaseReady: Boolean = false,
+        val apiLastError: String? = null,
         val apiLastSyncMs: Long = 0L,             // last successful reconciliation
+        val lastBetStage: String? = null,
+        val lastBetDetail: String? = null,
+        val lastBetAtMs: Long = 0L,
     )
 
     /** Immutable snapshot of the game server's ground truth. */
@@ -75,6 +85,17 @@ object AutoBetEngine {
         val balance: Double?,
         val currentIssue: String?,
         val myBets: List<ApiBet>,
+        val gameCode: String? = null,
+        val remainingSeconds: Int? = null,
+        val tokenReady: Boolean = false,
+        val baseReady: Boolean = false,
+        val lastError: String? = null,
+        val lastBetAck: ApiAck? = null,
+    )
+    data class ApiAck(
+        val ok: Boolean,
+        val stage: String,
+        val note: String,
     )
     data class ApiBet(
         val issueNumber: String,
@@ -93,7 +114,15 @@ object AutoBetEngine {
 
     // Per-issue state so we never fire more than 1 submit attempt on same period.
     // Once success = true, no more attempts on this issue, ever.
-    private data class IssueSlot(var tries: Int = 0, var success: Boolean = false, var inflight: Boolean = false, var resolved: Boolean = false, var submittedAtMs: Long = 0L)
+    private data class IssueSlot(
+        var tries: Int = 0,
+        var success: Boolean = false,
+        var inflight: Boolean = false,
+        var resolved: Boolean = false,
+        var submittedAtMs: Long = 0L,
+        var pick: String? = null,
+        var stake: Int = 0,
+    )
     private val issueSlots = HashMap<String, IssueSlot>()
     private var anchorLadder: List<Int> = emptyList()
     private var awaitingBalanceRebuild = false
@@ -214,8 +243,21 @@ object AutoBetEngine {
 
         // ── API-TRUTH GATE: never bet on a period that isn't the running one ──
         val apiIssue = st.apiCurrentIssue
-        if (apiIssue != null && apiIssue != targetIssue) {
+        if (apiIssue == null) {
+            note("Waiting for API current period … open DK Win and login")
+            return
+        }
+        if (!st.apiTokenReady || !st.apiBaseReady) {
+            note("Waiting for DK Win token … keep DK Win page logged in")
+            return
+        }
+        if (apiIssue != targetIssue) {
             note("API mismatch · running #${apiIssue.takeLast(6)} ≠ signal #${targetIssue.takeLast(6)}")
+            return
+        }
+        val secondsLeft = st.apiRemainingSeconds
+        if (secondsLeft != null && secondsLeft <= SAFE_BET_SECONDS) {
+            note("Skip #${targetIssue.takeLast(6)} · only ${secondsLeft}s left")
             return
         }
 
@@ -223,7 +265,7 @@ object AutoBetEngine {
         val slot = issueSlots.getOrPut(targetIssue) { IssueSlot() }
         if (slot.success) return              // already bet successfully this period
         if (slot.inflight) return              // request in progress
-        if (slot.tries >= 1) return            // one submit attempt only — prevents duplicate bet loop
+        if (slot.tries >= MAX_SUBMIT_TRIES) return  // bounded retry only when API confirms no order
 
         // ── Pick based on signal mode ────────────────────────────
         val pick: String = when (cfg.mode) {
@@ -269,7 +311,16 @@ object AutoBetEngine {
 
         slot.inflight = true
         slot.tries++
-        BetInjector.placeBet(wv, pick, amount = 1, multiplier = stake, issueNumber = targetIssue) { res ->
+        slot.pick = pick
+        slot.stake = stake
+        BetInjector.placeBet(
+            wv,
+            pick,
+            amount = 1,
+            multiplier = stake,
+            issueNumber = targetIssue,
+            gameCodeOverride = st.apiGameCode ?: "WinGo_30S",
+        ) { res ->
             slot.inflight = false
             val cur = state.value ?: State()
             if (res.ok) {
@@ -279,12 +330,17 @@ object AutoBetEngine {
                     placed = cur.placed + 1,
                     lastIssue = targetIssue,
                     stepPendingIssue = targetIssue,
+                    lastBetStage = res.stage,
+                    lastBetDetail = res.note,
+                    lastBetAtMs = System.currentTimeMillis(),
                     lastNote = "✓ Placed $pick ৳$stake · step $stepLabel · ${res.stage}",
                 ))
             } else {
-                // Do NOT clear the slot — no retry this period, so duplicate bets cannot loop.
                 pushState(cur.copy(
-                    lastNote = "✗ ${res.stage}: ${res.note} · no retry this period",
+                    lastBetStage = res.stage,
+                    lastBetDetail = res.note,
+                    lastBetAtMs = System.currentTimeMillis(),
+                    lastNote = "✗ ${res.stage}: ${res.note}" + if (slot.tries < MAX_SUBMIT_TRIES) " · retry if API still current" else " · stopped for this period",
                 ))
             }
         }
@@ -309,7 +365,8 @@ object AutoBetEngine {
         val cfg = config.value ?: Config()
 
 
-        val stake = st.nextBetAmount.takeIf { it > 0 } ?: 1
+        val stake = slot.stake.takeIf { it > 0 } ?: st.nextBetAmount.takeIf { it > 0 } ?: 1
+        val betPick = slot.pick ?: st.nextBetPick
         val delta = if (win) (stake * 96) / 100 else -stake  // ~1.96x payout
         val newStreak = when {
             win && st.streak >= 0 -> st.streak + 1
@@ -351,6 +408,8 @@ object AutoBetEngine {
             stepPendingIssue = null,
             highestStep = max(st.highestStep, newStepIdx + 1),
             lastResult = st.lastResult,  // updated separately via onOutcome below if needed
+            nextBetPick = betPick,
+            nextBetAmount = stake,
             lastNote = (if (win) "✓ WIN +৳$delta" else "✗ LOSS ৳$delta") +
                 " · step " + (if (stepNum > cfg.steps) "$stepNum/${cfg.steps}+" else "$stepNum/${cfg.steps}"),
         )
@@ -425,7 +484,15 @@ object AutoBetEngine {
         st = st.copy(
             apiBalance = snap.balance ?: st.apiBalance,
             apiCurrentIssue = snap.currentIssue ?: st.apiCurrentIssue,
+            apiGameCode = snap.gameCode ?: st.apiGameCode ?: "WinGo_30S",
+            apiRemainingSeconds = snap.remainingSeconds ?: st.apiRemainingSeconds,
+            apiTokenReady = snap.tokenReady,
+            apiBaseReady = snap.baseReady,
+            apiLastError = snap.lastError,
             apiLastSyncMs = System.currentTimeMillis(),
+            lastBetStage = snap.lastBetAck?.stage ?: st.lastBetStage,
+            lastBetDetail = snap.lastBetAck?.note ?: st.lastBetDetail,
+            lastBetAtMs = if (snap.lastBetAck != null) System.currentTimeMillis() else st.lastBetAtMs,
         )
         pushState(st)
         if (!cfg.enabled && st.stepPendingIssue == null) return
@@ -439,17 +506,20 @@ object AutoBetEngine {
                 // Common causes: network drop between POST and delivery, or signature reject.
                 // Grace period 15s before we declare it lost & release the slot.
                 val slot = issueSlots[pending]
-                if (slot != null && slot.success && System.currentTimeMillis() - (slot.submittedAtMs) > 15_000L) {
+                val ackFailed = snap.lastBetAck?.let { !it.ok && (it.stage == "API_ERR" || it.stage == "NET_ERR") } == true
+                val staleNoRecord = slot != null && slot.success && System.currentTimeMillis() - (slot.submittedAtMs) > 8_000L
+                if (slot != null && (ackFailed || staleNoRecord)) {
                     Log.w(TAG, "reconcile: pending #$pending has NO server record after 15s → releasing")
-                    // Release the slot so the next signal can attempt again on a NEW issue.
-                    // We do NOT count this as a placed bet (it never really reached the server).
+                    // Release the pending lock. If the same issue is still running and tries remain,
+                    // the API-driven signal pass below may retry exactly once; otherwise next issue waits.
                     slot.success = false
-                    slot.resolved = true
+                    slot.inflight = false
+                    slot.resolved = false
                     val cur = state.value ?: State()
                     pushState(cur.copy(
                         stepPendingIssue = null,
                         placed = (cur.placed - 1).coerceAtLeast(0),
-                        lastNote = "⚠ #${pending.takeLast(6)} not on server · slot released",
+                        lastNote = "⚠ #${pending.takeLast(6)} not on server · ${if (slot.tries < MAX_SUBMIT_TRIES) "retry armed" else "period blocked"}",
                     ))
                 }
             } else if (serverBet.state == 1) {
@@ -457,6 +527,12 @@ object AutoBetEngine {
                 val win = serverBet.winLoseAmount > 0.0
                 Log.i(TAG, "reconcile: API-settled #$pending win=$win Δ=${serverBet.winLoseAmount}")
                 onResolved(pending, win)
+                return
+            } else {
+                val cur = state.value ?: State()
+                if (cur.lastNote.startsWith("✓ Placed") || cur.lastNote.startsWith("⚠")) {
+                    pushState(cur.copy(lastNote = "Server confirmed pending #${pending.takeLast(6)} · waiting result"))
+                }
             }
         }
 
@@ -467,6 +543,28 @@ object AutoBetEngine {
             if (n != null) {
                 val outcome = if (n >= 5) "BIG" else "SMALL"
                 if (state.value?.lastResult != outcome) onOutcome(outcome)
+            }
+        }
+
+        // 3) API-driven auto-fire. This keeps auto-bet alive even when the user
+        // is on DK Win, Auto-Bet, or another tab; WinGoFragment UI is no longer required.
+        val current = snap.currentIssue ?: (state.value?.apiCurrentIssue) ?: return
+        val latest = state.value ?: return
+        if (cfg.enabled && latest.stepPendingIssue == null && !latest.stopAfterClear) {
+            val slot = issueSlots[current]
+            if (slot == null || (!slot.success && !slot.inflight && slot.tries < MAX_SUBMIT_TRIES)) {
+                val sig = if (WinGoStore.currentTargetIssue.value == current) {
+                    WinGoStore.currentSignal.value
+                } else {
+                    WinGoLogic.predict(WinGoStore.history.value ?: emptyList())
+                }
+                if (sig != null) {
+                    WinGoStore.currentTargetIssue.postValue(current)
+                    WinGoStore.currentSignal.postValue(sig)
+                    onSignal(current, sig)
+                } else {
+                    note("Waiting for WinGo history before trading #${current.takeLast(6)}")
+                }
             }
         }
     }
