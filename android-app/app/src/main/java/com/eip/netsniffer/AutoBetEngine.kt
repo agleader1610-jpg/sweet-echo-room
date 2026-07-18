@@ -392,26 +392,23 @@ object AutoBetEngine {
             else -> -1
         }
 
-        // Ladder progression
+        // Ladder progression:
+        //   WIN  → back to step 1, drop ladder, force API balance re-detect for the NEXT cycle.
+        //   LOSS → advance step within the SAME ladder (no rebuild, no re-detect).
         var newStepIdx = st.stepIdx
         var newLadder = st.ladder
         var newReady = st.ladderReady
+        var newRebuildAfter = st.balanceRebuildAfterMs
         val stepNum = st.stepIdx + 1
         if (win) {
-            if (stepNum <= cfg.steps) {
-                // WIN within ladder → rebuild from new balance next signal
-                newStepIdx = 0
-                newLadder = emptyList()
-                newReady = false
-                awaitingBalanceRebuild = false
-            } else {
-                // WIN beyond ladder → reset step 1, anchor plan
-                newStepIdx = 0
-                newLadder = if (anchorLadder.isNotEmpty()) anchorLadder else st.ladder
-                newReady = true
-            }
+            newStepIdx = 0
+            newLadder = emptyList()
+            newReady = false
+            awaitingBalanceRebuild = true
+            // Wait ~1.8s after resolve so payout reflects in GetBalance before rebuild.
+            newRebuildAfter = System.currentTimeMillis() + 1800L
         } else {
-            newStepIdx = st.stepIdx + 1  // LOSS → advance step
+            newStepIdx = st.stepIdx + 1  // LOSS → advance step (keep ladder, no re-detect)
         }
 
         val updated = st.copy(
