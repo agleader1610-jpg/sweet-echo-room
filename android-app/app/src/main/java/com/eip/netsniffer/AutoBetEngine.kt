@@ -36,6 +36,7 @@ object AutoBetEngine {
     private const val PREF_MODE        = "autobet_mode"          // APP | RANDOM | PATTERN
     private const val PREF_DURATION_MIN = "autobet_duration_min"
     private const val PREF_SKIP_LOWCF  = "autobet_skip_lowconf"
+    private const val PREF_USE_API_BAL = "autobet_use_api_balance"
 
     data class Config(
         val enabled: Boolean = false,
@@ -45,6 +46,7 @@ object AutoBetEngine {
         val mode: String = "APP",         // APP | RANDOM | PATTERN
         val durationMinutes: Int = 10,    // auto-off timer; finishes active ladder before stopping
         val skipLowConfidence: Boolean = false,
+        val useApiBalance: Boolean = false,   // OFF = use manual balance input; ON = use live API balance
     )
 
     data class State(
