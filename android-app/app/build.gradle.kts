@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 78
-        versionName = "1.0.78-autobet-balance-toggle"
+        versionCode = 79
+        versionName = "1.0.79-autobet-string-fix"
 
 
 
