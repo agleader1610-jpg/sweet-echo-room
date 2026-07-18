@@ -408,4 +408,65 @@ object AutoBetEngine {
         pushState(st.copy(lastNote = msg))
         Log.i(TAG, msg)
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  API-TRUTH RECONCILIATION (called every ~2s by AutoBetReconciler)
+    //  This is the money-safety layer:
+    //   - overwrites local state.apiBalance / apiCurrentIssue
+    //   - detects "SUBMITTED but no order at server" (network drop, sig reject)
+    //     → releases the slot so next signal can retry cleanly
+    //   - resolves win/loss from server data (state=1) instead of local guess
+    // ═══════════════════════════════════════════════════════════════════
+    fun applyReconciliation(snap: ApiSnapshot) {
+        val cfg = config.value ?: return
+        var st = state.value ?: State()
+
+        st = st.copy(
+            apiBalance = snap.balance ?: st.apiBalance,
+            apiCurrentIssue = snap.currentIssue ?: st.apiCurrentIssue,
+            apiLastSyncMs = System.currentTimeMillis(),
+        )
+        pushState(st)
+        if (!cfg.enabled && st.stepPendingIssue == null) return
+
+        // 1) Resolve any pending issue from authoritative server outcome.
+        val pending = st.stepPendingIssue
+        if (pending != null) {
+            val serverBet = snap.myBets.firstOrNull { it.issueNumber == pending }
+            if (serverBet == null) {
+                // Server has NO record of our submitted bet after we thought we placed.
+                // Common causes: network drop between POST and delivery, or signature reject.
+                // Grace period 15s before we declare it lost & release the slot.
+                val slot = issueSlots[pending]
+                if (slot != null && slot.success && System.currentTimeMillis() - (slot.submittedAtMs) > 15_000L) {
+                    Log.w(TAG, "reconcile: pending #$pending has NO server record after 15s → releasing")
+                    // Release the slot so the next signal can attempt again on a NEW issue.
+                    // We do NOT count this as a placed bet (it never really reached the server).
+                    slot.success = false
+                    slot.resolved = true
+                    val cur = state.value ?: State()
+                    pushState(cur.copy(
+                        stepPendingIssue = null,
+                        placed = (cur.placed - 1).coerceAtLeast(0),
+                        lastNote = "⚠ #${pending.takeLast(6)} not on server · slot released",
+                    ))
+                }
+            } else if (serverBet.state == 1) {
+                // Server settled it → authoritative win/loss.
+                val win = serverBet.winLoseAmount > 0.0
+                Log.i(TAG, "reconcile: API-settled #$pending win=$win Δ=${serverBet.winLoseAmount}")
+                onResolved(pending, win)
+            }
+        }
+
+        // 2) Feed last raw outcome for PATTERN mode from most recent settled bet.
+        val lastSettled = snap.myBets.firstOrNull { it.state == 1 && it.number.isNotEmpty() }
+        if (lastSettled != null) {
+            val n = lastSettled.number.toIntOrNull()
+            if (n != null) {
+                val outcome = if (n >= 5) "BIG" else "SMALL"
+                if (state.value?.lastResult != outcome) onOutcome(outcome)
+            }
+        }
+    }
 }
