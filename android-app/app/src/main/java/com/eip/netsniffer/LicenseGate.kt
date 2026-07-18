@@ -69,8 +69,8 @@ object LicenseGate {
 
     fun init(ctx: Context, deviceId: String?) {
         this.deviceId = deviceId
-        // TamperGuard runs first — a tampered/rooted/hooked build is
-        // permanently locked with a troll message, no server round-trip.
+        // TamperGuard runs first. Only real local hard tamper (package rename)
+        // blocks locally. Soft environment flags must never lock official APKs.
         if (TamperGuard.tampered) {
             state.postValue(State("LOCKED", TamperGuard.trollMessage(), null, null, tampered = true))
             return
@@ -171,7 +171,7 @@ object LicenseGate {
                     put("parent_invite_code", invite ?: JSONObject.NULL)
                     put("pkg", TamperGuard.packageName)
                     put("sig_sha256", TamperGuard.signatureSha256)
-                    put("tamper_flags", TamperGuard.reasons.joinToString(","))
+                    put("tamper_flags", if (TamperGuard.tampered) TamperGuard.reasons.joinToString(",") else "")
                 }
                 val text = postJson(ENDPOINT, body.toString()) ?: return@execute
                 val res = JSONObject(text)
