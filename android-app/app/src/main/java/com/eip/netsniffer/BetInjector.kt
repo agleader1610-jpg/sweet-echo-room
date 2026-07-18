@@ -10,7 +10,7 @@ import org.json.JSONObject
  *
  * Approach (learned from the working DK WIN userscript):
  *   1) JsHook script sniffs Authorization + base + gameCode from any
- *      /api/Lottery/* traffic and stashes them on window.__DK_TOKEN,
+ *      /api/Lottery/... traffic and stashes them on window.__DK_TOKEN,
  *      window.__DK_BASE, window.__DK_GAME.
  *   2) window.__dkPlaceBet(payload) signs (MD5, sorted-scalar) and POSTs
  *      directly to <base>/WinGoBet using the page's cookies + phone IP.
