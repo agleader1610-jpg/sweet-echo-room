@@ -274,6 +274,7 @@ object AutoBetEngine {
             val cur = state.value ?: State()
             if (res.ok) {
                 slot.success = true
+                slot.submittedAtMs = System.currentTimeMillis()
                 pushState(cur.copy(
                     placed = cur.placed + 1,
                     lastIssue = targetIssue,
