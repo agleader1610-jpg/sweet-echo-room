@@ -559,12 +559,12 @@ object JsHook {
           var ok = code === 0 || code === 200 || (j && (j.success === true || j.status === true));
           if (!ok && /success|succeed|accepted|bet/i.test(String(msg))) ok = true;
           window.__dkBetSlots[key].status = ok ? 'DONE' : 'API_ERR';
-          window.__dkBetSlots[key].result = {code:code, msg:msg, raw:t};
-          window.__dkLastBetAck = {ok:ok, stage:(ok?'DONE':'API_ERR'), note:(ok?'API OK':'code='+code+' '+msg)};
+            window.__dkBetSlots[key].result = {code:code, msg:msg, raw:t};
+            window.__dkLastBetAck = {ok:ok, stage:(ok?'DONE':'API_ERR'), note:(ok?'API OK':'code='+code+' '+msg), issueNumber:issue};
         }).catch(function(e){
           window.__dkBetSlots[key].status = 'NET_ERR';
           window.__dkBetSlots[key].result = String(e);
-          window.__dkLastBetAck = {ok:false, stage:'NET_ERR', note:String(e)};
+            window.__dkLastBetAck = {ok:false, stage:'NET_ERR', note:String(e), issueNumber:issue};
         });
         return {ok:true, stage:'SUBMITTED', note:'request sent · '+(payload.betContent||'')+' x'+(payload.betMultiple||1)};
       } catch(e){ return {ok:false, stage:'EXC', note:String(e)}; }

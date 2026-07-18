@@ -160,6 +160,7 @@ object AutoBetReconciler {
                         ok = it.optBoolean("ok", false),
                         stage = it.optString("stage", ""),
                         note = it.optString("note", ""),
+                        issueNumber = it.optString("issueNumber", "").ifBlank { null },
                     )
                 },
             )

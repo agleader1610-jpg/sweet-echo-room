@@ -96,6 +96,7 @@ object AutoBetEngine {
         val ok: Boolean,
         val stage: String,
         val note: String,
+        val issueNumber: String? = null,
     )
     data class ApiBet(
         val issueNumber: String,
@@ -506,7 +507,9 @@ object AutoBetEngine {
                 // Common causes: network drop between POST and delivery, or signature reject.
                 // Grace period 15s before we declare it lost & release the slot.
                 val slot = issueSlots[pending]
-                val ackFailed = snap.lastBetAck?.let { !it.ok && (it.stage == "API_ERR" || it.stage == "NET_ERR") } == true
+                val ackFailed = snap.lastBetAck?.let {
+                    it.issueNumber == pending && !it.ok && (it.stage == "API_ERR" || it.stage == "NET_ERR")
+                } == true
                 val staleNoRecord = slot != null && slot.success && System.currentTimeMillis() - (slot.submittedAtMs) > 8_000L
                 if (slot != null && (ackFailed || staleNoRecord)) {
                     Log.w(TAG, "reconcile: pending #$pending has NO server record after 15s → releasing")
