@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 79
-        versionName = "1.0.79-autobet-string-fix"
+        versionCode = 80
+        versionName = "1.0.80-lock-url"
 
 
 
