@@ -232,11 +232,14 @@
         </LinearLayout>
 
 
-        <!-- Section: URL -->
+        <!-- QUICK NAVIGATE section hidden — DK Win site is permanently loaded in Browser tab.
+             URL input + Go button kept in tree (visibility=gone) so MainActivity references
+             keep compiling without any logic change. -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="QUICK NAVIGATE"
+            android:visibility="gone"
             android:textColor="@color/muted"
             android:textSize="10sp"
             android:letterSpacing="0.2"
@@ -247,6 +250,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:visibility="gone"
             android:gravity="center_vertical">
 
             <EditText
