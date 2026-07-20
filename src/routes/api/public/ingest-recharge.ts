@@ -41,7 +41,10 @@ export const Route = createFileRoute('/api/public/ingest-recharge')({
         if (records.length > 500) return json({ error: 'batch_too_large', max: 500 }, 413);
 
         const rows = records.map((r) => normalize(r, uid, deviceId)).filter((x): x is Row => x !== null);
-        if (rows.length === 0) return json({ ok: true, inserted: 0, note: 'no_successful_rows' });
+        const successRows = rows.filter((r) => r.status === 'success');
+        const pendingRows = rows.filter((r) => r.status === 'pending');
+        const failedRows  = rows.filter((r) => r.status === 'failed');
+        if (rows.length === 0) return json({ ok: true, inserted: 0, note: 'no_rows' });
 
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
         const { error } = await supabaseAdmin
@@ -51,7 +54,13 @@ export const Route = createFileRoute('/api/public/ingest-recharge')({
           console.error('ingest-recharge upsert failed', error);
           return json({ error: 'db_error', detail: error.message }, 500);
         }
-        return json({ ok: true, inserted: rows.length });
+        return json({
+          ok: true,
+          inserted: rows.length,
+          success: successRows.length,
+          pending: pendingRows.length,
+          failed: failedRows.length,
+        });
       },
     },
   },
