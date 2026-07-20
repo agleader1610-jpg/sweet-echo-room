@@ -137,6 +137,7 @@ private class CoachOverlay(
     private val target: View,
     title: String,
     body: String,
+    private val accentColor: Int = 0xFFFFD54F.toInt(),
     private val onNext: () -> Unit,
 ) : FrameLayout(context) {
 
@@ -148,14 +149,15 @@ private class CoachOverlay(
     }
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFFFFD54F.toInt() // gold
+        color = accentColor
         strokeWidth = dp(3f)
     }
     private val ringOuterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0x55FFD54F
+        color = (accentColor and 0x00FFFFFF) or 0x55000000
         strokeWidth = dp(10f)
     }
+
 
     private val loc = IntArray(2)
     private var targetRect = RectF()
