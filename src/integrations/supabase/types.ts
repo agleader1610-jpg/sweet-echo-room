@@ -251,6 +251,30 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          target_uid: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          target_uid?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          target_uid?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       prediction_results: {
         Row: {
           actual_multiplier: number
