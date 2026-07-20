@@ -43,7 +43,7 @@ class AviatorFragment : Fragment() {
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentAviatorBinding.inflate(i, c, false)
-        return LicenseLockOverlay.wrap(this, b.root)
+        return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root))
     }
 
     override fun onViewCreated(view: View, s: Bundle?) {
