@@ -78,7 +78,6 @@ class AviatorFragment : Fragment() {
             if (checked) {
                 prefs.edit().putBoolean("wingo_overlay_on", false).apply()
                 WinGoStore.overlayEnabled.postValue(false)
-                ReviewNagger.maybeShow(this)
             }
         }
         AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->

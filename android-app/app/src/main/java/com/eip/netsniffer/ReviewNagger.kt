@@ -91,7 +91,7 @@ object ReviewNagger {
         wrap.animate().alpha(1f).translationY(0f).setDuration(280).start()
 
         card.setOnClickListener { dismiss(root, wrap) }
-        wrap.postDelayed({ dismiss(root, wrap) }, 6500)
+        wrap.postDelayed({ dismiss(root, wrap) }, 5000)
     }
 
     private fun dismiss(root: ViewGroup, wrap: View) {

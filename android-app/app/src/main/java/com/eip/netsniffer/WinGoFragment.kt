@@ -96,7 +96,6 @@ class WinGoFragment : Fragment() {
             if (checked) {
                 prefs.edit().putBoolean("vip_overlay_enabled", false).apply()
                 AviatorStore.overlayEnabled.postValue(false)
-                ReviewNagger.maybeShow(this)
             }
         }
         WinGoStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
