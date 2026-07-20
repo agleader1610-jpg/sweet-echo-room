@@ -86,7 +86,7 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications'>('license');
+  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications' | 'users'>('users');
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
