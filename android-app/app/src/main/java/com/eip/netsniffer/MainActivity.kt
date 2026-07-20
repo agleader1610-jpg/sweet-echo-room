@@ -61,7 +61,10 @@ class MainActivity : AppCompatActivity() {
 
         // Telegram channel invite on app open.
         b.root.post { showTelegramJoinDialog() }
+        // In-app review reminder (throttled).
+        b.root.postDelayed({ ReviewNagger.maybeShow(this) }, 3500)
     }
+
 
     // ---------------- Telegram join dialog ----------------
 
