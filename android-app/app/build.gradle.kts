@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 99
-        versionName = "1.0.99-simple-guide"
+        versionCode = 100
+        versionName = "1.0.100-smartcast-fix"
 
 
 
