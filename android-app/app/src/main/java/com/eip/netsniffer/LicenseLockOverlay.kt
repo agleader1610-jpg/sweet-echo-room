@@ -432,9 +432,54 @@ object LicenseLockOverlay {
             setPadding(0, dp(ctx, 10), 0, dp(ctx, 4))
         })
 
+        // After-register instruction card (Logout → Login → Recheck)
+        card.addView(TextView(ctx).apply {
+            text = AFTER_REGISTER_STEPS
+            setTextColor(0xFFBAE6FD.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
+            setLineSpacing(dp(ctx, 3).toFloat(), 1f)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                colors = intArrayOf(0x5502263B.toInt(), 0x33111827.toInt())
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+                setStroke(dp(ctx, 1), 0xFF22D3EE.toInt())
+            }
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 14) })
+
+        // Open DK Win tab (to perform Logout → Login there)
+        card.addView(Button(ctx).apply {
+            text = "🌐  OPEN DK WIN  (Logout → Login)"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            letterSpacing = 0.12f
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                colors = intArrayOf(0xFF0EA5E9.toInt(), 0xFF1E3A8A.toInt())
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+            }
+            setPadding(dp(ctx, 20), dp(ctx, 12), dp(ctx, 20), dp(ctx, 12))
+            setOnClickListener {
+                try {
+                    val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
+                        var c: Context? = cw
+                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        c as? MainActivity
+                    }
+                    act?.switchToBrowserTab()
+                } catch (_: Throwable) {}
+            }
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 12) })
+
         // Recheck button
         card.addView(Button(ctx).apply {
-            text = "🔄  RECHECK LOGIN"
+            text = "🔄  RECHECK  (Login শেষে চাপুন)"
             setTextColor(0xFFE2E8F0.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             background = GradientDrawable().apply {
