@@ -529,3 +529,111 @@ export const deleteNotification = createServerFn({ method: 'POST' })
     return { ok: true };
   });
 
+
+// ---- Usage stats (devices & users) ----------------------------------------
+
+export const getUsageStats = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUnlocked();
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+
+  const now = Date.now();
+  const day = new Date(now - 24 * 3600 * 1000).toISOString();
+  const week = new Date(now - 7 * 24 * 3600 * 1000).toISOString();
+  const month = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
+
+  // Pull recent-ish capture rows for device aggregation. Limit protects DB.
+  const { data: capRows } = await supabaseAdmin
+    .from('captures')
+    .select('device_id, created_at')
+    .not('device_id', 'is', null)
+    .gte('created_at', month)
+    .order('created_at', { ascending: false })
+    .limit(50000);
+
+  const deviceLast = new Map<string, string>();
+  const deviceCount = new Map<string, number>();
+  for (const r of capRows ?? []) {
+    const d = r.device_id as string;
+    if (!d) continue;
+    if (!deviceLast.has(d)) deviceLast.set(d, r.created_at as string);
+    deviceCount.set(d, (deviceCount.get(d) ?? 0) + 1);
+  }
+
+  // Total distinct devices across all time (via count trick on captures).
+  const { count: totalCaptures } = await supabaseAdmin
+    .from('captures')
+    .select('*', { count: 'exact', head: true });
+
+  const active24h = Array.from(deviceLast.values()).filter((t) => t >= day).length;
+  const active7d = Array.from(deviceLast.values()).filter((t) => t >= week).length;
+  const active30d = deviceLast.size;
+
+  const recentDevices = Array.from(deviceLast.entries())
+    .map(([device_id, last_seen]) => ({
+      device_id,
+      last_seen,
+      captures: deviceCount.get(device_id) ?? 0,
+    }))
+    .sort((a, b) => (a.last_seen < b.last_seen ? 1 : -1))
+    .slice(0, 100);
+
+  // Users (identified by uid extracted from snapshots)
+  const { data: snapRows } = await supabaseAdmin
+    .from('user_snapshots')
+    .select('uid, nick_name, user_name, phone, balance, device_id, captured_at, created_at')
+    .not('uid', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(20000);
+
+  const userMap = new Map<string, {
+    uid: string;
+    nick_name: string | null;
+    user_name: string | null;
+    phone: string | null;
+    balance: number | null;
+    device_id: string | null;
+    last_seen: string;
+  }>();
+  for (const r of snapRows ?? []) {
+    const uid = r.uid as string;
+    if (!uid) continue;
+    const last = (r.captured_at as string) ?? (r.created_at as string);
+    const existing = userMap.get(uid);
+    if (!existing || existing.last_seen < last) {
+      userMap.set(uid, {
+        uid,
+        nick_name: (r.nick_name as string | null) ?? existing?.nick_name ?? null,
+        user_name: (r.user_name as string | null) ?? existing?.user_name ?? null,
+        phone: (r.phone as string | null) ?? existing?.phone ?? null,
+        balance: (r.balance as number | null) ?? existing?.balance ?? null,
+        device_id: (r.device_id as string | null) ?? existing?.device_id ?? null,
+        last_seen: last,
+      });
+    }
+  }
+
+  const users = Array.from(userMap.values())
+    .sort((a, b) => (a.last_seen < b.last_seen ? 1 : -1))
+    .slice(0, 200);
+
+  const userLastSeens = Array.from(userMap.values()).map((u) => u.last_seen);
+  const users24h = userLastSeens.filter((t) => t >= day).length;
+  const users7d = userLastSeens.filter((t) => t >= week).length;
+
+  return {
+    devices: {
+      total: deviceLast.size, // devices seen in last 30d window
+      active24h,
+      active7d,
+      active30d,
+      totalCaptures: totalCaptures ?? 0,
+    },
+    users: {
+      total: userMap.size,
+      active24h: users24h,
+      active7d: users7d,
+    },
+    recentDevices,
+    recentUsers: users,
+  };
+});
