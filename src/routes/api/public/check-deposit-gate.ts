@@ -187,7 +187,7 @@ export const Route = createFileRoute('/api/public/check-deposit-gate')({
 
         const message = allowed
           ? ''
-          : `${title}\n\n${detail}\n\n${footer}`;
+          : `${title}\n\n${detail}`;
 
         return respond(supabaseAdmin, {
           uid, deviceId, game, allowed, reason, rule_source: ruleSource,
