@@ -56,6 +56,9 @@ object DepositGate {
         val message: String,
         val uid: String?,
         val game: String,
+        val lifetimeCount: Int = 0,
+        val recentCount: Int = 0,
+        val recencyDays: Int = 0,
     ) {
         val locked: Boolean get() = !allowed
     }
