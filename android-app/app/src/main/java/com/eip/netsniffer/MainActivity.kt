@@ -259,7 +259,7 @@ class MainActivity : AppCompatActivity() {
         // First-time spotlight on the SETUP tab so users know to watch the
         // setup videos before using Aviator / WinGo / Auto-Bet.
         view.post {
-            OnboardingCoach.maybeShowSetupSpotlight(this, tabNetwork)
+            OnboardingCoach.maybeShowSetupSpotlight(dialog, tabNetwork)
         }
 
     }
