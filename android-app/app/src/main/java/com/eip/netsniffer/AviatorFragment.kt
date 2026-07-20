@@ -46,10 +46,13 @@ class AviatorFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_AVIATOR))
     }
 
+    private var reviewShown = false
     override fun onResume() {
         super.onResume()
-        // Panel-এ ঢুকলে review reminder দেখাবে (5 second, throttled)।
-        view?.postDelayed({ ReviewNagger.maybeShow(this) }, 600)
+        if (!reviewShown) {
+            reviewShown = true
+            view?.postDelayed({ ReviewNagger.show(this) }, 600)
+        }
     }
 
 

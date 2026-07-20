@@ -1,7 +1,6 @@
 package com.eip.netsniffer
 
 import android.app.Activity
-import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -15,46 +14,36 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 
 /**
- * In-app review reminder. Slides a small premium banner from the top
- * telling the user to submit a review of their profit/loss, or their
- * account may be locked. Throttled so it doesn't spam.
+ * In-app review reminder. Shows once when the user opens the Aviator or
+ * WinGo panel. A "বুঝেছি" button dismisses it. No auto-hide, no cooldown,
+ * no other trigger points.
  */
 object ReviewNagger {
-    private const val PREFS = "eip_review_nag"
-    private const val KEY_LAST = "last_shown_at"
-    // Show at most once every 20 minutes.
-    private const val COOLDOWN_MS = 20 * 60 * 1000L
+    private const val TAG = "eip_review_nagger_tag"
 
     private const val TITLE = "📝 রিভিউ জমা দিন"
     private const val BODY =
         "আপনার গেম হিস্টোরি থেকে কেমন Profit / Loss হয়েছে সেটার রিভিউ অবশ্যই জমা দিন। " +
         "নয়তো আপনার account lock করে দেওয়া হতে পারে।"
 
-    fun maybeShow(activity: Activity?) {
+    fun show(activity: Activity?) {
         if (activity == null || activity.isFinishing || activity.isDestroyed) return
-        val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val now = System.currentTimeMillis()
-        if (now - prefs.getLong(KEY_LAST, 0L) < COOLDOWN_MS) return
-        prefs.edit().putLong(KEY_LAST, now).apply()
-        show(activity)
-    }
-
-    fun maybeShow(fragment: Fragment?) = maybeShow(fragment?.activity)
-
-    private fun show(activity: Activity) {
         val root = activity.window?.decorView as? ViewGroup ?: return
+        // Already visible → don't stack duplicates.
+        if (root.findViewWithTag<View>(TAG) != null) return
+
         val ctx = activity
         val dp = ctx.resources.displayMetrics.density
 
         val card = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding((16*dp).toInt(),(12*dp).toInt(),(16*dp).toInt(),(12*dp).toInt())
+            setPadding((16*dp).toInt(),(14*dp).toInt(),(16*dp).toInt(),(14*dp).toInt())
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 18f * dp
                 colors = intArrayOf(Color.parseColor("#0F172A"), Color.parseColor("#1E293B"))
                 orientation = GradientDrawable.Orientation.TL_BR
-                setStroke((int1dp(dp)), Color.parseColor("#F5C542"))
+                setStroke((1.5f * dp).toInt(), Color.parseColor("#F5C542"))
             }
             elevation = 16f * dp
         }
@@ -68,15 +57,35 @@ object ReviewNagger {
             text = BODY
             setTextColor(Color.parseColor("#E2E8F0"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0,(4*dp).toInt(),0,0)
+            setPadding(0,(4*dp).toInt(),0,(10*dp).toInt())
         })
 
+        val btn = TextView(ctx).apply {
+            text = "বুঝেছি"
+            setTextColor(Color.parseColor("#0F172A"))
+            setTypeface(typeface, Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            gravity = Gravity.CENTER
+            setPadding((22*dp).toInt(),(9*dp).toInt(),(22*dp).toInt(),(9*dp).toInt())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 12f * dp
+                colors = intArrayOf(Color.parseColor("#FFD54F"), Color.parseColor("#F5C542"))
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+            }
+        }
+        val btnLp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { gravity = Gravity.END }
+        card.addView(btn, btnLp)
+
         val wrap = FrameLayout(ctx).apply {
-            val lp = FrameLayout.LayoutParams(
+            tag = TAG
+            layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
             )
-            layoutParams = lp
             setPadding((14*dp).toInt(),(90*dp).toInt(),(14*dp).toInt(),0)
         }
         val cardLp = FrameLayout.LayoutParams(
@@ -90,16 +99,16 @@ object ReviewNagger {
         wrap.translationY = -30f * dp
         wrap.animate().alpha(1f).translationY(0f).setDuration(280).start()
 
-        card.setOnClickListener { dismiss(root, wrap) }
-        wrap.postDelayed({ dismiss(root, wrap) }, 5000)
+        btn.setOnClickListener { dismiss(wrap) }
     }
 
-    private fun dismiss(root: ViewGroup, wrap: View) {
-        wrap.animate().alpha(0f).translationY(-30f * root.resources.displayMetrics.density)
+    fun show(fragment: Fragment?) = show(fragment?.activity)
+
+    private fun dismiss(wrap: View) {
+        val dp = wrap.resources.displayMetrics.density
+        wrap.animate().alpha(0f).translationY(-30f * dp)
             .setDuration(220)
             .withEndAction { (wrap.parent as? ViewGroup)?.removeView(wrap) }
             .start()
     }
-
-    private fun int1dp(dp: Float) = (1.5f * dp).toInt()
 }
