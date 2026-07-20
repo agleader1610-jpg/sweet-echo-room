@@ -27,7 +27,7 @@ object DepositLockOverlay {
     private const val DEPOSIT_URL =
         "https://dkwin8.com/#/wallet/Recharge"
 
-    fun wrap(fragment: Fragment, content: View): View {
+    fun wrap(fragment: Fragment, content: View, game: String = DepositGate.GAME_AVIATOR): View {
         val ctx = content.context
         val fl = FrameLayout(ctx)
         fl.addView(
@@ -44,16 +44,16 @@ object DepositLockOverlay {
         ))
 
         fun apply() {
-            // Only show if the license gate is happy — otherwise LicenseLockOverlay owns the screen.
             val licenseLocked = LicenseGate.isLocked()
-            val depositLocked = DepositGate.isLocked()
+            val depositLocked = DepositGate.isLocked(game)
             overlay.visibility = if (!licenseLocked && depositLocked) View.VISIBLE else View.GONE
             if (overlay.visibility == View.VISIBLE) {
-                (overlay.tag as? (String) -> Unit)?.invoke(DepositGate.currentMessage())
+                @Suppress("UNCHECKED_CAST")
+                (overlay.tag as? (String) -> Unit)?.invoke(DepositGate.currentMessage(game))
             }
         }
         LicenseGate.state.observe(fragment.viewLifecycleOwner) { apply() }
-        DepositGate.state.observe(fragment.viewLifecycleOwner) { apply() }
+        DepositGate.stateFor(game).observe(fragment.viewLifecycleOwner) { apply() }
         apply()
         return fl
     }

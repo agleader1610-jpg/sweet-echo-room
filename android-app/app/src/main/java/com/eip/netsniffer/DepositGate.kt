@@ -3,6 +3,7 @@ package com.eip.netsniffer
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import org.json.JSONArray
 import org.json.JSONObject
@@ -14,28 +15,30 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * DepositGate — deposit-based access control layered on top of LicenseGate.
+ * DepositGate — per-game deposit-based access control layered on top of LicenseGate.
+ *
+ * Each game (aviator / wingo / wingo_auto) is checked and gated independently
+ * against two conditions on the server:
+ *   1. LIFETIME minimum successful deposits (one-time, persists forever)
+ *   2. RECENCY window (last N days must contain >= M successful deposits)
  *
  * Flow:
  *   1. CaptureStore forwards every NetEntry here via tryExtract().
- *   2. On the DK Win /webapi/Login response we grab the user's UID, set
- *      needsDailyRedirect=true (fires once per uid per day), and query
- *      the server for the current gate decision so the app can lock/unlock
- *      before the user even opens the Recharge History page.
- *   3. On any GetRechargeRecord response we forward the successful rows
- *      to /api/public/ingest-recharge and then re-check the gate.
- *   4. Result is cached (12h) for offline smoothness.
+ *   2. On Login: capture UID → set daily-redirect flag → prefetch all 3 games.
+ *   3. On GetRechargeRecord: upload successful rows → recheck all games.
+ *   4. Per-game LiveData drives DepositLockOverlay on each fragment.
  */
 object DepositGate {
     private const val TAG = "DepositGate"
     private const val PREFS = "eip_deposit"
-    private const val KEY_ALLOWED = "allowed"
-    private const val KEY_REASON = "reason"
-    private const val KEY_MSG = "message"
-    private const val KEY_LAST_CHECK = "last_check"
     private const val KEY_UID = "uid"
     private const val KEY_LAST_REDIRECT_PREFIX = "redirect_"
     private const val CACHE_TTL_MS = 12L * 60L * 60L * 1000L
+
+    const val GAME_AVIATOR = "aviator"
+    const val GAME_WINGO = "wingo"
+    const val GAME_WINGO_AUTO = "wingo_auto"
+    private val GAMES = listOf(GAME_AVIATOR, GAME_WINGO, GAME_WINGO_AUTO)
 
     private val INGEST_URL: String by lazy { assemble("in", "gest-", "rec", "harge") }
     private val CHECK_URL: String by lazy { assemble("che", "ck-de", "posit-", "gate") }
@@ -52,39 +55,54 @@ object DepositGate {
         val reason: String,
         val message: String,
         val uid: String?,
+        val game: String,
     ) {
         val locked: Boolean get() = !allowed
     }
 
-    val state = MutableLiveData(State(true, "unknown", "", null))
+    private val states: Map<String, MutableLiveData<State>> = GAMES.associateWith {
+        MutableLiveData(State(true, "unknown", "", null, it))
+    }
+
+    /** Combined "any game locked" — for backward compatibility. */
+    val state = MutableLiveData(State(true, "unknown", "", null, GAME_AVIATOR))
+
     /** Fires true exactly once when the app should push the browser to RechargeHistory. */
     val needsRedirect = MutableLiveData(false)
 
     private val exec = Executors.newSingleThreadExecutor()
     private var deviceId: String? = null
-    @Volatile private var lastCheckedKey: String? = null
+    @Volatile private var lastCheckedAt: Long = 0L
+
+    fun stateFor(game: String): LiveData<State> = states[game] ?: states[GAME_AVIATOR]!!
 
     fun init(ctx: Context, deviceId: String?) {
         this.deviceId = deviceId
         val p = prefs(ctx)
-        val allowed = p.getBoolean(KEY_ALLOWED, true)
-        val reason = p.getString(KEY_REASON, "unknown") ?: "unknown"
-        val msg = p.getString(KEY_MSG, "") ?: ""
         val uid = p.getString(KEY_UID, null)
-        state.postValue(State(allowed, reason, msg, uid))
-
-        val age = System.currentTimeMillis() - p.getLong(KEY_LAST_CHECK, 0L)
-        if (uid != null && age > CACHE_TTL_MS) check(ctx, uid)
+        GAMES.forEach { g ->
+            val allowed = p.getBoolean("allowed_$g", true)
+            val reason = p.getString("reason_$g", "unknown") ?: "unknown"
+            val msg = p.getString("msg_$g", "") ?: ""
+            states[g]?.postValue(State(allowed, reason, msg, uid, g))
+        }
+        recomputeCombined()
+        val age = System.currentTimeMillis() - p.getLong("last_check", 0L)
+        if (uid != null && age > CACHE_TTL_MS) checkAll(ctx, uid)
     }
 
-    fun isLocked(): Boolean = state.value?.locked == true
+    /** Legacy — true if ANY game is currently locked. */
+    fun isLocked(): Boolean = states.values.any { it.value?.locked == true }
+    /** Per-game lock check. */
+    fun isLocked(game: String): Boolean = states[game]?.value?.locked == true
 
-    fun currentMessage(): String = state.value?.message?.takeIf { it.isNotBlank() }
-        ?: "🔒 আজকের deposit history পাওয়া যায়নি। DK Win tab-এ গিয়ে deposit করুন।"
+    fun currentMessage(): String = currentMessage(GAME_AVIATOR)
+    fun currentMessage(game: String): String = states[game]?.value?.message?.takeIf { it.isNotBlank() }
+        ?: "🔒 এই game ব্যবহার করার জন্য deposit প্রয়োজন। DK Win tab-এ গিয়ে deposit করুন।"
 
     fun refresh(ctx: Context) {
         val uid = prefs(ctx).getString(KEY_UID, null) ?: state.value?.uid ?: return
-        check(ctx, uid)
+        checkAll(ctx, uid)
     }
 
     /** Called by CaptureStore.add for every network response. */
@@ -93,7 +111,6 @@ object DepositGate {
         val body = entry.resBody ?: return
         if (body.length < 2 || body.firstOrNull() != '{') return
 
-        // 1) Login response → capture UID + one-time daily redirect signal.
         val isLogin = url.contains("/webapi/login") || url.contains("/api/login") ||
                 url.contains("/auth/login") || url.contains("/user/login")
         if (isLogin) {
@@ -102,7 +119,6 @@ object DepositGate {
             return
         }
 
-        // 2) GetRechargeRecord → upload successful rows + recheck gate.
         if (url.contains("getrechargerecord") || url.contains("recharge/record") ||
             url.contains("rechargehistory") || url.contains("getrechargehistory")) {
             val uid = prefs(ctx).getString(KEY_UID, null) ?: state.value?.uid ?: return
@@ -115,7 +131,6 @@ object DepositGate {
         val p = prefs(ctx)
         p.edit().putString(KEY_UID, uid).apply()
 
-        // Daily-once redirect: keyed on uid + local date.
         val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
         val redirectKey = KEY_LAST_REDIRECT_PREFIX + uid
         val lastDay = p.getString(redirectKey, null)
@@ -123,10 +138,7 @@ object DepositGate {
             p.edit().putString(redirectKey, today).apply()
             needsRedirect.postValue(true)
         }
-
-        // Immediately verify against server so lock/unlock updates before
-        // the browser even finishes loading the Recharge History page.
-        check(ctx, uid)
+        checkAll(ctx, uid)
     }
 
     private fun extractUidFrom(body: String): String? {
@@ -175,25 +187,30 @@ object DepositGate {
                 }
                 val res = post(INGEST_URL, body.toString(), token)
                 Log.d(TAG, "recharge upload → $res")
-                check(appCtx, uid)
+                checkAll(appCtx, uid)
             } catch (t: Throwable) {
                 Log.w(TAG, "recharge upload failed: ${t.message}")
             }
         }
     }
 
-    private fun check(ctx: Context, uid: String) {
-        val key = "check:$uid"
-        if (key == lastCheckedKey) {
-            // still run; but avoid tight loop from repeated identical triggers
-        }
-        lastCheckedKey = key
+    private fun checkAll(ctx: Context, uid: String) {
+        val appCtx = ctx.applicationContext
+        // De-duplicate rapid consecutive calls within 500 ms.
+        val now = System.currentTimeMillis()
+        if (now - lastCheckedAt < 500L) return
+        lastCheckedAt = now
+        GAMES.forEach { g -> check(appCtx, uid, g) }
+    }
+
+    private fun check(ctx: Context, uid: String, game: String) {
         val appCtx = ctx.applicationContext
         exec.execute {
             try {
                 val body = JSONObject().apply {
                     put("uid", uid)
                     put("device_id", deviceId ?: JSONObject.NULL)
+                    put("game", game)
                 }
                 val txt = post(CHECK_URL, body.toString(), null) ?: return@execute
                 val j = JSONObject(txt)
@@ -201,19 +218,27 @@ object DepositGate {
                 val reason = j.optString("reason", "unknown")
                 val msg = j.optString("message", "")
                 prefs(appCtx).edit().apply {
-                    putBoolean(KEY_ALLOWED, allowed)
-                    putString(KEY_REASON, reason)
-                    putString(KEY_MSG, msg)
+                    putBoolean("allowed_$game", allowed)
+                    putString("reason_$game", reason)
+                    putString("msg_$game", msg)
                     putString(KEY_UID, uid)
-                    putLong(KEY_LAST_CHECK, System.currentTimeMillis())
+                    putLong("last_check", System.currentTimeMillis())
                     apply()
                 }
-                state.postValue(State(allowed, reason, msg, uid))
-                Log.d(TAG, "gate check → allowed=$allowed reason=$reason")
+                states[game]?.postValue(State(allowed, reason, msg, uid, game))
+                recomputeCombined()
+                Log.d(TAG, "[$game] gate → allowed=$allowed reason=$reason")
             } catch (t: Throwable) {
-                Log.w(TAG, "gate check failed: ${t.message}")
+                Log.w(TAG, "[$game] gate check failed: ${t.message}")
             }
         }
+    }
+
+    private fun recomputeCombined() {
+        // Combined = locked if any game is locked (drives legacy callers).
+        val firstLocked = states.values.firstOrNull { it.value?.locked == true }?.value
+        state.postValue(firstLocked ?: states[GAME_AVIATOR]?.value
+            ?: State(true, "unknown", "", null, GAME_AVIATOR))
     }
 
     private fun post(endpoint: String, json: String, ingestToken: String?): String? {
