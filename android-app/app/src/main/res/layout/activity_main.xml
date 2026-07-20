@@ -28,9 +28,9 @@
         android:id="@+id/bellWrap"
         android:layout_width="52dp"
         android:layout_height="52dp"
-        android:layout_gravity="bottom|start"
+        android:layout_gravity="top|start"
         android:layout_marginStart="18dp"
-        android:layout_marginBottom="28dp"
+        android:layout_marginTop="28dp"
         android:elevation="12dp"
         android:clickable="true"
         android:focusable="true">
