@@ -320,44 +320,56 @@ export type Database = {
         Row: {
           action: string
           ai_model: string | null
+          completion_tokens: number | null
           confidence: string | null
+          cost_credits: number | null
           created_at: string
           device_id: string | null
           id: number
           latency_ms: number | null
+          prompt_tokens: number | null
           raw: Json | null
           reasoning: string | null
           round_id: number
           source: string
           target_multiplier: number | null
+          total_tokens: number | null
         }
         Insert: {
           action: string
           ai_model?: string | null
+          completion_tokens?: number | null
           confidence?: string | null
+          cost_credits?: number | null
           created_at?: string
           device_id?: string | null
           id?: number
           latency_ms?: number | null
+          prompt_tokens?: number | null
           raw?: Json | null
           reasoning?: string | null
           round_id: number
           source: string
           target_multiplier?: number | null
+          total_tokens?: number | null
         }
         Update: {
           action?: string
           ai_model?: string | null
+          completion_tokens?: number | null
           confidence?: string | null
+          cost_credits?: number | null
           created_at?: string
           device_id?: string | null
           id?: number
           latency_ms?: number | null
+          prompt_tokens?: number | null
           raw?: Json | null
           reasoning?: string | null
           round_id?: number
           source?: string
           target_multiplier?: number | null
+          total_tokens?: number | null
         }
         Relationships: []
       }
