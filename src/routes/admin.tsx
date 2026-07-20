@@ -21,6 +21,7 @@ import {
   createNotification,
   deleteNotification,
   getUsageStats,
+  getAiUsageStats,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
@@ -86,7 +87,7 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications' | 'users'>('users');
+  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications' | 'users' | 'ai'>('users');
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
@@ -113,6 +114,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               className={`px-3 py-1.5 rounded text-sm ${tab === 'analytics' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               📊 Analytics
             </button>
+            <button onClick={() => setTab('ai')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'ai' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              🤖 AI Usage
+            </button>
             <button onClick={() => setTab('update')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'update' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               🚀 App Update
@@ -126,6 +131,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         : tab === 'deposit' ? <DepositTab />
         : tab === 'notifications' ? <NotificationsTab />
         : tab === 'users' ? <UsersTab />
+        : tab === 'ai' ? <AiUsageTab />
         : <LicenseTab />}
     </div>
   );
