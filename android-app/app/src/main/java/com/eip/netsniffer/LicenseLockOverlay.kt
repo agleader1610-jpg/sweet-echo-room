@@ -35,7 +35,10 @@ object LicenseLockOverlay {
         "⚠️ গুরুত্বপূর্ণ সতর্কতা\n\nMultiple account থেকে বিরত থাকার জন্য register করার আগে অবশ্যই আপনার IP পরিবর্তন করতে হবে।\n\n👉 Mobile Data চালু থাকলে: Data বন্ধ করুন → Flight Mode একবার On / Off করুন → আবার Data চালু করুন।\n\n👉 Wi-Fi চালু থাকলে: Wi-Fi একবার Off করে আবার On করুন।\n\nএরপর নিচের REGISTER NOW বাটনে চাপ দিন। নতুন IP-তে register করলে multiple account হিসেবে detect হবে না, account safe থাকবে।"
 
     private const val MAIN_MSG =
-        "আপনি আমাদের টিমে account করেননি, তাই আপনাকে অবশ্যই আমাদের টিমে account করতে হবে। নিচের REGISTER NOW বাটনে click করে account তৈরি করুন।"
+        "আপনি এখনো আমাদের EIP TEAM-এর under-এ account করেননি। নিচের ধাপগুলো ঠিকভাবে follow করুন —\n\n① নিচের REGISTER NOW বাটনে click করুন। এতে পুরনো cookies clear হয়ে DK Win-এর register page খুলবে (invite code আগে থেকেই বসানো থাকবে)।\n\n② নতুন account তৈরি করুন। Register শেষ হলে DK Win আপনাকে সরাসরি auto-login করিয়ে দেবে — কিন্তু এই auto-login-এ login API run হয় না, তাই আমরা আপনার parent invite code capture করতে পারি না।\n\n③ এই কারণে অবশ্যই DK Win-এর ভেতরে গিয়ে একবার Logout করুন, তারপর সেই একই UID + password দিয়ে আবার নিজে হাতে Login করুন। এবার login API run হবে এবং আমরা আপনার team verify করতে পারব।\n\n④ Login সফল হলে এই screen-এ ফিরে এসে নিচের RECHECK বাটনে চাপ দিন — সব ঠিক থাকলে system unlock হয়ে যাবে।"
+
+    private const val AFTER_REGISTER_STEPS =
+        "📋 REGISTER-এর পরে অবশ্যই করণীয়:\n\n1️⃣  DK Win tab-এ যান → Profile / Account menu খুলুন → Logout চাপুন।\n\n2️⃣  আবার Login button-এ চাপ দিয়ে নিজে হাতে UID ও password লিখে Login করুন (auto-login নয়)।\n\n3️⃣  Login সফল হওয়ার পর এই screen-এ ফিরে এসে RECHECK চাপুন।\n\n❗ Logout না করে RECHECK দিলে verify হবে না, কারণ register-এর auto-login-এ login API call হয় না।"
 
 
 
