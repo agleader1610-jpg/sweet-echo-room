@@ -129,11 +129,12 @@ export const Route = createFileRoute('/api/public/check-deposit-gate')({
           const { count } = await supabaseAdmin
             .from('user_deposits')
             .select('*', { count: 'exact', head: true })
-            .eq('uid', uid);
+            .eq('uid', uid)
+            .eq('status', 'success');
           lifetimeCount = Number(count) || 0;
         }
 
-        // Recency count (window).
+        // Recency count (window) — only successful.
         let recentCount = 0;
         let lastInWindow: string | null = null;
         if (recencyDays > 0) {
@@ -142,6 +143,7 @@ export const Route = createFileRoute('/api/public/check-deposit-gate')({
             .from('user_deposits')
             .select('deposited_at', { count: 'exact' })
             .eq('uid', uid)
+            .eq('status', 'success')
             .gte('deposited_at', cutoff)
             .order('deposited_at', { ascending: false })
             .limit(1);
@@ -149,45 +151,62 @@ export const Route = createFileRoute('/api/public/check-deposit-gate')({
           lastInWindow = recent?.[0]?.deposited_at ?? null;
         }
 
+        // Diagnostic: how many pending / failed attempts has DK Win recorded?
+        const { count: pendingCount } = await supabaseAdmin
+          .from('user_deposits')
+          .select('*', { count: 'exact', head: true })
+          .eq('uid', uid)
+          .eq('status', 'pending');
+        const { count: failedCount } = await supabaseAdmin
+          .from('user_deposits')
+          .select('*', { count: 'exact', head: true })
+          .eq('uid', uid)
+          .eq('status', 'failed');
+        const pending = Number(pendingCount) || 0;
+        const failed  = Number(failedCount) || 0;
+
         const lifetimeOK = lifetimeMin === 0 || lifetimeCount >= lifetimeMin;
         const recencyOK  = recencyDays === 0 || recentCount >= recencyMin;
         const allowed = lifetimeOK && recencyOK;
         const lastDep = lastInWindow ?? (await lastDeposit(supabaseAdmin, uid));
 
-        // Smart, staged messages — reveal information progressively so users
-        // never see raw "you need N deposits" numbers up-front. First-time
-        // users see a clean prompt; after their first deposit lands, we
-        // acknowledge it and only then hint at how many more (if any) are
-        // needed; once lifetime is satisfied we speak only about recency.
         let reason = 'deposit_ok';
         let title = ''; let detail = ''; let footer = '';
         const label = GAME_LABEL[game];
         const refreshHint = 'Deposit সম্পন্ন করে নিচের 🔄 REFRESH DEPOSIT STATUS বাটনে চাপ দিন — কয়েক সেকেন্ডেই automatic unlock হয়ে যাবে।';
 
+        // Diagnostic addendum — help user understand *why* their deposits
+        // are not counting (DK Win marked them failed or still pending).
+        let diag = '';
+        if (failed > 0 && pending > 0) {
+          diag = `\n\n⚠️ DK Win-এ আপনার ${failed} টি deposit **Failed** এবং ${pending} টি **Pending** অবস্থায় আছে। শুধু **Success** হওয়া deposit-ই গোনা হয়। Deposit fail হলে সেই টাকা দিয়ে গেম unlock হবে না — নতুন করে সফল deposit করতে হবে।`;
+        } else if (failed > 0) {
+          diag = `\n\n⚠️ DK Win-এ আপনার ${failed} টি deposit **Failed / Cancelled** হয়ে গেছে। Failed deposit থেকে টাকা account-এ যায় না, তাই সেটা গণনায় ধরা হয় না। নতুন করে সফল deposit করুন।`;
+        } else if (pending > 0) {
+          diag = `\n\n⏳ DK Win-এ আপনার ${pending} টি deposit এখনো **Pending** অবস্থায় আছে। DK Win-এর payment gateway থেকে confirm হওয়ার পর automatic গোনা হবে।`;
+        }
+
         if (!lifetimeOK && lifetimeCount === 0) {
-          // Stage 1 — কোনো deposit-ই নেই। সংখ্যা লুকান, সহজ ভাষায় বলুন।
           reason = 'lifetime_missing';
           title  = `${label} unlock করতে Deposit করুন`;
           detail = `${label} feature টি ব্যবহার করার জন্য আপনাকে DK Win-এ একটি successful Deposit করতে হবে।`;
           footer = refreshHint;
         } else if (!lifetimeOK && lifetimeCount > 0) {
-          // Stage 2 — কিছু deposit আছে, acknowledge করে বাকিটা জানান।
           reason = 'lifetime_missing';
           const remaining = Math.max(1, lifetimeMin - lifetimeCount);
-          title  = `✅ আপনার ${lifetimeCount} টি Deposit detect হয়েছে`;
-          detail = `${label} সম্পূর্ণ unlock করতে আরও ${remaining} টি Deposit প্রয়োজন।`;
+          title  = `✅ আপনার ${lifetimeCount} টি successful Deposit detect হয়েছে`;
+          detail = `${label} সম্পূর্ণ unlock করতে আরও ${remaining} টি successful Deposit প্রয়োজন।`;
           footer = refreshHint;
         } else if (!recencyOK) {
-          // Stage 3 — শুধু recency window বাকি। সংখ্যা লুকিয়ে সহজভাবে বলুন।
           reason = 'recency_missing';
           title  = `${label} আবার unlock করুন`;
-          detail = `${label} ব্যবহার চালু রাখতে একটি সাম্প্রতিক Deposit প্রয়োজন। একটি নতুন Deposit করলেই feature টি সাথে সাথে unlock হয়ে যাবে।`;
+          detail = `${label} ব্যবহার চালু রাখতে একটি সাম্প্রতিক successful Deposit প্রয়োজন। একটি নতুন Deposit করলেই feature টি সাথে সাথে unlock হয়ে যাবে।`;
           footer = refreshHint;
         }
 
         const message = allowed
           ? ''
-          : `${title}\n\n${detail}`;
+          : `${title}\n\n${detail}${diag}`;
 
         return respond(supabaseAdmin, {
           uid, deviceId, game, allowed, reason, rule_source: ruleSource,
