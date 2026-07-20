@@ -49,32 +49,23 @@ object TamperGuard {
     )
 
     fun init(ctx: Context) {
-        val hard = mutableListOf<String>()  // locks the app
-        val soft = mutableListOf<String>()  // reported to server only
+        // NOTE: All in-app tamper LOCKING is disabled by design.
+        // File-level decoys (assets/_hack_tools/, _admin_master_bypass/, etc.)
+        // and server-side signature allowlist remain the real guard.
+        // We still compute packageName + signatureSha256 so the server can
+        // enforce policy, but we never surface warnings or lock UI locally.
+        val soft = mutableListOf<String>()
         try {
             val app = ctx.applicationContext
             packageName = app.packageName
-            // Package rename = true repackaged clone → hard lock.
-            if (packageName != EXPECTED_PACKAGE) hard += "pkg_renamed:$packageName"
-
-            // Everything below is UNRELIABLE on real user phones
-            // (Magisk/MT Manager/rooted daily-drivers/x86 tablets/etc).
-            // Report to server for logging, but NEVER lock locally —
-            // signature allowlist on the server is the real guard.
-            if (Debug.isDebuggerConnected() || Debug.waitingForDebugger()) soft += "debugger_attached"
-            if (isRooted()) soft += "root_detected"
-            if (isFridaPresent()) soft += "frida_detected"
-            findHookApp(app.packageManager)?.let { soft += "hook_app:$it" }
-            if (isEmulator()) soft += "emulator_detected"
-
+            if (packageName != EXPECTED_PACKAGE) soft += "pkg_renamed:$packageName"
             signatureSha256 = computeSignatureSha256(app)
         } catch (t: Throwable) {
             Log.w(TAG, "check failed: ${t.message}")
         }
 
-        reasons = (hard + soft).toList()
-        tampered = hard.isNotEmpty()
-        if (reasons.isNotEmpty()) Log.w(TAG, "flags: ${reasons.joinToString()} (hard=${hard.size})")
+        reasons = soft.toList()
+        tampered = false // never lock in-app; server decides via signature
     }
 
 
