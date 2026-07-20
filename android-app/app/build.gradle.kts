@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 106
-        versionName = "1.0.106-fullscreen-video"
+        versionCode = 107
+        versionName = "1.0.107-safe-video-links"
 
 
 
