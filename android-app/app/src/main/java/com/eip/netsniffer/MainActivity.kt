@@ -255,6 +255,13 @@ class MainActivity : AppCompatActivity() {
         view.animate().alpha(1f).translationY(0f).setDuration(220).start()
 
         dialog.show()
+
+        // First-time spotlight on the SETUP tab so users know to watch the
+        // setup videos before using Aviator / WinGo / Auto-Bet.
+        view.post {
+            OnboardingCoach.maybeShowSetupSpotlight(this, tabNetwork)
+        }
+
     }
 
     private fun getBrowserFragment(): BrowserFragment? {

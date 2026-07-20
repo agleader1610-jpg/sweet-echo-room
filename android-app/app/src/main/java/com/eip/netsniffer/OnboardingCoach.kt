@@ -27,6 +27,7 @@ import android.widget.TextView
 object OnboardingCoach {
     private const val PREF = "eip_onboarding"
     private const val KEY_DONE = "coach_v1_done"
+    private const val KEY_SETUP_DONE = "coach_setup_v1_done"
 
     fun maybeShow(activity: Activity, bellTarget: View, vipTarget: View) {
         val prefs = activity.getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -40,11 +41,49 @@ object OnboardingCoach {
         }
     }
 
+    /**
+     * One-time spotlight on the SETUP tab inside the launcher sheet — red mark
+     * + Bengali explanation that user MUST watch setup videos first.
+     */
+    fun maybeShowSetupSpotlight(activity: Activity, setupTarget: View) {
+        val prefs = activity.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_SETUP_DONE, false)) return
+        setupTarget.post {
+            val root = activity.window.decorView as ViewGroup
+            (0 until root.childCount)
+                .map { root.getChildAt(it) }
+                .filterIsInstance<CoachOverlay>()
+                .forEach { root.removeView(it) }
+            val overlay = CoachOverlay(
+                activity,
+                setupTarget,
+                "⚙️ SETUP — সবার আগে এটি দেখুন",
+                "এই SETUP tab-এ ৩টি ছোট video আছে:\n" +
+                    "• ✈ AVIATOR কীভাবে চালু করবেন\n" +
+                    "• 🎲 WIN GO কীভাবে চালু করবেন\n" +
+                    "• 🤖 AUTO-BET কীভাবে on করবেন\n\n" +
+                    "প্রথমে এই ৩টি video ভালো করে দেখে নিন, তারপর বাকি tab-গুলো ব্যবহার করুন। " +
+                    "না দেখলে signal ও auto-bet সঠিকভাবে কাজ করবে না।",
+                accentColor = 0xFFFF3B3B.toInt(),
+            ) {
+                prefs.edit().putBoolean(KEY_SETUP_DONE, true).apply()
+            }
+            root.addView(
+                overlay,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+    }
+
     @Suppress("unused")
     fun resetForDebug(context: Context) {
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-            .edit().remove(KEY_DONE).apply()
+            .edit().remove(KEY_DONE).remove(KEY_SETUP_DONE).apply()
     }
+
 
     private fun showStep(
         activity: Activity,
@@ -98,6 +137,7 @@ private class CoachOverlay(
     private val target: View,
     title: String,
     body: String,
+    private val accentColor: Int = 0xFFFFD54F.toInt(),
     private val onNext: () -> Unit,
 ) : FrameLayout(context) {
 
@@ -109,14 +149,15 @@ private class CoachOverlay(
     }
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFFFFD54F.toInt() // gold
+        color = accentColor
         strokeWidth = dp(3f)
     }
     private val ringOuterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0x55FFD54F
+        color = (accentColor and 0x00FFFFFF) or 0x55000000
         strokeWidth = dp(10f)
     }
+
 
     private val loc = IntArray(2)
     private var targetRect = RectF()
@@ -142,13 +183,13 @@ private class CoachOverlay(
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = dp(16f)
                 setColor(0xFF1E1B2E.toInt())
-                setStroke(dpi(1), 0x66FFD54F)
+                setStroke(dpi(1), (accentColor and 0x00FFFFFF) or 0x66000000)
             }
             elevation = dp(8f)
         }
         card.addView(TextView(ctx).apply {
             text = title
-            setTextColor(0xFFFFD54F.toInt())
+            setTextColor(accentColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
         })
@@ -174,8 +215,9 @@ private class CoachOverlay(
             stateListAnimator = null
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = dp(10f)
-                setColor(0xFFFFD54F.toInt())
+                setColor(accentColor)
             }
+
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dpi(42)
