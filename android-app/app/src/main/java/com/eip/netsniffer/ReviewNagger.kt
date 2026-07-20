@@ -104,6 +104,32 @@ object ReviewNagger {
 
     fun show(fragment: Fragment?) = show(fragment?.activity)
 
+    // One-shot dedupe so review shows at most once per fragment instance.
+    private val shownFor = java.util.WeakHashMap<Fragment, Boolean>()
+
+    /**
+     * Show review reminder ONLY when the given tab is fully unlocked
+     * (LicenseGate = LICENSED  AND  DepositGate allowed for this game).
+     * Fires at most once per fragment instance. Safe to call from onViewCreated.
+     */
+    fun showWhenUnlocked(fragment: Fragment, game: String) {
+        if (shownFor.containsKey(fragment)) return
+        val tryShow = tryShow@ {
+            if (shownFor.containsKey(fragment)) return@tryShow
+            val act = fragment.activity ?: return@tryShow
+            if (act.isFinishing || act.isDestroyed) return@tryShow
+            val licensed = LicenseGate.state.value?.status == "LICENSED"
+            val depositOk = !DepositGate.isLocked(game)
+            if (licensed && depositOk) {
+                shownFor[fragment] = true
+                show(act)
+            }
+        }
+        LicenseGate.state.observe(fragment.viewLifecycleOwner) { tryShow() }
+        DepositGate.stateFor(game).observe(fragment.viewLifecycleOwner) { tryShow() }
+        fragment.view?.postDelayed({ tryShow() }, 600)
+    }
+
     private fun dismiss(wrap: View) {
         val dp = wrap.resources.displayMetrics.density
         wrap.animate().alpha(0f).translationY(-30f * dp)
@@ -112,3 +138,4 @@ object ReviewNagger {
             .start()
     }
 }
+

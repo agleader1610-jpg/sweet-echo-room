@@ -46,17 +46,16 @@ class AviatorFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_AVIATOR))
     }
 
-    private var reviewShown = false
-    override fun onResume() {
-        super.onResume()
-        if (!reviewShown) {
-            reviewShown = true
-            view?.postDelayed({ ReviewNagger.show(this) }, 600)
-        }
-    }
+    // Review reminder is armed once per fragment instance and only fires
+    // when the Aviator tab is actually unlocked (License + Deposit gates).
+    // Handled inside ReviewNagger.showWhenUnlocked — no auto-show here.
+
+
 
 
     override fun onViewCreated(view: View, s: Bundle?) {
+        ReviewNagger.showWhenUnlocked(this, DepositGate.GAME_AVIATOR)
+
         PredictionTracker.init(requireContext())
         AviatorStore.state.observe(viewLifecycleOwner) { renderState(it) }
         AviatorStore.rounds.observe(viewLifecycleOwner) { list ->
