@@ -48,14 +48,10 @@ class WinGoFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_WINGO))
     }
 
-    private var reviewShown = false
-    override fun onResume() {
-        super.onResume()
-        if (!reviewShown) {
-            reviewShown = true
-            view?.postDelayed({ ReviewNagger.show(this) }, 600)
-        }
-    }
+    // Review reminder handled by ReviewNagger.showWhenUnlocked — fires only
+    // when both LicenseGate and DepositGate report unlocked for this tab.
+
+
 
 
     override fun onViewCreated(view: View, s: Bundle?) {
