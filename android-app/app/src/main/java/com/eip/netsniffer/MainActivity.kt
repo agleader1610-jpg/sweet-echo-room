@@ -27,8 +27,22 @@ class MainActivity : AppCompatActivity() {
         TamperGuard.init(applicationContext)
         val devId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
         LicenseGate.init(applicationContext, devId)
+        DepositGate.init(applicationContext, devId)
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
+
+        // Deposit gate: once per uid per day, force browser to RechargeHistory
+        // so GetRechargeRecord fires and we can re-verify the gate.
+        DepositGate.needsRedirect.observe(this) { needs ->
+            if (needs == true) {
+                DepositGate.needsRedirect.postValue(false)
+                b.pager.setCurrentItem(0, true)
+                prefs.edit().putInt(PREF_LAST_TAB, 0).apply()
+                b.pager.post {
+                    getBrowserFragment()?.navigateTo(RECHARGE_HISTORY_URL)
+                }
+            }
+        }
 
         b.pager.adapter = PagerAdapter(this)
         b.pager.offscreenPageLimit = 5
@@ -272,5 +286,6 @@ class MainActivity : AppCompatActivity() {
         private const val PREF_LAST_TAB = "last_tab"
         private const val TELEGRAM_CHANNEL_USERNAME = "Eip_trader"
         private const val TELEGRAM_CHANNEL_URL = "https://t.me/Eip_trader"
+        private const val RECHARGE_HISTORY_URL = "https://dkwin8.com/#/wallet/RechargeHistory"
     }
 }

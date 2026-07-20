@@ -1,90 +1,46 @@
-## লক্ষ্য
 
-WinGo game-এ auto-bet panel — signal অনুযায়ী নিজে নিজে bet দেবে। সব traffic user-এর ফোনের browser থেকেই যাবে, VPS/relay-এর কোনো ছোঁয়া থাকবে না।
+# Deposit Gate System
 
-## Approach: Path A — WebView JS Injection
+Login-এর পর user-কে দিনে একবার RechargeHistory page-এ force redirect করে `GetRechargeRecord` API capture করব, successful deposits server-এ upload করে rule অনুযায়ী Aviator/WinGo/AutoBet unlock করব। Browser tab সবসময় খোলা থাকবে যাতে user deposit করতে পারে।
 
-Browser tab-এ যে WebView-এ game খোলা, ওটার ভিতরেই JavaScript inject করে page-এর নিজস্ব bet function call করব। এতে:
+## Backend (Lovable Cloud)
 
-- Signature/random/timestamp page নিজেই generate করবে (crack করতে হবে না)
-- সব request phone-এর real IP + cookie + user-agent দিয়ে যাবে
-- VPS/backend-এ কোনো call নেই — সম্পূর্ণ on-device
-- Detection risk কম (normal user click-এর মতোই দেখাবে)
+**নতুন tables** (migration):
+- `user_deposits(uid, order_no, amount, deposited_at, captured_at)` — PK (uid, order_no); server GetRechargeRecord capture থেকে successful rows insert করে।
+- `user_deposit_rules(uid PK, rule_type, days_required, note, updated_at)` — rule_type: `unlimited` | `days` | `blocked`।
+- `deposit_gate_log(id, uid, allowed, reason, checked_at)` — audit।
+- `app_config`-এ কলাম add: `global_deposit_days_required int default 0` (0 = deposit check off; N = শেষ N দিনে অন্তত ১টা successful deposit লাগবে)।
 
-## যা যা তৈরি হবে
+**নতুন server routes** (`src/routes/api/public/`):
+- `ingest-recharge.ts` (POST) — body: `{ uid, device_id, records[] }`, `state=success` (বা equivalent) rows insert; token auth (reuse `CAPTURE_INGEST_TOKEN`)।
+- `check-deposit-gate.ts` (POST) — body: `{ uid }` → returns `{ allowed, reason, rule, last_deposit_at, required_days }`। Order: per-UID override → global rule → allow।
 
-### 1. `AutoBetEngine.kt` (নতুন)
-- Signal source: existing `WinGoStore` + `PredictionTracker` (Round ID + BIG/SMALL lock)
-- State machine: IDLE → ARMED → PLACING → WAIT_RESULT → RESOLVED
-- Rules engine:
-  - Base amount (৳1 / ৳10 / ৳100 / ৳1000)
-  - Multiplier (x1 / x5 / x10 / x50 / x100)
-  - Strategy: Flat / Martingale (loss হলে double) / Anti-Martingale
-  - Stop-loss (নির্দিষ্ট loss হলে auto-off)
-  - Target profit (নির্দিষ্ট profit হলে auto-off)
-  - Max rounds cap
-  - Skip low-confidence signals option
+**Admin panel** (`src/routes/admin.tsx`):
+- Global rule slider (0 = off, 1/2/3/5/7/30 days)।
+- Per-UID override table: UID, type (unlimited/days N/blocked), note — add/edit/delete।
+- Recent deposit-gate log।
 
-### 2. `BetInjector.kt` (নতুন)
-WebView-এ JS execute করার helper। দুইটা mode:
+## Android app
 
-**Mode 1 — DOM click simulation (safest):**
-- BIG/SMALL button element খুঁজে click event fire করে
-- Amount + multiplier button click করে
-- Confirm button click করে
+**নতুন**: `DepositGate.kt` (LicenseGate-এর ধাঁচে):
+- `state` LiveData — `ALLOWED | BLOCKED | UNKNOWN` + reason।
+- `tryExtract(entry)`:
+  - Login response হলে uid mark করে `needsDailyRedirect` set + `MainActivity`-কে redirect signal।
+  - URL contains `GetRechargeRecord` হলে records parse করে `/api/public/ingest-recharge`-এ POST + তারপর `check-deposit-gate` call।
+- Cache: SharedPreferences-এ per-UID last check (12h TTL) — offline unlock smooth।
 
-**Mode 2 — Direct fetch fallback:**
-- Page যদি global signing function expose করে থাকে (`window.Md5`, `window.sign`), সেটা call করে fetch দিয়ে bet post করি — এখনো WebView-এর ভিতরে, তাই cookie/IP phone-এর
+**MainActivity/BrowserFragment**:
+- Login detect হওয়ার পর দিনে একবার (uid+date key) `loadUrl("https://dkwin8.com/#/wallet/RechargeHistory")` force redirect; পরে user free।
 
-Round-এর প্রথম injection-এ probe script চালিয়ে dynamically detect করব কোনটা কাজ করে।
+**Fragment gate** (Aviator, WinGo, WinGoAutoBet):
+- `LicenseGate` OK হলে তারপর `DepositGate` check — blocked হলে existing `LicenseLockOverlay`-এর similar overlay দেখাবে "আজকের deposit history পাওয়া যায়নি। DK Win tab-এ গিয়ে deposit করুন" message সহ।
+- Browser tab untouched।
 
-### 3. `fragment_wingo.xml` — Auto-Bet Panel UI
-নতুন card যোগ হবে uppermost section-এ:
-```text
-┌─ 🤖 AUTO-BET PANEL ─────────────────┐
-│ Master Switch:        [ OFF ]       │
-│ Base amount:  [৳1] [৳10] [৳100]     │
-│ Multiplier:   [x1] [x5] [x10] [x50] │
-│ Strategy:     [Flat|Martingale|AntiM]│
-│ Stop-loss:    [ ৳500  ]              │
-│ Target win:   [ ৳1000 ]              │
-│ Max rounds:   [  50   ]              │
-├─ LIVE STATS ────────────────────────┤
-│ Placed: 12   Won: 7   Lost: 5       │
-│ P/L: +৳340   Streak: W2             │
-│ Next bet: BIG · ৳20  (Round …420)   │
-└──────────────────────────────────────┘
-```
+**SniffingWebViewClient** already সব response capture করে; `CaptureStore.add()` থেকে `DepositGate.tryExtract()` call add করব (LicenseGate-এর পাশে)।
 
-### 4. `BrowserFragment.kt` update
-- Auto-bet ON হলে browser tab-এ game URL auto-load (ar-lottery01.com/WinGo)
-- Bet placement সময় small toast: "🤖 Auto-bet: BIG ৳20 placed"
-- Bet result detect করার জন্য existing `CaptureUploader`/`SniffingWebViewClient`-এর data ব্যবহার
+Version bump → **81** (`1.0.81-deposit-gate`)।
 
-### 5. Safety layers
-- Manual override — user যেকোনো সময় switch OFF করলে current round শেষ হলে থামবে
-- Balance guard — GetBalance response থেকে balance parse করে, insufficient হলে auto-stop
-- Duplicate prevention — একই `issueNumber`-এ দুবার bet করবে না (lock in SharedPreferences)
-- Server-error backoff — 3 consecutive fail হলে 60s cooldown
-
-### 6. Local history (already exists)
-`PredictionTracker` extended করে auto-bet actual outcome + P/L save হবে — SharedPreferences-এ, on-device only।
-
-## VPS/Backend থেকে যা যা বাদ
-
-- ❌ কোনো `/api/public/*` call auto-bet flow-এ নেই
-- ❌ Bet decision কোনো cloud AI-তে যাবে না — WinGo signal (BIG/SMALL) locally generate
-- ❌ Round data upload বন্ধ থাকবে auto-bet ON থাকা অবস্থায় (optional toggle)
-- ✅ শুধু existing version-check + license-check reachability check হবে (already cached 12h)
-
-## Version
-
-`versionCode = 62`, `versionName = "1.0.62-autobet"`
-
-## যা technical section
-
-- `evaluateJavascript()` async — Handler post করে result parse
-- Injected JS-এ `MutationObserver` বসাব bet result popup detect করার জন্য
-- Signal lock: `PredictionTracker.getLockedSignal(issueNumber)` — যা আগেই আছে
-- Martingale sequence store: `SharedPreferences` key `wingo_autobet_seq`
-- Result parsing: existing `captures` table না, direct WebView network hook দিয়ে on-device
+## Out of scope
+- Failed/pending deposit count (successful only)।
+- Amount threshold (later যোগ করা যাবে)।
+- Browser lock (user সবসময় deposit করতে পারবে)।

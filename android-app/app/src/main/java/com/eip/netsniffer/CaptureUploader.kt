@@ -25,7 +25,7 @@ object CaptureUploader {
     private const val PREF_FILE = "net_sniffer"
     private const val PREF_DEVICE_ID = "cloud_device_id"
     // Built-in token — matches server CAPTURE_INGEST_TOKEN. Testing only.
-    private const val INGEST_TOKEN =
+    internal const val INGEST_TOKEN =
         "ns-auto-ingest-4d184ca9-2578-4035-8b23-aab3a3aa6222"
     private const val BATCH_MAX = 100
     private const val FLUSH_INTERVAL_MS = 2_000L

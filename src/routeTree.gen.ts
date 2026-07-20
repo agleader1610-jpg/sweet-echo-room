@@ -17,6 +17,8 @@ import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-pro
 import { Route as ApiPublicVerifyResultRouteImport } from './routes/api/public/verify-result'
 import { Route as ApiPublicVerifyLicenseRouteImport } from './routes/api/public/verify-license'
 import { Route as ApiPublicPredictSignalRouteImport } from './routes/api/public/predict-signal'
+import { Route as ApiPublicIngestRechargeRouteImport } from './routes/api/public/ingest-recharge'
+import { Route as ApiPublicCheckDepositGateRouteImport } from './routes/api/public/check-deposit-gate'
 import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
 import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
 import { Route as ApiStreamPlaylistChannelIdRouteImport } from './routes/api/stream/playlist.$channelId'
@@ -61,6 +63,17 @@ const ApiPublicPredictSignalRoute = ApiPublicPredictSignalRouteImport.update({
   path: '/api/public/predict-signal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIngestRechargeRoute = ApiPublicIngestRechargeRouteImport.update({
+  id: '/api/public/ingest-recharge',
+  path: '/api/public/ingest-recharge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCheckDepositGateRoute =
+  ApiPublicCheckDepositGateRouteImport.update({
+    id: '/api/public/check-deposit-gate',
+    path: '/api/public/check-deposit-gate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCapturesIngestRoute = ApiPublicCapturesIngestRouteImport.update({
   id: '/api/public/captures-ingest',
   path: '/api/public/captures-ingest',
@@ -84,6 +97,8 @@ export interface FileRoutesByFullPath {
   '/stat': typeof StatRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
+  '/api/public/check-deposit-gate': typeof ApiPublicCheckDepositGateRoute
+  '/api/public/ingest-recharge': typeof ApiPublicIngestRechargeRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
@@ -97,6 +112,8 @@ export interface FileRoutesByTo {
   '/stat': typeof StatRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
+  '/api/public/check-deposit-gate': typeof ApiPublicCheckDepositGateRoute
+  '/api/public/ingest-recharge': typeof ApiPublicIngestRechargeRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
@@ -111,6 +128,8 @@ export interface FileRoutesById {
   '/stat': typeof StatRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
+  '/api/public/check-deposit-gate': typeof ApiPublicCheckDepositGateRoute
+  '/api/public/ingest-recharge': typeof ApiPublicIngestRechargeRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
@@ -126,6 +145,8 @@ export interface FileRouteTypes {
     | '/stat'
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
+    | '/api/public/check-deposit-gate'
+    | '/api/public/ingest-recharge'
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
@@ -139,6 +160,8 @@ export interface FileRouteTypes {
     | '/stat'
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
+    | '/api/public/check-deposit-gate'
+    | '/api/public/ingest-recharge'
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
@@ -152,6 +175,8 @@ export interface FileRouteTypes {
     | '/stat'
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
+    | '/api/public/check-deposit-gate'
+    | '/api/public/ingest-recharge'
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
@@ -166,6 +191,8 @@ export interface RootRouteChildren {
   StatRoute: typeof StatRoute
   ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
+  ApiPublicCheckDepositGateRoute: typeof ApiPublicCheckDepositGateRoute
+  ApiPublicIngestRechargeRoute: typeof ApiPublicIngestRechargeRoute
   ApiPublicPredictSignalRoute: typeof ApiPublicPredictSignalRoute
   ApiPublicVerifyLicenseRoute: typeof ApiPublicVerifyLicenseRoute
   ApiPublicVerifyResultRoute: typeof ApiPublicVerifyResultRoute
@@ -232,6 +259,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPredictSignalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ingest-recharge': {
+      id: '/api/public/ingest-recharge'
+      path: '/api/public/ingest-recharge'
+      fullPath: '/api/public/ingest-recharge'
+      preLoaderRoute: typeof ApiPublicIngestRechargeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/check-deposit-gate': {
+      id: '/api/public/check-deposit-gate'
+      path: '/api/public/check-deposit-gate'
+      fullPath: '/api/public/check-deposit-gate'
+      preLoaderRoute: typeof ApiPublicCheckDepositGateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/captures-ingest': {
       id: '/api/public/captures-ingest'
       path: '/api/public/captures-ingest'
@@ -262,6 +303,8 @@ const rootRouteChildren: RootRouteChildren = {
   StatRoute: StatRoute,
   ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
+  ApiPublicCheckDepositGateRoute: ApiPublicCheckDepositGateRoute,
+  ApiPublicIngestRechargeRoute: ApiPublicIngestRechargeRoute,
   ApiPublicPredictSignalRoute: ApiPublicPredictSignalRoute,
   ApiPublicVerifyLicenseRoute: ApiPublicVerifyLicenseRoute,
   ApiPublicVerifyResultRoute: ApiPublicVerifyResultRoute,
@@ -272,13 +315,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
