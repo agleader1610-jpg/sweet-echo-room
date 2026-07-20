@@ -637,3 +637,104 @@ export const getUsageStats = createServerFn({ method: 'GET' }).handler(async () 
     recentUsers: users,
   };
 });
+
+/**
+ * AI usage stats: total predictions, AI vs local counts, token spend, and
+ * approximate credit cost — for the admin AI Usage panel.
+ */
+export const getAiUsageStats = createServerFn({ method: 'GET' }).handler(async () => {
+  const { requireAdminSession } = await import('./admin-gate.server');
+  await requireAdminSession();
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+
+  const now = Date.now();
+  const d1 = new Date(now - 24 * 3600_000).toISOString();
+  const d7 = new Date(now - 7 * 24 * 3600_000).toISOString();
+
+  // Pull last 7d of predictions (id, source, model, tokens, cost, created_at, device_id)
+  const { data: rows7d } = await supabaseAdmin
+    .from('predictions')
+    .select('id,source,ai_model,prompt_tokens,completion_tokens,total_tokens,cost_credits,latency_ms,created_at,device_id')
+    .gte('created_at', d7)
+    .order('created_at', { ascending: false })
+    .limit(20000);
+
+  const rows = (rows7d ?? []) as Array<{
+    id: number; source: string | null; ai_model: string | null;
+    prompt_tokens: number | null; completion_tokens: number | null; total_tokens: number | null;
+    cost_credits: number | null; latency_ms: number | null; created_at: string; device_id: string | null;
+  }>;
+
+  type Bucket = { count: number; ai: number; local: number; promptTok: number; completionTok: number; cost: number };
+  const empty = (): Bucket => ({ count: 0, ai: 0, local: 0, promptTok: 0, completionTok: 0, cost: 0 });
+
+  const day = empty();
+  const week = empty();
+  const byModel: Record<string, Bucket> = {};
+  const byDeviceCost: Record<string, { count: number; cost: number }> = {};
+  const perDay: Record<string, Bucket> = {};
+
+  for (const r of rows) {
+    const isAi = r.source === 'ai';
+    const inT = r.prompt_tokens ?? 0;
+    const outT = r.completion_tokens ?? 0;
+    const cost = Number(r.cost_credits ?? 0);
+    const t = new Date(r.created_at).getTime();
+    const dayKey = r.created_at.slice(0, 10);
+
+    const add = (b: Bucket) => {
+      b.count++; if (isAi) b.ai++; else b.local++;
+      b.promptTok += inT; b.completionTok += outT; b.cost += cost;
+    };
+    add(week);
+    if (t >= now - 24 * 3600_000) add(day);
+    const dayBucket = perDay[dayKey] ?? (perDay[dayKey] = empty()); add(dayBucket);
+
+    const mkey = r.ai_model ?? (isAi ? 'unknown' : 'local');
+    const mb = byModel[mkey] ?? (byModel[mkey] = empty()); add(mb);
+
+    if (r.device_id) {
+      const dv = byDeviceCost[r.device_id] ?? (byDeviceCost[r.device_id] = { count: 0, cost: 0 });
+      dv.count++; dv.cost += cost;
+    }
+  }
+
+  const topDevices = Object.entries(byDeviceCost)
+    .map(([device_id, v]) => ({ device_id, count: v.count, cost: Number(v.cost.toFixed(4)) }))
+    .sort((a, b) => b.cost - a.cost).slice(0, 15);
+
+  const dailySeries = Object.entries(perDay)
+    .map(([date, b]) => ({
+      date, count: b.count, ai: b.ai, local: b.local,
+      promptTok: b.promptTok, completionTok: b.completionTok,
+      cost: Number(b.cost.toFixed(4)),
+    }))
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+
+  const round = (b: Bucket) => ({
+    count: b.count, ai: b.ai, local: b.local,
+    promptTok: b.promptTok, completionTok: b.completionTok, totalTok: b.promptTok + b.completionTok,
+    cost: Number(b.cost.toFixed(4)),
+  });
+
+  return {
+    last24h: round(day),
+    last7d: round(week),
+    byModel: Object.entries(byModel).map(([model, b]) => ({ model, ...round(b) }))
+      .sort((a, b) => b.count - a.count),
+    topDevices,
+    dailySeries,
+    recent: rows.slice(0, 30).map(r => ({
+      id: r.id,
+      created_at: r.created_at,
+      source: r.source,
+      model: r.ai_model,
+      device_id: r.device_id,
+      prompt_tokens: r.prompt_tokens,
+      completion_tokens: r.completion_tokens,
+      cost_credits: r.cost_credits,
+      latency_ms: r.latency_ms,
+    })),
+  };
+});
+
