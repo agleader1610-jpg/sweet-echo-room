@@ -94,9 +94,22 @@ export const Route = createFileRoute('/api/public/verify-license')({
           );
         };
 
-        // Tamper / signature / package enforcement is intentionally DISABLED.
-        // The app must never show "server_reported" / "official verification failed"
-        // to legit users. Only the invite/UID gate below decides access.
+        // Server-side enforcement (silent — no client-side tamper flag needed).
+        // Client just displays the `message` we return, so if we say LOCKED
+        // with secureLock, the app UI will show it exactly as designed.
+        //
+        // 1) Package name must match. Repackaged clones with a different
+        //    applicationId are rejected immediately.
+        if (pkg && pkg !== expectedPkg) {
+          return respond(false, `pkg_renamed:${pkg}`, secureLock);
+        }
+        // 2) Signature allowlist. Only enforced when admin has turned it on
+        //    AND at least one hash is registered. TOFU below auto-populates
+        //    the first legit sig, so official CI builds keep working.
+        if (enforceSig && allowedSigs.length > 0 && sig && !allowedSigs.includes(sig)) {
+          return respond(false, `sig_mismatch:${sig.slice(0, 12)}`, secureLock);
+        }
+
 
         let licensed = false;
         let reason = 'no_login';
