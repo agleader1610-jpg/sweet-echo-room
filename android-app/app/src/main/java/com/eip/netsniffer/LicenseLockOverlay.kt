@@ -32,7 +32,7 @@ object LicenseLockOverlay {
         "https://dkwin8.com/#/register?invitationCode=82824101415"
 
     private const val TOP_ALERT =
-        "⚠️ গুরুত্বপূর্ণ সতর্কতা\n\nআপনাকে অবশ্যই আপনার ID পরিবর্তন করতে হবে। Multiple account ব্যবহারের কারণে আপনার ID / account যেকোনো সময় বন্ধ করে দেওয়া হতে পারে।\n\n👉 Data connection বন্ধ করে Wi-Fi দিয়ে নিচের REGISTER NOW বাটনে চাপ দিয়ে নতুন account তৈরি করুন — এতে পুরনো session সম্পূর্ণ clean হবে।"
+        "⚠️ গুরুত্বপূর্ণ সতর্কতা\n\nMultiple account থেকে বিরত থাকার জন্য register করার আগে অবশ্যই আপনার IP পরিবর্তন করতে হবে।\n\n👉 Mobile Data চালু থাকলে: Data বন্ধ করুন → Flight Mode একবার On / Off করুন → আবার Data চালু করুন।\n\n👉 Wi-Fi চালু থাকলে: Wi-Fi একবার Off করে আবার On করুন।\n\nএরপর নিচের REGISTER NOW বাটনে চাপ দিন। নতুন IP-তে register করলে multiple account হিসেবে detect হবে না, account safe থাকবে।"
 
     private const val MAIN_MSG =
         "আপনি আমাদের টিমে account করেননি, তাই আপনাকে অবশ্যই আমাদের টিমে account করতে হবে। নিচের REGISTER NOW বাটনে click করে account তৈরি করুন।"
