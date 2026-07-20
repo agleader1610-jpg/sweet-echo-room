@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 103
-        versionName = "1.0.103-state1-success"
+        versionCode = 104
+        versionName = "1.0.104-only-state1-success"
 
 
 

@@ -83,22 +83,19 @@ function normalize(r: any, uid: string, deviceId: string | null): Row | null {
   // DK Win / dkwinapi.com recharge history `state`:
   //   0 = pending / created
   //   1 = success (money credited — confirmed by user)
-  //   2 = success (also credited — variant, e.g. bonus/verified)
-  //   negative or "failed" strings = failed
+  //   other = failed / cancelled
   const state = r.state ?? r.status ?? r.orderStatus;
   const stateStr = String(state ?? '').toLowerCase();
 
   let status: 'success' | 'pending' | 'failed';
-  if (state === 1 || state === '1' || state === 2 || state === '2' || state === true ||
+  if (state === 1 || state === '1' || state === true ||
       stateStr === 'success' || stateStr === 'successful' ||
       stateStr === 'paid' || stateStr === 'completed' || stateStr === 'complete') {
     status = 'success';
   } else if (state === 0 || state === '0' || stateStr === 'pending' || stateStr === 'processing' || stateStr === 'created') {
     status = 'pending';
-  } else if (stateStr === 'failed' || stateStr === 'cancelled' || stateStr === 'canceled' || stateStr === 'reject' || stateStr === 'rejected' || (typeof state === 'number' && state < 0)) {
-    status = 'failed';
   } else {
-    status = 'pending';
+    status = 'failed';
   }
 
   const orderNo = String(
