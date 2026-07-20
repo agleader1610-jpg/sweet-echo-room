@@ -285,6 +285,140 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // ---------------- Notification bell ----------------
+
+    private fun setupNotificationBell() {
+        val bell = b.bellWrap
+        val badge = b.bellBadge
+
+        // Push current DK Win uid into the store whenever the deposit gate learns one.
+        DepositGate.state.observe(this) { st ->
+            if (!st?.uid.isNullOrBlank()) NotificationStore.setUid(st!!.uid)
+        }
+
+        NotificationStore.unreadCount.observe(this) { n ->
+            val count = n ?: 0
+            if (count <= 0) {
+                badge.visibility = View.GONE
+            } else {
+                badge.visibility = View.VISIBLE
+                badge.text = if (count > 9) "9+" else count.toString()
+            }
+        }
+
+        bell.setOnClickListener { showNotificationSheet() }
+    }
+
+    private fun showNotificationSheet() {
+        val dialog = BottomSheetDialog(this, R.style.Theme_NetSniffer_BottomSheet)
+        val ctx = this
+        val pad = (16 * resources.displayMetrics.density).toInt()
+
+        val root = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, pad)
+            setBackgroundColor(0xFF0B1220.toInt())
+        }
+
+        // Header row
+        val header = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        header.addView(android.widget.TextView(ctx).apply {
+            text = "🔔  Notifications"
+            setTextColor(0xFFFCD34D.toInt())
+            textSize = 16f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }, android.widget.LinearLayout.LayoutParams(0,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val markAll = android.widget.TextView(ctx).apply {
+            text = "✓ পড়া শেষ"
+            setTextColor(0xFF60A5FA.toInt())
+            textSize = 12f
+            setPadding(pad / 2, pad / 3, pad / 2, pad / 3)
+        }
+        header.addView(markAll)
+        root.addView(header)
+
+        // Divider
+        root.addView(View(ctx).apply {
+            setBackgroundColor(0x22FFFFFF)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                (1 * resources.displayMetrics.density).toInt(),
+            ).apply { topMargin = pad / 2; bottomMargin = pad / 2 }
+        })
+
+        val listWrap = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+        }
+        val scroll = android.widget.ScrollView(ctx).apply { addView(listWrap) }
+        root.addView(scroll, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
+        ))
+
+        fun render(items: List<NotificationStore.Item>) {
+            listWrap.removeAllViews()
+            if (items.isEmpty()) {
+                listWrap.addView(android.widget.TextView(ctx).apply {
+                    text = "কোনো নতুন notification নেই।"
+                    setTextColor(0xFF94A3B8.toInt())
+                    textSize = 13f
+                    gravity = android.view.Gravity.CENTER
+                    setPadding(0, pad * 2, 0, pad * 2)
+                })
+                return
+            }
+            for (item in items) {
+                val card = android.widget.LinearLayout(ctx).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    setPadding(pad, pad * 3 / 4, pad, pad * 3 / 4)
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = 12f * resources.displayMetrics.density
+                        setColor(0x14FFFFFF)
+                        setStroke((1 * resources.displayMetrics.density).toInt(), 0x2260A5FA.toInt())
+                    }
+                }
+                card.addView(android.widget.TextView(ctx).apply {
+                    text = item.title
+                    setTextColor(0xFFFFFFFF.toInt())
+                    textSize = 14f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                })
+                card.addView(android.widget.TextView(ctx).apply {
+                    text = item.body
+                    setTextColor(0xFFCBD5E1.toInt())
+                    textSize = 13f
+                    setPadding(0, pad / 4, 0, 0)
+                })
+                card.addView(android.widget.TextView(ctx).apply {
+                    text = item.createdAt.take(19).replace('T', ' ')
+                    setTextColor(0xFF64748B.toInt())
+                    textSize = 10.5f
+                    setPadding(0, pad / 3, 0, 0)
+                })
+                val lp = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { topMargin = pad / 2 }
+                listWrap.addView(card, lp)
+            }
+        }
+
+        NotificationStore.items.observe(this) { render(it ?: emptyList()) }
+        render(NotificationStore.items.value ?: emptyList())
+
+        markAll.setOnClickListener {
+            NotificationStore.markAllRead()
+        }
+
+        // Auto-mark-as-read when the sheet actually opens.
+        dialog.setOnShowListener { NotificationStore.markAllRead() }
+        dialog.setContentView(root)
+        dialog.show()
+    }
+
     companion object {
         private const val PREF_FAB_X = "fab_x"
         private const val PREF_FAB_Y = "fab_y"
