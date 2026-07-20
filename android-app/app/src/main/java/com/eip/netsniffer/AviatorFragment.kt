@@ -46,6 +46,13 @@ class AviatorFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_AVIATOR))
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Panel-এ ঢুকলে review reminder দেখাবে (5 second, throttled)।
+        view?.postDelayed({ ReviewNagger.maybeShow(this) }, 600)
+    }
+
+
     override fun onViewCreated(view: View, s: Bundle?) {
         PredictionTracker.init(requireContext())
         AviatorStore.state.observe(viewLifecycleOwner) { renderState(it) }
@@ -78,7 +85,6 @@ class AviatorFragment : Fragment() {
             if (checked) {
                 prefs.edit().putBoolean("wingo_overlay_on", false).apply()
                 WinGoStore.overlayEnabled.postValue(false)
-                ReviewNagger.maybeShow(this)
             }
         }
         AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->

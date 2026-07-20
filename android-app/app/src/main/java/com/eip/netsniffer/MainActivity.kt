@@ -61,8 +61,7 @@ class MainActivity : AppCompatActivity() {
 
         // Telegram channel invite on app open.
         b.root.post { showTelegramJoinDialog() }
-        // In-app review reminder (throttled).
-        b.root.postDelayed({ ReviewNagger.maybeShow(this) }, 3500)
+        // Review reminder এখন panel-এ ঢুকলে তারপর দেখাবে (Aviator / WinGo / AutoBet fragment onResume-এ)।
     }
 
 

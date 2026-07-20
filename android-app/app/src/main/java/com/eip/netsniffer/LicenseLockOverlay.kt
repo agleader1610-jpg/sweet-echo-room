@@ -31,16 +31,12 @@ object LicenseLockOverlay {
     private const val REGISTER_URL =
         "https://dkwin8.com/#/register?invitationCode=82824101415"
 
-    private const val INTRO =
-        "আপনার UID আমাদের টিমে খুঁজে পাওয়া যায়নি। আমাদের আন্ডারে কাজ করতে হলে নতুন একটি অ্যাকাউন্ট তৈরি করতে হবে। নিচের REGISTER NOW বাটনে চাপ দিলে পুরনো login/cookies সম্পূর্ণভাবে মুছে ফেলা হবে এবং আমাদের invite link দিয়ে নতুন অ্যাকাউন্ট তৈরির page খুলবে।"
+    private const val TOP_ALERT =
+        "⚠️ গুরুত্বপূর্ণ সতর্কতা\n\nআপনাকে অবশ্যই আপনার ID পরিবর্তন করতে হবে। Multiple account ব্যবহারের কারণে আপনার ID / account যেকোনো সময় বন্ধ করে দেওয়া হতে পারে।\n\n👉 Data connection বন্ধ করে Wi-Fi দিয়ে নিচের REGISTER NOW বাটনে চাপ দিয়ে নতুন account তৈরি করুন — এতে পুরনো session সম্পূর্ণ clean হবে।"
 
-    private val STEPS = listOf(
-        "নিচের 🚀 REGISTER NOW বাটনে চাপ দিন — পুরনো cookies/session automatic clear হবে এবং register page খুলবে।",
-        "সাইন-আপ form পূরণ করে নতুন অ্যাকাউন্ট তৈরি করুন (invite code আগে থেকেই বসানো থাকবে)।",
-        "অ্যাকাউন্ট তৈরি হওয়ার পর সাইন-আপ page থেকে সরাসরি Login করুন। একবার Login হলে আমাদের system automatic আপনার UID detect করে unlock করে দেবে।",
-        "যদি আগে থেকেই এই ব্রাউজারে অন্য account login করা থাকে — উপরের ডানদিকে profile → Log Out করে আবার আমাদের invite দিয়ে বানানো account দিয়ে Login করুন।",
-        "যদি তাও detect না হয় — ফোনের Flight Mode একবার on/off করুন, প্রয়োজনে ফোন Restart করে আবার Login করুন। তারপর 🔄 RECHECK বাটনে চাপ দিন।",
-    )
+    private const val MAIN_MSG =
+        "আপনি আমাদের টিমে account করেননি, তাই আপনাকে অবশ্যই আমাদের টিমে account করতে হবে। নিচের REGISTER NOW বাটনে click করে account তৈরি করুন।"
+
 
 
     fun wrap(fragment: Fragment, content: View): View {
@@ -355,9 +351,24 @@ object LicenseLockOverlay {
             setPadding(0, 0, 0, dp(ctx, 18))
         })
 
-        // Intro (highlight card)
+        // Top red alert card
         card.addView(TextView(ctx).apply {
-            text = INTRO
+            text = TOP_ALERT
+            setTextColor(0xFFFECACA.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
+            setLineSpacing(dp(ctx, 3).toFloat(), 1f)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                colors = intArrayOf(0x55450A0A.toInt(), 0x33111827.toInt())
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+                setStroke(dp(ctx, 1), 0xFFEF4444.toInt())
+            }
+        })
+
+        // Main message card
+        card.addView(TextView(ctx).apply {
+            text = MAIN_MSG
             setTextColor(0xFFFDE68A.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
@@ -367,41 +378,12 @@ object LicenseLockOverlay {
                 setColor(0x22F59E0B.toInt())
                 setStroke(dp(ctx, 1), 0x66F59E0B.toInt())
             }
-        })
+            (layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(ctx, 12)
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 12) })
 
-        // Steps
-        val stepsBox = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(ctx, 14), 0, dp(ctx, 4))
-        }
-        STEPS.forEachIndexed { idx, text ->
-            val row = LinearLayout(ctx).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, dp(ctx, 6), 0, dp(ctx, 6))
-            }
-            row.addView(TextView(ctx).apply {
-                this.text = (idx + 1).toString()
-                setTextColor(Color.WHITE)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                gravity = Gravity.CENTER
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(0xFF6D28D9.toInt())
-                }
-                val sz = dp(ctx, 24)
-                layoutParams = LinearLayout.LayoutParams(sz, sz).apply {
-                    topMargin = dp(ctx, 2); rightMargin = dp(ctx, 10)
-                }
-            })
-            row.addView(TextView(ctx).apply {
-                this.text = text
-                setTextColor(0xFFE2E8F0.toInt())
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-                setLineSpacing(dp(ctx, 3).toFloat(), 1f)
-            })
-            stepsBox.addView(row)
-        }
-        card.addView(stepsBox)
 
         // Register button
         card.addView(Button(ctx).apply {

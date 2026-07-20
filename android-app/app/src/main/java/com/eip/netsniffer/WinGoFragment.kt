@@ -48,6 +48,12 @@ class WinGoFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_WINGO))
     }
 
+    override fun onResume() {
+        super.onResume()
+        view?.postDelayed({ ReviewNagger.maybeShow(this) }, 600)
+    }
+
+
     override fun onViewCreated(view: View, s: Bundle?) {
         prefs = requireContext().getSharedPreferences("net_sniffer", Context.MODE_PRIVATE)
         AutoBetEngine.init(requireContext())  // keep engine alive; UI lives in WinGoAutoBetFragment
@@ -96,7 +102,6 @@ class WinGoFragment : Fragment() {
             if (checked) {
                 prefs.edit().putBoolean("vip_overlay_enabled", false).apply()
                 AviatorStore.overlayEnabled.postValue(false)
-                ReviewNagger.maybeShow(this)
             }
         }
         WinGoStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
