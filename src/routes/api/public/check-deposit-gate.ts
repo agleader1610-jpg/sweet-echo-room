@@ -154,23 +154,41 @@ export const Route = createFileRoute('/api/public/check-deposit-gate')({
         const allowed = lifetimeOK && recencyOK;
         const lastDep = lastInWindow ?? (await lastDeposit(supabaseAdmin, uid));
 
+        // Smart, staged messages — reveal information progressively so users
+        // never see raw "you need N deposits" numbers up-front. First-time
+        // users see a clean prompt; after their first deposit lands, we
+        // acknowledge it and only then hint at how many more (if any) are
+        // needed; once lifetime is satisfied we speak only about recency.
         let reason = 'deposit_ok';
-        const parts: string[] = [];
-        if (!lifetimeOK) {
+        let title = ''; let detail = ''; let footer = '';
+        const label = GAME_LABEL[game];
+
+        if (!lifetimeOK && lifetimeCount === 0) {
+          // Stage 1 — no deposits at all. Hide numbers, keep it inviting.
           reason = 'lifetime_missing';
-          parts.push(
-            `Lifetime-এ কমপক্ষে ${lifetimeMin} টা successful deposit লাগবে (এখন: ${lifetimeCount})।`,
-          );
+          title  = `${label} unlock করতে deposit করুন`;
+          detail = `${label} feature টি ব্যবহার করার জন্য প্রথমে একটি successful deposit প্রয়োজন।`;
+          footer = 'নিচের DEPOSIT NOW button-এ tap করে deposit সম্পন্ন করুন। Deposit detect হলে এই screen automatic unlock হবে।';
+        } else if (!lifetimeOK && lifetimeCount > 0) {
+          // Stage 2 — some deposits already, acknowledge & say how many more.
+          reason = 'lifetime_missing';
+          const remaining = Math.max(1, lifetimeMin - lifetimeCount);
+          title  = `✅ আপনার ${lifetimeCount} টি deposit detect হয়েছে`;
+          detail = `${label} unlock করতে আপনাকে আরও ${remaining} টি deposit করতে হবে।`;
+          footer = 'Deposit সম্পন্ন করুন — detect হওয়ার সাথে সাথে এই screen unlock হয়ে যাবে।';
+        } else if (!recencyOK) {
+          // Stage 3 — lifetime satisfied; only recency window is the gate.
+          reason = 'recency_missing';
+          title  = `${label} আবার unlock করুন`;
+          detail = recencyMin > 1
+            ? `${label} ব্যবহার চালু রাখতে শেষ ${recencyDays} দিনে ${recencyMin} টি successful deposit থাকতে হবে (এখন ${recentCount} টি)।`
+            : `${label} ব্যবহার চালু রাখতে শেষ ${recencyDays} দিনে একটি deposit থাকতে হবে।`;
+          footer = 'একটি নতুন deposit করলেই feature টি সাথে সাথে unlock হয়ে যাবে।';
         }
-        if (!recencyOK) {
-          reason = lifetimeOK ? 'recency_missing' : 'both_missing';
-          parts.push(
-            `শেষ ${recencyDays} দিনে অন্তত ${recencyMin} টা successful deposit লাগবে (এখন: ${recentCount})।`,
-          );
-        }
+
         const message = allowed
           ? ''
-          : `🔒 ${GAME_LABEL[game]} ব্যবহার করতে —\n\n• ${parts.join('\n• ')}\n\nDK Win tab-এ গিয়ে deposit করুন। Deposit করার পর একবার Recharge History open করলে এখানে auto unlock হবে।`;
+          : `${title}\n\n${detail}\n\n${footer}`;
 
         return respond(supabaseAdmin, {
           uid, deviceId, game, allowed, reason, rule_source: ruleSource,
