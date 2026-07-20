@@ -94,21 +94,10 @@ export const Route = createFileRoute('/api/public/verify-license')({
           );
         };
 
-        const hardTamperFlags = tamperFlags
-          .split(',')
-          .map((flag) => flag.trim())
-          .filter((flag) => flag.startsWith('pkg_renamed'));
+        // Tamper / signature / package enforcement is intentionally DISABLED.
+        // The app must never show "server_reported" / "official verification failed"
+        // to legit users. Only the invite/UID gate below decides access.
 
-        // 0) Hard tamper / package rename → hard troll lock.
-        // Root/debugger/emulator/hook-app detections were intentionally moved
-        // to local logging only; official GitHub APKs must not be punished for
-        // the owner's phone environment.
-        if (hardTamperFlags.length > 0) return respond(false, 'tampered', secureLock, true);
-        if (pkg && pkg !== expectedPkg) return respond(false, 'pkg_renamed', secureLock, true);
-
-        // 1) Decide LICENSED first. GitHub debug APK signatures can rotate
-        // between CI runners; a whitelisted owner UID may auto-adopt the new
-        // official signature so future official downloads keep working.
         let licensed = false;
         let reason = 'no_login';
         if (uid) {
@@ -124,25 +113,6 @@ export const Route = createFileRoute('/api/public/verify-license')({
         }
         if (!licensed && (uid || inviteCode)) reason = 'mismatch';
 
-        // 2) Signature allowlist (only when enforcement is on AND list is populated).
-        // If the owner UID is whitelisted, rotate/adopt the GitHub debug signing
-        // hash automatically. Non-owner mismatches still get the tamper screen.
-        if (enforceSig && allowedSigs.length > 0 && (uid || inviteCode)) {
-          if (!sig || !allowedSigs.includes(sig)) {
-            if (licensed && reason === 'uid_whitelisted' && sig) {
-              const nextSigs = Array.from(new Set([...allowedSigs, sig])).slice(-20);
-              try {
-                await supabaseAdmin
-                  .from('app_config')
-                  .update({ allowed_signature_hashes: nextSigs })
-                  .eq('id', 1);
-                reason = 'uid_whitelisted_sig_adopted';
-              } catch {}
-            } else {
-              return respond(false, 'sig_mismatch', secureLock, true);
-            }
-          }
-        }
 
         // 3) TOFU: auto-adopt the first legit signature we see and turn on
         //    enforcement so any repackaged clone is rejected from now on.
