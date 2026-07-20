@@ -27,6 +27,7 @@ import android.widget.TextView
 object OnboardingCoach {
     private const val PREF = "eip_onboarding"
     private const val KEY_DONE = "coach_v1_done"
+    private const val KEY_SETUP_DONE = "coach_setup_v1_done"
 
     fun maybeShow(activity: Activity, bellTarget: View, vipTarget: View) {
         val prefs = activity.getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -40,11 +41,49 @@ object OnboardingCoach {
         }
     }
 
+    /**
+     * One-time spotlight on the SETUP tab inside the launcher sheet — red mark
+     * + Bengali explanation that user MUST watch setup videos first.
+     */
+    fun maybeShowSetupSpotlight(activity: Activity, setupTarget: View) {
+        val prefs = activity.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_SETUP_DONE, false)) return
+        setupTarget.post {
+            val root = activity.window.decorView as ViewGroup
+            (0 until root.childCount)
+                .map { root.getChildAt(it) }
+                .filterIsInstance<CoachOverlay>()
+                .forEach { root.removeView(it) }
+            val overlay = CoachOverlay(
+                activity,
+                setupTarget,
+                "⚙️ SETUP — সবার আগে এটি দেখুন",
+                "এই SETUP tab-এ ৩টি ছোট video আছে:\n" +
+                    "• ✈ AVIATOR কীভাবে চালু করবেন\n" +
+                    "• 🎲 WIN GO কীভাবে চালু করবেন\n" +
+                    "• 🤖 AUTO-BET কীভাবে on করবেন\n\n" +
+                    "প্রথমে এই ৩টি video ভালো করে দেখে নিন, তারপর বাকি tab-গুলো ব্যবহার করুন। " +
+                    "না দেখলে signal ও auto-bet সঠিকভাবে কাজ করবে না।",
+                accentColor = 0xFFFF3B3B.toInt(),
+            ) {
+                prefs.edit().putBoolean(KEY_SETUP_DONE, true).apply()
+            }
+            root.addView(
+                overlay,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+    }
+
     @Suppress("unused")
     fun resetForDebug(context: Context) {
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-            .edit().remove(KEY_DONE).apply()
+            .edit().remove(KEY_DONE).remove(KEY_SETUP_DONE).apply()
     }
+
 
     private fun showStep(
         activity: Activity,
