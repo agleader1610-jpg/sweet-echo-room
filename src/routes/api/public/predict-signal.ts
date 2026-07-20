@@ -2,9 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, type Signal } from '@/lib/local-prediction-logic';
 
-// Upgraded to GPT-5.4 with priority tier — best reasoning + low latency.
-// Fast mode (service_tier: priority) supported per ai-models-chat catalog.
-const AI_MODEL = 'openai/gpt-5.4';
+// Gemini 3.1 Flash Lite — fastest + cheapest, ~18x cheaper than gpt-5.4.
+const AI_MODEL = 'google/gemini-3.1-flash-lite';
 const AI_TIMEOUT_MS = 8000;
 
 interface Body {
@@ -168,7 +167,6 @@ async function callAI(
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        service_tier: 'priority',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
