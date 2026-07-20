@@ -13,6 +13,10 @@ import {
   updateLicenseSettings,
   addLicensedUid,
   removeLicensedUid,
+  getDepositSettings,
+  updateDepositGlobal,
+  upsertDepositRule,
+  removeDepositRule,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
@@ -78,7 +82,7 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<'update' | 'analytics' | 'license'>('license');
+  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit'>('license');
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
@@ -88,6 +92,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <button onClick={() => setTab('license')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'license' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               🔒 License
+            </button>
+            <button onClick={() => setTab('deposit')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'deposit' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              💰 Deposit
             </button>
             <button onClick={() => setTab('analytics')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'analytics' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
@@ -101,10 +109,169 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
       </header>
-      {tab === 'analytics' ? <AnalyticsTab /> : tab === 'update' ? <UpdateTab onLogout={onLogout} /> : <LicenseTab />}
+      {tab === 'analytics' ? <AnalyticsTab />
+        : tab === 'update' ? <UpdateTab onLogout={onLogout} />
+        : tab === 'deposit' ? <DepositTab />
+        : <LicenseTab />}
     </div>
   );
 }
+
+function DepositTab() {
+  const load = useServerFn(getDepositSettings);
+  const saveGlobal = useServerFn(updateDepositGlobal);
+  const upsert = useServerFn(upsertDepositRule);
+  const remove = useServerFn(removeDepositRule);
+  const [data, setData] = useState<any>(null);
+  const [globalDays, setGlobalDays] = useState(0);
+  const [uid, setUid] = useState('');
+  const [ruleType, setRuleType] = useState<'unlimited' | 'days' | 'blocked'>('unlimited');
+  const [days, setDays] = useState(1);
+  const [note, setNote] = useState('');
+  const [toast, setToast] = useState('');
+
+  async function refresh() {
+    const d = await load();
+    setData(d);
+    setGlobalDays(d.global_days);
+  }
+  useEffect(() => { refresh().catch(console.error); }, []);
+
+  async function onSaveGlobal() {
+    await saveGlobal({ data: { global_days: Number(globalDays) || 0 } });
+    setToast('✅ Global rule saved'); setTimeout(() => setToast(''), 1800);
+    refresh();
+  }
+  async function onAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uid.trim()) return;
+    await upsert({ data: { uid: uid.trim(), rule_type: ruleType, days_required: days, note: note.trim() } });
+    setUid(''); setNote(''); setDays(1); setRuleType('unlimited');
+    refresh();
+  }
+  async function onRemove(u: string) {
+    if (!confirm(`Remove rule for UID ${u}?`)) return;
+    await remove({ data: { uid: u } });
+    refresh();
+  }
+
+  if (!data) return <div className="max-w-5xl mx-auto px-4 py-8">Loading…</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {toast && <div className="fixed top-4 right-4 bg-green-600 px-3 py-1.5 rounded text-sm">{toast}</div>}
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">🌍 Global Deposit Rule</h2>
+        <p className="text-sm text-slate-400 mb-4">
+          সবার জন্য default rule — সর্বশেষ <b>N</b> দিনের মধ্যে অন্তত একটা successful deposit থাকতে হবে।
+          <br /><b>0 = feature বন্ধ</b> (deposit check হবে না — শুধু license gate কাজ করবে)।
+        </p>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {[0, 1, 2, 3, 5, 7, 15, 30].map((d) => (
+            <button key={d} onClick={() => setGlobalDays(d)}
+              className={`px-3 py-1.5 rounded text-sm ${globalDays === d ? 'bg-amber-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              {d === 0 ? 'OFF' : `${d} day${d > 1 ? 's' : ''}`}
+            </button>
+          ))}
+          <input type="number" min={0} max={365} value={globalDays}
+            onChange={(e) => setGlobalDays(Number(e.target.value))}
+            className="w-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm outline-none focus:border-amber-500" />
+        </div>
+        <button onClick={onSaveGlobal}
+          className="rounded-md bg-amber-600 hover:bg-amber-500 px-4 py-2 text-sm font-medium">
+          💾 Save Global Rule
+        </button>
+      </section>
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">👤 Per-UID Override ({data.rules.length})</h2>
+        <p className="text-sm text-slate-400 mb-4">
+          নির্দিষ্ট UID-এর জন্য custom rule — global rule-কে overrule করবে।
+        </p>
+        <form onSubmit={onAdd} className="grid grid-cols-1 md:grid-cols-[1fr,auto,auto,1fr,auto] gap-2 mb-4">
+          <input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="UID (e.g. 101415)"
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500 font-mono" />
+          <select value={ruleType} onChange={(e) => setRuleType(e.target.value as any)}
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500">
+            <option value="unlimited">Unlimited</option>
+            <option value="days">Last N days</option>
+            <option value="blocked">Blocked</option>
+          </select>
+          <input type="number" min={1} max={365} value={days}
+            disabled={ruleType !== 'days'}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="w-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500 disabled:opacity-40" />
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)"
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500" />
+          <button type="submit" className="rounded-md bg-green-600 hover:bg-green-500 px-4 py-2 text-sm font-medium">➕ Save</button>
+        </form>
+        {data.rules.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">কোনো per-UID override নেই।</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-slate-400 uppercase">
+                <tr><th className="text-left py-2">UID</th><th className="text-left py-2">Rule</th><th className="text-left py-2">Note</th><th className="text-left py-2">Updated</th><th></th></tr>
+              </thead>
+              <tbody>
+                {data.rules.map((r: any) => (
+                  <tr key={r.uid} className="border-t border-slate-800">
+                    <td className="py-2 font-mono">{r.uid}</td>
+                    <td className="py-2">
+                      {r.rule_type === 'unlimited' && <span className="text-green-400">♾️ Unlimited</span>}
+                      {r.rule_type === 'blocked' && <span className="text-red-400">🚫 Blocked</span>}
+                      {r.rule_type === 'days' && <span className="text-amber-400">⏱ Last {r.days_required}d</span>}
+                    </td>
+                    <td className="py-2 text-slate-400">{r.note ?? '—'}</td>
+                    <td className="py-2 text-slate-500 text-xs">{new Date(r.updated_at).toLocaleString()}</td>
+                    <td className="py-2 text-right">
+                      <button onClick={() => onRemove(r.uid)} className="text-red-400 hover:text-red-300 text-xs">Remove</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-3">🕒 Recent Gate Checks</h2>
+        {data.recent.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">এখনো কোনো check হয়নি।</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-slate-400 uppercase">
+                <tr>
+                  <th className="text-left py-2">Time</th><th className="text-left py-2">UID</th>
+                  <th className="text-left py-2">Result</th><th className="text-left py-2">Reason</th>
+                  <th className="text-left py-2">Source</th><th className="text-left py-2">Required</th>
+                  <th className="text-left py-2">Last Deposit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recent.map((r: any, i: number) => (
+                  <tr key={i} className="border-t border-slate-800">
+                    <td className="py-1.5 text-slate-500">{new Date(r.checked_at).toLocaleString()}</td>
+                    <td className="py-1.5 font-mono">{r.uid ?? '—'}</td>
+                    <td className="py-1.5">{r.allowed ? <span className="text-green-400">✓</span> : <span className="text-red-400">✗</span>}</td>
+                    <td className="py-1.5 text-slate-400">{r.reason}</td>
+                    <td className="py-1.5 text-slate-400">{r.rule_source}</td>
+                    <td className="py-1.5">{r.required_days ?? '—'}</td>
+                    <td className="py-1.5 text-slate-500">{r.last_deposit_at ? new Date(r.last_deposit_at).toLocaleString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 
 function LicenseTab() {
   const load = useServerFn(getLicenseSettings);
