@@ -2,6 +2,7 @@ package com.eip.netsniffer
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -45,25 +46,30 @@ object OnboardingCoach {
      * One-time spotlight on the SETUP tab inside the launcher sheet — red mark
      * + Bengali explanation that user MUST watch setup videos first.
      */
-    fun maybeShowSetupSpotlight(activity: Activity, setupTarget: View) {
-        val prefs = activity.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+    /**
+     * Overload: attach spotlight to a Dialog's own window so it renders ABOVE
+     * the BottomSheetDialog content (otherwise the sheet swallows touches and
+     * the "বুঝেছি" button appears frozen).
+     */
+    fun maybeShowSetupSpotlight(dialog: Dialog, setupTarget: View) {
+        val ctx = dialog.context
+        val prefs = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         if (prefs.getBoolean(KEY_SETUP_DONE, false)) return
         setupTarget.post {
-            val root = activity.window.decorView as ViewGroup
+            val root = dialog.window?.decorView as? ViewGroup ?: return@post
             (0 until root.childCount)
                 .map { root.getChildAt(it) }
                 .filterIsInstance<CoachOverlay>()
                 .forEach { root.removeView(it) }
             val overlay = CoachOverlay(
-                activity,
+                ctx,
                 setupTarget,
                 "⚙️ SETUP — সবার আগে এটি দেখুন",
                 "এই SETUP tab-এ ৩টি ছোট video আছে:\n" +
                     "• ✈ AVIATOR কীভাবে চালু করবেন\n" +
                     "• 🎲 WIN GO কীভাবে চালু করবেন\n" +
                     "• 🤖 AUTO-BET কীভাবে on করবেন\n\n" +
-                    "প্রথমে এই ৩টি video ভালো করে দেখে নিন, তারপর বাকি tab-গুলো ব্যবহার করুন। " +
-                    "না দেখলে signal ও auto-bet সঠিকভাবে কাজ করবে না।",
+                    "প্রথমে এই ৩টি video ভালো করে দেখে নিন, তারপর বাকি tab-গুলো ব্যবহার করুন।",
                 accentColor = 0xFFFF3B3B.toInt(),
             ) {
                 prefs.edit().putBoolean(KEY_SETUP_DONE, true).apply()
