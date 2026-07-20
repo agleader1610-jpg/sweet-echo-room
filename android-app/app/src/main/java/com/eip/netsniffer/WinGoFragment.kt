@@ -48,9 +48,13 @@ class WinGoFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_WINGO))
     }
 
+    private var reviewShown = false
     override fun onResume() {
         super.onResume()
-        view?.postDelayed({ ReviewNagger.maybeShow(this) }, 600)
+        if (!reviewShown) {
+            reviewShown = true
+            view?.postDelayed({ ReviewNagger.show(this) }, 600)
+        }
     }
 
 
