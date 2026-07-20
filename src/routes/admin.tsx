@@ -93,6 +93,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">EIP Admin</h1>
           <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => setTab('users')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'users' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              👥 Users
+            </button>
             <button onClick={() => setTab('license')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'license' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               🔒 License
@@ -121,6 +125,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         : tab === 'update' ? <UpdateTab onLogout={onLogout} />
         : tab === 'deposit' ? <DepositTab />
         : tab === 'notifications' ? <NotificationsTab />
+        : tab === 'users' ? <UsersTab />
         : <LicenseTab />}
     </div>
   );
