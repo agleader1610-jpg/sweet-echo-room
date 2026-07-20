@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 86
-        versionName = "1.0.86-deposit-refresh-ux"
+        versionCode = 87
+        versionName = "1.0.87-notifications-bell"
 
 
 
