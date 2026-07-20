@@ -183,13 +183,13 @@ private class CoachOverlay(
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = dp(16f)
                 setColor(0xFF1E1B2E.toInt())
-                setStroke(dpi(1), 0x66FFD54F)
+                setStroke(dpi(1), (accentColor and 0x00FFFFFF) or 0x66000000)
             }
             elevation = dp(8f)
         }
         card.addView(TextView(ctx).apply {
             text = title
-            setTextColor(0xFFFFD54F.toInt())
+            setTextColor(accentColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
         })
@@ -215,8 +215,9 @@ private class CoachOverlay(
             stateListAnimator = null
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = dp(10f)
-                setColor(0xFFFFD54F.toInt())
+                setColor(accentColor)
             }
+
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dpi(42)
