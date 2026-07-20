@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 91
-        versionName = "1.0.91-login-security-copy"
+        versionCode = 92
+        versionName = "1.0.92-tamper-ui-off"
 
 
 
