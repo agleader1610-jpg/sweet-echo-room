@@ -1,0 +1,1 @@
+UPDATE public.user_deposits SET status='success' WHERE status IN ('failed','pending') AND (raw->>'state') IN ('1','2');
