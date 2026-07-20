@@ -108,10 +108,10 @@ object LicenseGate {
         val st = state.value
         return when {
             st == null || st.unknown ->
-                "🔒 Signal system locked.\n\nDebug (Browser) tab-এ গিয়ে আমাদের team invite code দিয়ে বানানো account দিয়ে login করুন। Login সফল হলে এখানে auto unlock হবে।"
+                "⚠️ প্রথমে Login করুন।\n\nSignal / Auto Bet ব্যবহার করতে হলে আপনার DK Win account অবশ্যই EIP TEAM-এর under invite দিয়ে তৈরি থাকতে হবে। Login সফল হলে system automatic verify করবে।"
             st.message.isNotBlank() -> st.message
             else ->
-                "🔒 এই account আমাদের team-এর নয়। Debug tab-এ গিয়ে আমাদের invite code দিয়ে বানানো account দিয়ে login করুন।"
+                "🔒 এই account EIP TEAM-এর under পাওয়া যায়নি। DK Win tab-এ আমাদের invite দিয়ে বানানো account দিয়ে Login করুন।"
         }
     }
 
@@ -199,7 +199,14 @@ object LicenseGate {
 
     fun refresh(ctx: Context) {
         val p = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        verify(ctx, p.getString(KEY_UID, null), p.getString(KEY_INVITE, null))
+        val uid = p.getString(KEY_UID, null)
+        val invite = p.getString(KEY_INVITE, null)
+        if (uid.isNullOrBlank() && invite.isNullOrBlank()) {
+            p.edit().putBoolean(KEY_TAMPERED, false).remove(KEY_STATUS).remove(KEY_MESSAGE).apply()
+            state.postValue(State("UNKNOWN", "", null, null, tampered = false))
+            return
+        }
+        verify(ctx, uid, invite)
     }
 
     private fun postJson(endpoint: String, json: String): String? {

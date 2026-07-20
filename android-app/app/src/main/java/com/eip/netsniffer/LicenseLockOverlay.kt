@@ -127,15 +127,16 @@ object LicenseLockOverlay {
             setPadding(0, 0, 0, dp(ctx, 18))
         })
         card.addView(TextView(ctx).apply {
-            text = "Signal system চালু করতে হলে প্রথমে DK Win tab-এ গিয়ে আপনার account দিয়ে Login করুন।\n\nআপনি যদি আগে থেকেই আমাদের team invite দিয়ে account বানিয়ে থাকেন — সেই account দিয়ে Login করলেই এখানে auto unlock হয়ে যাবে।\n\nযদি account না থাকে, শুধুমাত্র তখনই Register-এর প্রয়োজন হবে (Login attempt-এর পর system নিজে থেকে বুঝে register option দেখাবে)।"
+            text = "⚠️ RED ALERT\n\nSignal / Auto Bet ব্যবহার করতে হলে আপনার DK Win account অবশ্যই EIP TEAM-এর under invite দিয়ে তৈরি থাকতে হবে। অন্য team, self-created বা ভুল invite-এর account হলে system unlock হবে না।\n\nপ্রথমে DK Win tab-এ Login করুন। Login সফল হলে system automatic UID check করবে — EIP TEAM-এর under থাকলে unlock হবে, না থাকলে register instruction দেখাবে।"
             setTextColor(0xFFE2E8F0.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setLineSpacing(dp(ctx, 4).toFloat(), 1f)
             setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
             background = GradientDrawable().apply {
                 cornerRadius = dp(ctx, 14).toFloat()
-                setColor(0x2222D3EE.toInt())
-                setStroke(dp(ctx, 1), 0x6622D3EE.toInt())
+                colors = intArrayOf(0x553B0710.toInt(), 0x33111827.toInt())
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+                setStroke(dp(ctx, 1), 0xFFEF4444.toInt())
             }
         })
         card.addView(Button(ctx).apply {
@@ -189,10 +190,10 @@ object LicenseLockOverlay {
         return root
     }
 
-    /** Full-screen "you got caught" screen for tampered / repackaged builds. */
+    /** Full-screen official-build verification screen for tampered / repackaged builds. */
     private fun buildShameOverlay(ctx: Context): View {
         val root = FrameLayout(ctx).apply {
-            setBackgroundColor(0xFF0A0000.toInt())
+            setBackgroundColor(0xF20A0F1A.toInt())
             isClickable = true
             isFocusable = true
         }
@@ -205,28 +206,28 @@ object LicenseLockOverlay {
             setPadding(dp(ctx, 22), dp(ctx, 26), dp(ctx, 22), dp(ctx, 26))
             background = GradientDrawable().apply {
                 cornerRadius = dp(ctx, 22).toFloat()
-                colors = intArrayOf(0xFF1A0000.toInt(), 0xFF2A0505.toInt())
+                colors = intArrayOf(0xFF0B1120.toInt(), 0xFF111827.toInt())
                 orientation = GradientDrawable.Orientation.TOP_BOTTOM
-                setStroke(dp(ctx, 2), 0xFFEF4444.toInt())
+                setStroke(dp(ctx, 1), 0xFFF59E0B.toInt())
             }
         }
 
         card.addView(TextView(ctx).apply {
-            text = "🤡"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 84f)
+            text = "🛡️"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 64f)
             gravity = Gravity.CENTER
         })
         card.addView(TextView(ctx).apply {
-            text = "ধরা খাইছোস, চোরা!"
-            setTextColor(0xFFEF4444.toInt())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+            text = "Official App Verification"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
             gravity = Gravity.CENTER
-            letterSpacing = 0.15f
+            letterSpacing = 0.08f
             setPadding(0, dp(ctx, 6), 0, dp(ctx, 4))
         })
         card.addView(TextView(ctx).apply {
-            text = "TAMPERED · REPACKAGED · BLACKLISTED"
-            setTextColor(0xFFFCA5A5.toInt())
+            text = "SECURE BUILD CHECK"
+            setTextColor(0xFFFDE68A.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             gravity = Gravity.CENTER
             letterSpacing = 0.3f
@@ -234,22 +235,22 @@ object LicenseLockOverlay {
         })
 
         card.addView(TextView(ctx).apply {
-            text = "তুই আমাদের APK ঘেঁটে বা root/hook দিয়ে bypass করার চেষ্টা করছিলি। আমাদের TamperGuard তোকে হাতেনাতে ধরে ফেলেছে। এখন এই device চিরতরে blacklist। কোনো signal, কোনো unlock — কিচ্ছু পাবি না।"
-            setTextColor(0xFFFEE2E2.toInt())
+            text = "এই app-এর secure verification সম্পন্ন করা যায়নি। অনুগ্রহ করে official EIP TEAM APK install করুন এবং DK Win tab-এ Login করে আবার RECHECK দিন।\n\nLogin করার আগে reset/recheck দিলে কোনো harsh warning দেখাবে না — শুধু login এবং team verification instruction দেখাবে।"
+            setTextColor(0xFFE2E8F0.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setLineSpacing(dp(ctx, 4).toFloat(), 1f)
             setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
             background = GradientDrawable().apply {
                 cornerRadius = dp(ctx, 14).toFloat()
-                setColor(0x33EF4444.toInt())
-                setStroke(dp(ctx, 1), 0x66EF4444.toInt())
+                setColor(0x22F59E0B.toInt())
+                setStroke(dp(ctx, 1), 0x66F59E0B.toInt())
             }
         })
 
         // Detected reasons
         val reasons = TamperGuard.reasons.ifEmpty { listOf("server_reported") }
         card.addView(TextView(ctx).apply {
-            text = "❌ যা যা ধরা পড়েছে:"
+            text = "Verification details:"
             setTextColor(0xFFF59E0B.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(0, dp(ctx, 18), 0, dp(ctx, 6))
@@ -264,23 +265,21 @@ object LicenseLockOverlay {
         }
 
         val lines = listOf(
-            "😂 setprop দিয়ে bypass? — হয় না।",
-            "😂 MT Manager দিয়ে classes.dex edit? — signature mismatch → server LOCK।",
-            "😂 Fake license server বসাবি? — endpoint runtime-এ assemble হয়, grep-এও পাবি না।",
-            "😂 Root/Frida/Xposed? — সব detect হয়ে গেছে।",
-            "",
-            "সময় নষ্ট না করে asli account বানিয়ে আমাদের team-এ join হ। ১০ গুণ ভালো signal পাবি free-তে।",
+            "সমাধান:",
+            "• Official APK install করুন।",
+            "• DK Win tab-এ EIP TEAM-এর under account দিয়ে Login করুন।",
+            "• এরপর RECHECK দিন — সব ঠিক থাকলে system unlock হবে।",
         )
         card.addView(TextView(ctx).apply {
             text = lines.joinToString("\n")
-            setTextColor(0xFFFECACA.toInt())
+            setTextColor(0xFFE2E8F0.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setLineSpacing(dp(ctx, 3).toFloat(), 1f)
             setPadding(0, dp(ctx, 18), 0, 0)
         })
 
         card.addView(TextView(ctx).apply {
-            text = "— EIP Anti-Tamper Division 👁️"
+            text = "— EIP TEAM Security"
             setTextColor(0xFF64748B.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             gravity = Gravity.CENTER

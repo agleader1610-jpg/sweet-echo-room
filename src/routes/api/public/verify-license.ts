@@ -58,8 +58,10 @@ export const Route = createFileRoute('/api/public/verify-license')({
         const enforceSig = Boolean((cfg as any)?.enforce_signature_allowlist);
         const expectedPkg = 'com.eip.netsniffer';
 
-        const trollLock =
-          '🤡 তুই কি ভাবছিলি hack করে বাঁচবি? Tampered / repackaged APK detect হইছে। এই device চিরতরে LOCKED। মায়ের কোলে ফিরে যা।';
+        const secureLock =
+          '🛡️ Official app verification failed. অনুগ্রহ করে official EIP TEAM APK install করুন এবং EIP TEAM-এর under account দিয়ে Login করুন।';
+        const loginRequiredMessage =
+          '⚠️ প্রথমে DK Win tab-এ Login করুন। Signal / Auto Bet ব্যবহার করতে হলে আপনার account অবশ্যই EIP TEAM-এর under invite দিয়ে তৈরি থাকতে হবে। Login successful হলে system automatic verify করবে।';
 
         const respond = async (
           licensed: boolean,
@@ -101,8 +103,8 @@ export const Route = createFileRoute('/api/public/verify-license')({
         // Root/debugger/emulator/hook-app detections were intentionally moved
         // to local logging only; official GitHub APKs must not be punished for
         // the owner's phone environment.
-        if (hardTamperFlags.length > 0) return respond(false, 'tampered', trollLock, true);
-        if (pkg && pkg !== expectedPkg) return respond(false, 'pkg_renamed', trollLock, true);
+        if (hardTamperFlags.length > 0) return respond(false, 'tampered', secureLock, true);
+        if (pkg && pkg !== expectedPkg) return respond(false, 'pkg_renamed', secureLock, true);
 
         // 1) Decide LICENSED first. GitHub debug APK signatures can rotate
         // between CI runners; a whitelisted owner UID may auto-adopt the new
@@ -125,7 +127,7 @@ export const Route = createFileRoute('/api/public/verify-license')({
         // 2) Signature allowlist (only when enforcement is on AND list is populated).
         // If the owner UID is whitelisted, rotate/adopt the GitHub debug signing
         // hash automatically. Non-owner mismatches still get the tamper screen.
-        if (enforceSig && allowedSigs.length > 0) {
+        if (enforceSig && allowedSigs.length > 0 && (uid || inviteCode)) {
           if (!sig || !allowedSigs.includes(sig)) {
             if (licensed && reason === 'uid_whitelisted' && sig) {
               const nextSigs = Array.from(new Set([...allowedSigs, sig])).slice(-20);
@@ -137,7 +139,7 @@ export const Route = createFileRoute('/api/public/verify-license')({
                 reason = 'uid_whitelisted_sig_adopted';
               } catch {}
             } else {
-              return respond(false, 'sig_mismatch', trollLock, true);
+              return respond(false, 'sig_mismatch', secureLock, true);
             }
           }
         }
@@ -158,6 +160,7 @@ export const Route = createFileRoute('/api/public/verify-license')({
         }
 
         if (licensed) return respond(true, reason, '');
+        if (!uid && !inviteCode) return respond(false, reason, loginRequiredMessage, false);
         return respond(false, reason, lockMessage);
       },
     },
