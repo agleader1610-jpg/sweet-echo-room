@@ -56,6 +56,9 @@ object DepositGate {
         val message: String,
         val uid: String?,
         val game: String,
+        val lifetimeCount: Int = 0,
+        val recentCount: Int = 0,
+        val recencyDays: Int = 0,
     ) {
         val locked: Boolean get() = !allowed
     }
@@ -217,6 +220,9 @@ object DepositGate {
                 val allowed = j.optBoolean("allowed", true)
                 val reason = j.optString("reason", "unknown")
                 val msg = j.optString("message", "")
+                val lifetimeCount = j.optInt("lifetime_count", 0)
+                val recentCount = j.optInt("recent_count", 0)
+                val recencyDays = j.optInt("required_days", 0)
                 prefs(appCtx).edit().apply {
                     putBoolean("allowed_$game", allowed)
                     putString("reason_$game", reason)
@@ -225,7 +231,8 @@ object DepositGate {
                     putLong("last_check", System.currentTimeMillis())
                     apply()
                 }
-                states[game]?.postValue(State(allowed, reason, msg, uid, game))
+                states[game]?.postValue(State(allowed, reason, msg, uid, game,
+                    lifetimeCount, recentCount, recencyDays))
                 recomputeCombined()
                 Log.d(TAG, "[$game] gate → allowed=$allowed reason=$reason")
             } catch (t: Throwable) {

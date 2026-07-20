@@ -162,28 +162,27 @@ export const Route = createFileRoute('/api/public/check-deposit-gate')({
         let reason = 'deposit_ok';
         let title = ''; let detail = ''; let footer = '';
         const label = GAME_LABEL[game];
+        const refreshHint = 'Deposit সম্পন্ন করে নিচের 🔄 REFRESH DEPOSIT STATUS বাটনে চাপ দিন — কয়েক সেকেন্ডেই automatic unlock হয়ে যাবে।';
 
         if (!lifetimeOK && lifetimeCount === 0) {
-          // Stage 1 — no deposits at all. Hide numbers, keep it inviting.
+          // Stage 1 — কোনো deposit-ই নেই। সংখ্যা লুকান, সহজ ভাষায় বলুন।
           reason = 'lifetime_missing';
-          title  = `${label} unlock করতে deposit করুন`;
-          detail = `${label} feature টি ব্যবহার করার জন্য প্রথমে একটি successful deposit প্রয়োজন।`;
-          footer = 'নিচের DEPOSIT NOW button-এ tap করে deposit সম্পন্ন করুন। Deposit detect হলে এই screen automatic unlock হবে।';
+          title  = `${label} unlock করতে Deposit করুন`;
+          detail = `${label} feature টি ব্যবহার করার জন্য আপনাকে DK Win-এ একটি successful Deposit করতে হবে।`;
+          footer = refreshHint;
         } else if (!lifetimeOK && lifetimeCount > 0) {
-          // Stage 2 — some deposits already, acknowledge & say how many more.
+          // Stage 2 — কিছু deposit আছে, acknowledge করে বাকিটা জানান।
           reason = 'lifetime_missing';
           const remaining = Math.max(1, lifetimeMin - lifetimeCount);
-          title  = `✅ আপনার ${lifetimeCount} টি deposit detect হয়েছে`;
-          detail = `${label} unlock করতে আপনাকে আরও ${remaining} টি deposit করতে হবে।`;
-          footer = 'Deposit সম্পন্ন করুন — detect হওয়ার সাথে সাথে এই screen unlock হয়ে যাবে।';
+          title  = `✅ আপনার ${lifetimeCount} টি Deposit detect হয়েছে`;
+          detail = `${label} সম্পূর্ণ unlock করতে আরও ${remaining} টি Deposit প্রয়োজন।`;
+          footer = refreshHint;
         } else if (!recencyOK) {
-          // Stage 3 — lifetime satisfied; only recency window is the gate.
+          // Stage 3 — শুধু recency window বাকি। সংখ্যা লুকিয়ে সহজভাবে বলুন।
           reason = 'recency_missing';
           title  = `${label} আবার unlock করুন`;
-          detail = recencyMin > 1
-            ? `${label} ব্যবহার চালু রাখতে শেষ ${recencyDays} দিনে ${recencyMin} টি successful deposit থাকতে হবে (এখন ${recentCount} টি)।`
-            : `${label} ব্যবহার চালু রাখতে শেষ ${recencyDays} দিনে একটি deposit থাকতে হবে।`;
-          footer = 'একটি নতুন deposit করলেই feature টি সাথে সাথে unlock হয়ে যাবে।';
+          detail = `${label} ব্যবহার চালু রাখতে একটি সাম্প্রতিক Deposit প্রয়োজন। একটি নতুন Deposit করলেই feature টি সাথে সাথে unlock হয়ে যাবে।`;
+          footer = refreshHint;
         }
 
         const message = allowed
