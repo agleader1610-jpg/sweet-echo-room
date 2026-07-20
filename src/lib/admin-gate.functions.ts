@@ -226,7 +226,7 @@ export const updateDepositGlobal = createServerFn({ method: 'POST' })
       [`${game}_recency_days`]: recencyDays,
       [`${game}_recency_min_deposits`]: recencyMin,
     };
-    const { error } = await supabaseAdmin.from('app_config').update(patch).eq('id', 1);
+    const { error } = await supabaseAdmin.from('app_config').update(patch as never).eq('id', 1);
     if (error) throw error;
     return { ok: true, game, lifetime_min: lifetimeMin, recency_days: recencyDays, recency_min: recencyMin };
   });
@@ -277,10 +277,10 @@ export const upsertDepositRule = createServerFn({ method: 'POST' })
 
     if (existing?.id) {
       const { error } = await supabaseAdmin
-        .from('user_deposit_rules').update(row).eq('id', existing.id);
+        .from('user_deposit_rules').update(row as never).eq('id', existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabaseAdmin.from('user_deposit_rules').insert(row);
+      const { error } = await supabaseAdmin.from('user_deposit_rules').insert(row as never);
       if (error) throw error;
     }
     return { ok: true };
