@@ -165,7 +165,7 @@
                     android:layout_weight="1"
                     android:layout_height="84dp"
                     android:layout_marginStart="8dp"
-                    android:text="📡\nNETWORK"
+                    android:text="⚙️\nSETUP"
                     android:textAllCaps="false"
                     android:textSize="13sp"
                     android:textStyle="bold"

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B1220"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚙️  SETUP GUIDE"
+            android:textColor="#22D3EE"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.24"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp"
+            android:text="সেটআপ গাইড (ভিডিও টিউটোরিয়াল)"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="18dp"
+            android:text="প্রথমবার ব্যবহার করলে নিচের ৩টি ভিডিও একবার দেখে নিন। প্রতিটি ভিডিও কীভাবে সেই প্যানেল চালু করবেন সেটা ধাপে ধাপে দেখানো আছে।"
+            android:textColor="#94A3B8"
+            android:textSize="13sp"
+            android:lineSpacingExtra="4dp"/>
+
+        <!-- CARD 1: Auto-Bet -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/module_card_bg"
+            android:padding="14dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🤖  STEP 1"
+                android:textColor="#F59E0B"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:text="Win Go Auto-Bet প্যানেল সেটআপ"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="10dp"
+                android:text="অটো-বেট চালু করার আগে কীভাবে বেস অ্যামাউন্ট, টার্গেট প্রোফিট, মার্কেট আর টাইমার সেট করবেন — সম্পূর্ণ ধাপ এই ভিডিওতে দেখানো আছে। একবার দেখে নিলেই বাকিটা অটোমেটিক চলবে।"
+                android:textColor="#CBD5E1"
+                android:textSize="13sp"
+                android:lineSpacingExtra="3dp"/>
+
+            <VideoView
+                android:id="@+id/videoAutoBet"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:background="#000000"/>
+        </LinearLayout>
+
+        <!-- CARD 2: WinGo -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/module_card_bg"
+            android:padding="14dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎲  STEP 2"
+                android:textColor="#22D3EE"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:text="Win Go সিগন্যাল সেটআপ"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="10dp"
+                android:text="Win Go প্যানেলে সিগন্যাল কীভাবে দেখা যাবে, কোন পিরিয়ডে কোন কালার বা নাম্বার ধরতে হবে, ভয়েস এলার্ট চালু বা বন্ধ করা — সবকিছু এই ভিডিওতে সহজভাবে বুঝানো হয়েছে।"
+                android:textColor="#CBD5E1"
+                android:textSize="13sp"
+                android:lineSpacingExtra="3dp"/>
+
+            <VideoView
+                android:id="@+id/videoWinGo"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:background="#000000"/>
+        </LinearLayout>
+
+        <!-- CARD 3: Aviator -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/module_card_bg"
+            android:padding="14dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✈  STEP 3"
+                android:textColor="#A78BFA"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:text="Aviator সিগন্যাল সেটআপ"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="10dp"
+                android:text="Aviator প্যানেলে Bed Time আর Flying Time কীভাবে কাজ করে, কখন বেট বসাতে হবে, কখন cash-out করতে হবে — এই ভিডিওটা একবার শেষ পর্যন্ত দেখলে পুরো সিস্টেম ক্লিয়ার হয়ে যাবে।"
+                android:textColor="#CBD5E1"
+                android:textSize="13sp"
+                android:lineSpacingExtra="3dp"/>
+
+            <VideoView
+                android:id="@+id/videoAviator"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:background="#000000"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingBottom="8dp"
+            android:text="— EIP TEAM —"
+            android:textColor="#475569"
+            android:textSize="11sp"
+            android:letterSpacing="0.3"/>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
