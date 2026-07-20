@@ -28,6 +28,10 @@ class MainActivity : AppCompatActivity() {
         val devId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
         LicenseGate.init(applicationContext, devId)
         DepositGate.init(applicationContext, devId)
+        NotificationStore.start(applicationContext)
+        // If we already know a uid, share it with the notif store immediately.
+        val savedUid = getSharedPreferences("eip_deposit", Context.MODE_PRIVATE).getString("uid", null)
+        if (!savedUid.isNullOrBlank()) NotificationStore.setUid(savedUid)
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
 
@@ -50,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         b.pager.setCurrentItem(prefs.getInt(PREF_LAST_TAB, 0), false)
 
         setupDraggableFab()
+        setupNotificationBell()
 
         // Remote force-update gate (fail-open: silent on any failure).
         VersionChecker.check(this)
