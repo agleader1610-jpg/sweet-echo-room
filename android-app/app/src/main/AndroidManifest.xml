@@ -39,5 +39,11 @@
             android:name=".DetailActivity"
             android:exported="false"
             android:label="Request details"/>
+        <activity
+            android:name=".FullscreenVideoActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"/>
     </application>
 </manifest>
