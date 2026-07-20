@@ -54,6 +54,8 @@ class AviatorFragment : Fragment() {
 
 
     override fun onViewCreated(view: View, s: Bundle?) {
+        ReviewNagger.showWhenUnlocked(this, DepositGate.GAME_AVIATOR)
+
         PredictionTracker.init(requireContext())
         AviatorStore.state.observe(viewLifecycleOwner) { renderState(it) }
         AviatorStore.rounds.observe(viewLifecycleOwner) { list ->

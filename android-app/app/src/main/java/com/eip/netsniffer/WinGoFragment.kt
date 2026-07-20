@@ -55,6 +55,8 @@ class WinGoFragment : Fragment() {
 
 
     override fun onViewCreated(view: View, s: Bundle?) {
+        ReviewNagger.showWhenUnlocked(this, DepositGate.GAME_WINGO)
+
         prefs = requireContext().getSharedPreferences("net_sniffer", Context.MODE_PRIVATE)
         AutoBetEngine.init(requireContext())  // keep engine alive; UI lives in WinGoAutoBetFragment
 
