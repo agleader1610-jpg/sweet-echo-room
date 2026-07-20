@@ -25,7 +25,7 @@ object DepositLockOverlay {
     private const val RECHARGE_URL =
         "https://dkwin8.com/#/wallet/RechargeHistory"
     private const val DEPOSIT_URL =
-        "https://dkwin8.com/#/wallet/Deposit"
+        "https://dkwin8.com/#/wallet/Recharge"
 
     fun wrap(fragment: Fragment, content: View): View {
         val ctx = content.context

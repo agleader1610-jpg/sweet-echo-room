@@ -17,7 +17,7 @@ object VoicePlayer {
     private var current: MediaPlayer? = null
 
     fun isMuted(ctx: Context): Boolean =
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_MUTED, false)
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_MUTED, true)
 
     fun setMuted(ctx: Context, muted: Boolean) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
