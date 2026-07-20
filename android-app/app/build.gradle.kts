@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 110
-        versionName = "1.0.110-ai-usage"
+        versionCode = 111
+        versionName = "1.0.111-coach-marks"
 
 
 
