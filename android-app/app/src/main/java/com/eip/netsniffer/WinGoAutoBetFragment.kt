@@ -31,10 +31,6 @@ class WinGoAutoBetFragment : Fragment() {
         return LicenseLockOverlay.wrap(this, DepositLockOverlay.wrap(this, b.root, DepositGate.GAME_WINGO_AUTO))
     }
 
-    override fun onResume() {
-        super.onResume()
-        view?.postDelayed({ ReviewNagger.maybeShow(this) }, 600)
-    }
 
 
     override fun onViewCreated(view: View, s: Bundle?) {
