@@ -86,12 +86,20 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let aiModel: string | null = null;
         let aiError: string | null = null;
         let aiRaw: string | null = null;
+        let promptTokens: number | null = null;
+        let completionTokens: number | null = null;
+        let totalTokens: number | null = null;
+        let costCredits: number | null = null;
         try {
           const r = await callAI(history, memory);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
           aiModel = AI_MODEL;
+          promptTokens = r.promptTokens;
+          completionTokens = r.completionTokens;
+          totalTokens = r.totalTokens;
+          costCredits = estimateCost(AI_MODEL, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
           signal = applyMemoryToLocal(computeLocalSignal(history), memory);
@@ -112,6 +120,10 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           reasoning: signal.reasoning,
           ai_model: aiModel,
           latency_ms: latency,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: totalTokens,
+          cost_credits: costCredits,
           raw: { history_len: history.length, memory, ai_error: aiError, ai_raw: aiRaw },
         }).select('id').maybeSingle();
 
@@ -131,6 +143,10 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           latency_ms: latency,
           ai_raw: aiRaw,
           ai_error: aiError,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: totalTokens,
+          cost_credits: costCredits,
           memory_count: memory.memoryCount,
           memory_loss_streak: memory.lossStreak,
           memory_accuracy: memory.accuracy,
