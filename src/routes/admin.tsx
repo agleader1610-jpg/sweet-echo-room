@@ -20,6 +20,7 @@ import {
   listNotificationsAdmin,
   createNotification,
   deleteNotification,
+  getUsageStats,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
