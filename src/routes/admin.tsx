@@ -17,6 +17,9 @@ import {
   updateDepositGlobal,
   upsertDepositRule,
   removeDepositRule,
+  listNotificationsAdmin,
+  createNotification,
+  deleteNotification,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
@@ -82,7 +85,7 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit'>('license');
+  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications'>('license');
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
@@ -96,6 +99,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <button onClick={() => setTab('deposit')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'deposit' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               💰 Deposit
+            </button>
+            <button onClick={() => setTab('notifications')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'notifications' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              🔔 Notifications
             </button>
             <button onClick={() => setTab('analytics')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'analytics' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
@@ -112,10 +119,99 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       {tab === 'analytics' ? <AnalyticsTab />
         : tab === 'update' ? <UpdateTab onLogout={onLogout} />
         : tab === 'deposit' ? <DepositTab />
+        : tab === 'notifications' ? <NotificationsTab />
         : <LicenseTab />}
     </div>
   );
 }
+
+function NotificationsTab() {
+  const load = useServerFn(listNotificationsAdmin);
+  const create = useServerFn(createNotification);
+  const remove = useServerFn(deleteNotification);
+  const [items, setItems] = useState<Array<{ id: string; title: string; body: string; target_uid: string | null; created_at: string }>>([]);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [targetUid, setTargetUid] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
+
+  async function refresh() {
+    const r = await load();
+    setItems(r.items as any);
+  }
+  useEffect(() => { refresh().catch(console.error); }, []);
+
+  async function onSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || !body.trim()) return;
+    setBusy(true);
+    try {
+      await create({ data: { title: title.trim(), body: body.trim(), target_uid: targetUid.trim() || null } });
+      setTitle(''); setBody(''); setTargetUid('');
+      setToast('✅ Notification পাঠানো হয়েছে');
+      setTimeout(() => setToast(''), 1800);
+      await refresh();
+    } finally { setBusy(false); }
+  }
+  async function onRemove(id: string) {
+    if (!confirm('এই notification remove করবেন?')) return;
+    await remove({ data: { id } });
+    refresh();
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {toast && <div className="fixed top-4 right-4 bg-green-600 px-3 py-1.5 rounded text-sm shadow-lg z-50">{toast}</div>}
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold mb-1">🔔 Send Notification</h2>
+        <p className="text-sm text-slate-400 mb-4">
+          Target UID খালি রাখলে সকল user-এর কাছে broadcast হবে। App-এর 🔔 bell-এ instant বাজবে।
+        </p>
+        <form onSubmit={onSend} className="grid gap-3 md:grid-cols-2">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title"
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-amber-500" />
+          <input value={targetUid} onChange={(e) => setTargetUid(e.target.value)} placeholder="Target UID (খালি = সবাই)"
+            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-amber-500" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Message body" rows={3}
+            className="md:col-span-2 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-amber-500" />
+          <button type="submit" disabled={busy}
+            className="md:col-span-2 rounded-md bg-amber-600 hover:bg-amber-500 disabled:opacity-50 px-4 py-2 font-semibold">
+            {busy ? 'পাঠানো হচ্ছে…' : '📢 Send'}
+          </button>
+        </form>
+      </section>
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h3 className="font-semibold mb-3">সাম্প্রতিক Notifications</h3>
+        {items.length === 0 ? (
+          <p className="text-sm text-slate-500">কোনো notification নেই।</p>
+        ) : (
+          <div className="space-y-2">
+            {items.map((n) => (
+              <div key={n.id} className="border border-slate-800 rounded-lg p-3 flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm">{n.title}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${n.target_uid ? 'bg-cyan-800 text-cyan-100' : 'bg-emerald-800 text-emerald-100'}`}>
+                      {n.target_uid ? `UID: ${n.target_uid}` : 'BROADCAST'}
+                    </span>
+                    <span className="text-[11px] text-slate-500">{new Date(n.created_at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-sm text-slate-300 mt-1 whitespace-pre-wrap break-words">{n.body}</p>
+                </div>
+                <button onClick={() => onRemove(n.id)}
+                  className="text-xs text-red-400 hover:text-red-300 shrink-0">Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 
 type GameKey = 'aviator' | 'wingo' | 'wingo_auto';
 const GAME_META: Array<{ key: GameKey; label: string; icon: string; color: string }> = [

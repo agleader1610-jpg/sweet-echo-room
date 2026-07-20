@@ -485,3 +485,47 @@ export const exportPredictionsCsv = createServerFn({ method: 'GET' })
     });
     return { csv: [header, ...lines].join('\n'), count: rows?.length ?? 0 };
   });
+
+// ---------- Notifications ----------
+
+export const listNotificationsAdmin = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUnlocked();
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  const { data, error } = await supabaseAdmin
+    .from('notifications')
+    .select('id, target_uid, title, body, created_at')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return { items: data ?? [] };
+});
+
+export const createNotification = createServerFn({ method: 'POST' })
+  .inputValidator((d: { title: string; body: string; target_uid?: string | null }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const title = String(data.title || '').trim().slice(0, 120);
+    const body = String(data.body || '').trim().slice(0, 2000);
+    const target_uid = data.target_uid ? String(data.target_uid).trim().slice(0, 64) : null;
+    if (!title || !body) throw new Error('Title and body required');
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .insert({ title, body, target_uid: target_uid || null });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const deleteNotification = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .eq('id', String(data.id));
+    if (error) throw error;
+    return { ok: true };
+  });
+

@@ -17,6 +17,7 @@ import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-pro
 import { Route as ApiPublicVerifyResultRouteImport } from './routes/api/public/verify-result'
 import { Route as ApiPublicVerifyLicenseRouteImport } from './routes/api/public/verify-license'
 import { Route as ApiPublicPredictSignalRouteImport } from './routes/api/public/predict-signal'
+import { Route as ApiPublicListNotificationsRouteImport } from './routes/api/public/list-notifications'
 import { Route as ApiPublicIngestRechargeRouteImport } from './routes/api/public/ingest-recharge'
 import { Route as ApiPublicCheckDepositGateRouteImport } from './routes/api/public/check-deposit-gate'
 import { Route as ApiPublicCapturesIngestRouteImport } from './routes/api/public/captures-ingest'
@@ -63,6 +64,12 @@ const ApiPublicPredictSignalRoute = ApiPublicPredictSignalRouteImport.update({
   path: '/api/public/predict-signal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicListNotificationsRoute =
+  ApiPublicListNotificationsRouteImport.update({
+    id: '/api/public/list-notifications',
+    path: '/api/public/list-notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIngestRechargeRoute = ApiPublicIngestRechargeRouteImport.update({
   id: '/api/public/ingest-recharge',
   path: '/api/public/ingest-recharge',
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/check-deposit-gate': typeof ApiPublicCheckDepositGateRoute
   '/api/public/ingest-recharge': typeof ApiPublicIngestRechargeRoute
+  '/api/public/list-notifications': typeof ApiPublicListNotificationsRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
@@ -114,6 +122,7 @@ export interface FileRoutesByTo {
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/check-deposit-gate': typeof ApiPublicCheckDepositGateRoute
   '/api/public/ingest-recharge': typeof ApiPublicIngestRechargeRoute
+  '/api/public/list-notifications': typeof ApiPublicListNotificationsRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
@@ -130,6 +139,7 @@ export interface FileRoutesById {
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
   '/api/public/check-deposit-gate': typeof ApiPublicCheckDepositGateRoute
   '/api/public/ingest-recharge': typeof ApiPublicIngestRechargeRoute
+  '/api/public/list-notifications': typeof ApiPublicListNotificationsRoute
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/api/public/captures-ingest'
     | '/api/public/check-deposit-gate'
     | '/api/public/ingest-recharge'
+    | '/api/public/list-notifications'
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/api/public/captures-ingest'
     | '/api/public/check-deposit-gate'
     | '/api/public/ingest-recharge'
+    | '/api/public/list-notifications'
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
@@ -177,6 +189,7 @@ export interface FileRouteTypes {
     | '/api/public/captures-ingest'
     | '/api/public/check-deposit-gate'
     | '/api/public/ingest-recharge'
+    | '/api/public/list-notifications'
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
@@ -193,6 +206,7 @@ export interface RootRouteChildren {
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
   ApiPublicCheckDepositGateRoute: typeof ApiPublicCheckDepositGateRoute
   ApiPublicIngestRechargeRoute: typeof ApiPublicIngestRechargeRoute
+  ApiPublicListNotificationsRoute: typeof ApiPublicListNotificationsRoute
   ApiPublicPredictSignalRoute: typeof ApiPublicPredictSignalRoute
   ApiPublicVerifyLicenseRoute: typeof ApiPublicVerifyLicenseRoute
   ApiPublicVerifyResultRoute: typeof ApiPublicVerifyResultRoute
@@ -259,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPredictSignalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/list-notifications': {
+      id: '/api/public/list-notifications'
+      path: '/api/public/list-notifications'
+      fullPath: '/api/public/list-notifications'
+      preLoaderRoute: typeof ApiPublicListNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ingest-recharge': {
       id: '/api/public/ingest-recharge'
       path: '/api/public/ingest-recharge'
@@ -305,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
   ApiPublicCheckDepositGateRoute: ApiPublicCheckDepositGateRoute,
   ApiPublicIngestRechargeRoute: ApiPublicIngestRechargeRoute,
+  ApiPublicListNotificationsRoute: ApiPublicListNotificationsRoute,
   ApiPublicPredictSignalRoute: ApiPublicPredictSignalRoute,
   ApiPublicVerifyLicenseRoute: ApiPublicVerifyLicenseRoute,
   ApiPublicVerifyResultRoute: ApiPublicVerifyResultRoute,
