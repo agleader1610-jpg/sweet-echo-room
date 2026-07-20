@@ -592,7 +592,10 @@ object DepositLockOverlay {
             text = label
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            letterSpacing = 0.18f
+            letterSpacing = 0.14f
+            maxLines = 1
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setShadowLayer(dp(ctx, 2).toFloat(), 0f, dp(ctx, 1).toFloat(), 0x66000000)
         })
@@ -634,7 +637,10 @@ object DepositLockOverlay {
             text = label
             setTextColor(C_GOLD)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            letterSpacing = 0.18f
+            letterSpacing = 0.14f
+            maxLines = 1
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         })
         wrap.addView(row, FrameLayout.LayoutParams(
