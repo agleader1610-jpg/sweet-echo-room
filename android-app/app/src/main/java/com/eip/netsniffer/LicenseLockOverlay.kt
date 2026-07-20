@@ -153,7 +153,7 @@ object LicenseLockOverlay {
                 try {
                     val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
                         var c: Context? = cw
-                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        while (true) { val cur = c; if (cur !is android.content.ContextWrapper || cur is MainActivity) break; c = cur.baseContext }
                         c as? MainActivity
                     }
                     act?.switchToBrowserTab()
@@ -404,7 +404,7 @@ object LicenseLockOverlay {
                 try {
                     val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
                         var c: Context? = cw
-                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        while (true) { val cur = c; if (cur !is android.content.ContextWrapper || cur is MainActivity) break; c = cur.baseContext }
                         c as? MainActivity
                     }
                     if (act != null) {
@@ -466,7 +466,7 @@ object LicenseLockOverlay {
                 try {
                     val act = (ctx as? android.content.ContextWrapper)?.let { cw ->
                         var c: Context? = cw
-                        while (c is android.content.ContextWrapper && c !is MainActivity) c = c.baseContext
+                        while (true) { val cur = c; if (cur !is android.content.ContextWrapper || cur is MainActivity) break; c = cur.baseContext }
                         c as? MainActivity
                     }
                     act?.switchToBrowserTab()
