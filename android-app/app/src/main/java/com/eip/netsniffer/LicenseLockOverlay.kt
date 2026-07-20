@@ -411,8 +411,8 @@ object LicenseLockOverlay {
                         act.openRegisterInBrowser(REGISTER_URL)
                         android.widget.Toast.makeText(
                             ctx,
-                            "পুরনো login/cookies clear করে register page খুলছে…",
-                            android.widget.Toast.LENGTH_SHORT,
+                            "Register শেষ হলে DK Win-এ Logout করে আবার Login করুন, তারপর RECHECK দিন।",
+                            android.widget.Toast.LENGTH_LONG,
                         ).show()
                     }
                 } catch (_: Throwable) {}
