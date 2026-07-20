@@ -436,6 +436,7 @@ export type Database = {
           device_id: string | null
           order_no: string
           raw: Json | null
+          status: string
           uid: string
         }
         Insert: {
@@ -446,6 +447,7 @@ export type Database = {
           device_id?: string | null
           order_no: string
           raw?: Json | null
+          status?: string
           uid: string
         }
         Update: {
@@ -456,6 +458,7 @@ export type Database = {
           device_id?: string | null
           order_no?: string
           raw?: Json | null
+          status?: string
           uid?: string
         }
         Relationships: []
