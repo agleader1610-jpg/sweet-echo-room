@@ -69,25 +69,42 @@ type Row = {
 
 function normalize(r: any, uid: string, deviceId: string | null): Row | null {
   if (!r || typeof r !== 'object') return null;
-  // Only keep confirmed successful deposits.
+
+  // DK Win / dkwinapi.com recharge history uses `state` as a numeric code:
+  //   0 = pending / created (no money yet)
+  //   1 = failed / cancelled
+  //   2 = success (money credited)   ← the ONLY thing we count
+  // Other platforms sometimes use 1=success or "success"/"paid" strings, so
+  // we keep those as fallbacks — but we NEVER count state=1 as success when
+  // the payload also has DK Win markers (rechargeNumber/addTime), because
+  // there 1 means failed.
   const state = r.state ?? r.status ?? r.orderStatus;
   const stateStr = String(state ?? '').toLowerCase();
+  const looksLikeDkwin = 'rechargeNumber' in r || 'addTime' in r;
   const isSuccess =
-    state === 1 || state === '1' || state === true ||
+    state === 2 || state === '2' ||
+    (!looksLikeDkwin && (state === 1 || state === '1' || state === true)) ||
     stateStr === 'success' || stateStr === 'successful' ||
     stateStr === 'paid' || stateStr === 'completed' || stateStr === 'complete';
   if (!isSuccess) return null;
 
-  const orderNo = String(r.orderNo ?? r.order_no ?? r.orderId ?? r.order_id ?? r.id ?? '').trim();
+  // Order number — DK Win calls it `rechargeNumber`.
+  const orderNo = String(
+    r.rechargeNumber ?? r.orderNo ?? r.order_no ?? r.orderId ?? r.order_id ?? r.id ?? '',
+  ).trim();
   if (!orderNo) return null;
 
-  const amount = Number(r.amount ?? r.money ?? r.rechargeAmount ?? 0);
+  // Amount — DK Win uses `price` as a string.
+  const amount = Number(r.price ?? r.amount ?? r.money ?? r.rechargeAmount ?? 0);
   const currency = (r.currency ?? r.currencyCode ?? null) as string | null;
 
-  const rawTime = r.createTime ?? r.create_time ?? r.rechargeTime ?? r.updateTime ?? r.payTime ?? r.time;
+  // Time — DK Win uses `addTime` in "YYYY-MM-DD HH:mm:ss" (server local).
+  const rawTime =
+    r.addTime ?? r.createTime ?? r.create_time ??
+    r.rechargeTime ?? r.updateTime ?? r.payTime ?? r.time;
   let deposited: Date | null = null;
   if (typeof rawTime === 'number') deposited = new Date(rawTime > 1e12 ? rawTime : rawTime * 1000);
-  else if (typeof rawTime === 'string') {
+  else if (typeof rawTime === 'string' && rawTime.trim()) {
     const s = rawTime.includes('T') ? rawTime : rawTime.replace(' ', 'T');
     const d = new Date(s);
     if (!Number.isNaN(d.getTime())) deposited = d;
@@ -104,6 +121,7 @@ function normalize(r: any, uid: string, deviceId: string | null): Row | null {
     raw: r,
   };
 }
+
 
 function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), { status, headers: cors() });
