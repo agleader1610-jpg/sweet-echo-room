@@ -940,3 +940,112 @@ function BucketTable({ rows, showWin = true }: { rows: Bucket[]; showWin?: boole
     </div>
   );
 }
+
+// ============ Users & Devices tab ============
+function UsersTab() {
+  const load = useServerFn(getUsageStats);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getUsageStats>> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function refresh() {
+    setLoading(true); setErr('');
+    try { setData(await load()); }
+    catch (e) { setErr(String((e as Error).message ?? e)); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const fmt = (t: string | null) => t ? new Date(t).toLocaleString() : '—';
+
+  return (
+    <main className="max-w-6xl mx-auto px-4 py-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">👥 Users & Devices</h2>
+        <button onClick={refresh} disabled={loading}
+          className="px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-sm disabled:opacity-50">
+          {loading ? 'Loading…' : '🔄 Refresh'}
+        </button>
+      </div>
+      {err && <div className="text-red-400 text-sm mb-3">{err}</div>}
+
+      {data && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <StatCard label="Total Users" value={data.users.total} sub={`24h: ${data.users.active24h} · 7d: ${data.users.active7d}`} />
+            <StatCard label="Devices (30d)" value={data.devices.total} sub={`All-time captures: ${data.devices.totalCaptures.toLocaleString()}`} />
+            <StatCard label="Active 24h" value={data.devices.active24h} sub="unique devices" />
+            <StatCard label="Active 7d" value={data.devices.active7d} sub="unique devices" />
+          </div>
+
+          <section className="mb-8">
+            <h3 className="text-md font-semibold mb-2">Recent Users ({data.recentUsers.length})</h3>
+            <div className="overflow-x-auto rounded-lg border border-slate-800">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-900 text-slate-400">
+                  <tr>
+                    <th className="text-left px-3 py-2">UID</th>
+                    <th className="text-left px-3 py-2">Nick / User</th>
+                    <th className="text-left px-3 py-2">Phone</th>
+                    <th className="text-right px-3 py-2">Balance</th>
+                    <th className="text-left px-3 py-2">Device</th>
+                    <th className="text-left px-3 py-2">Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentUsers.map((u) => (
+                    <tr key={u.uid} className="border-t border-slate-800 hover:bg-slate-900/50">
+                      <td className="px-3 py-2 font-mono text-cyan-400">{u.uid}</td>
+                      <td className="px-3 py-2">{u.nick_name || u.user_name || '—'}</td>
+                      <td className="px-3 py-2">{u.phone || '—'}</td>
+                      <td className="px-3 py-2 text-right">{u.balance != null ? Number(u.balance).toFixed(2) : '—'}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-slate-400">{u.device_id ? u.device_id.slice(0, 12) + '…' : '—'}</td>
+                      <td className="px-3 py-2 text-slate-400">{fmt(u.last_seen)}</td>
+                    </tr>
+                  ))}
+                  {data.recentUsers.length === 0 && (
+                    <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">No users captured yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-md font-semibold mb-2">Recent Devices ({data.recentDevices.length})</h3>
+            <div className="overflow-x-auto rounded-lg border border-slate-800">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-900 text-slate-400">
+                  <tr>
+                    <th className="text-left px-3 py-2">Device ID</th>
+                    <th className="text-right px-3 py-2">Captures (30d)</th>
+                    <th className="text-left px-3 py-2">Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentDevices.map((d) => (
+                    <tr key={d.device_id} className="border-t border-slate-800 hover:bg-slate-900/50">
+                      <td className="px-3 py-2 font-mono text-xs">{d.device_id}</td>
+                      <td className="px-3 py-2 text-right">{d.captures.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-slate-400">{fmt(d.last_seen)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+    </main>
+  );
+}
+
+function StatCard({ label, value, sub }: { label: string; value: number; sub?: string }) {
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+      <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="text-2xl font-bold mt-1">{value.toLocaleString()}</div>
+      {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+    </div>
+  );
+}
