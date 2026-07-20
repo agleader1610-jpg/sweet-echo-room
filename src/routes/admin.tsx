@@ -117,41 +117,74 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   );
 }
 
+type GameKey = 'aviator' | 'wingo' | 'wingo_auto';
+const GAME_META: Array<{ key: GameKey; label: string; icon: string; color: string }> = [
+  { key: 'aviator',    label: 'Aviator',        icon: '✈️', color: 'from-fuchsia-600 to-pink-600' },
+  { key: 'wingo',      label: 'WinGo',          icon: '🎯', color: 'from-cyan-600 to-sky-600' },
+  { key: 'wingo_auto', label: 'WinGo AutoBet',  icon: '🤖', color: 'from-emerald-600 to-teal-600' },
+];
+
 function DepositTab() {
   const load = useServerFn(getDepositSettings);
   const saveGlobal = useServerFn(updateDepositGlobal);
   const upsert = useServerFn(upsertDepositRule);
   const remove = useServerFn(removeDepositRule);
+
   const [data, setData] = useState<any>(null);
-  const [globalDays, setGlobalDays] = useState(0);
-  const [uid, setUid] = useState('');
-  const [ruleType, setRuleType] = useState<'unlimited' | 'days' | 'blocked'>('unlimited');
-  const [days, setDays] = useState(1);
-  const [note, setNote] = useState('');
+  const [drafts, setDrafts] = useState<Record<GameKey, { lifetime_min: number; recency_days: number; recency_min: number }>>({
+    aviator:    { lifetime_min: 0, recency_days: 0, recency_min: 1 },
+    wingo:      { lifetime_min: 0, recency_days: 0, recency_min: 1 },
+    wingo_auto: { lifetime_min: 0, recency_days: 0, recency_min: 1 },
+  });
   const [toast, setToast] = useState('');
+
+  // Override form
+  const [uid, setUid] = useState('');
+  const [ovGame, setOvGame] = useState<'all' | GameKey>('all');
+  const [ruleType, setRuleType] = useState<'unlimited' | 'days' | 'blocked'>('unlimited');
+  const [ovLifetime, setOvLifetime] = useState(0);
+  const [ovDays, setOvDays] = useState(2);
+  const [ovMin, setOvMin] = useState(1);
+  const [note, setNote] = useState('');
 
   async function refresh() {
     const d = await load();
     setData(d);
-    setGlobalDays(d.global_days);
+    setDrafts(d.globals);
   }
   useEffect(() => { refresh().catch(console.error); }, []);
 
-  async function onSaveGlobal() {
-    await saveGlobal({ data: { global_days: Number(globalDays) || 0 } });
-    setToast('✅ Global rule saved'); setTimeout(() => setToast(''), 1800);
+  async function onSaveGlobal(game: GameKey) {
+    const g = drafts[game];
+    await saveGlobal({ data: { game, ...g } });
+    setToast(`✅ ${GAME_META.find(m => m.key === game)!.label} rule saved`);
+    setTimeout(() => setToast(''), 1800);
     refresh();
   }
+  function updateDraft(game: GameKey, patch: Partial<{ lifetime_min: number; recency_days: number; recency_min: number }>) {
+    setDrafts((prev) => ({ ...prev, [game]: { ...prev[game], ...patch } }));
+  }
+
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!uid.trim()) return;
-    await upsert({ data: { uid: uid.trim(), rule_type: ruleType, days_required: days, note: note.trim() } });
-    setUid(''); setNote(''); setDays(1); setRuleType('unlimited');
+    await upsert({
+      data: {
+        uid: uid.trim(),
+        game: ovGame === 'all' ? null : ovGame,
+        rule_type: ruleType,
+        lifetime_min: ovLifetime,
+        recency_days: ovDays,
+        recency_min: ovMin,
+        note: note.trim(),
+      },
+    });
+    setUid(''); setNote('');
     refresh();
   }
-  async function onRemove(u: string) {
-    if (!confirm(`Remove rule for UID ${u}?`)) return;
-    await remove({ data: { uid: u } });
+  async function onRemove(id: number) {
+    if (!confirm(`Remove this override?`)) return;
+    await remove({ data: { id } });
     refresh();
   }
 
@@ -159,52 +192,145 @@ function DepositTab() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-      {toast && <div className="fixed top-4 right-4 bg-green-600 px-3 py-1.5 rounded text-sm">{toast}</div>}
+      {toast && <div className="fixed top-4 right-4 bg-green-600 px-3 py-1.5 rounded text-sm shadow-lg z-50">{toast}</div>}
 
+      {/* Header explainer */}
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h2 className="text-lg font-semibold mb-1">🌍 Global Deposit Rule</h2>
-        <p className="text-sm text-slate-400 mb-4">
-          সবার জন্য default rule — সর্বশেষ <b>N</b> দিনের মধ্যে অন্তত একটা successful deposit থাকতে হবে।
-          <br /><b>0 = feature বন্ধ</b> (deposit check হবে না — শুধু license gate কাজ করবে)।
+        <h2 className="text-lg font-semibold mb-1">💰 Deposit Gate — Per Game Rules</h2>
+        <p className="text-sm text-slate-400 leading-relaxed">
+          প্রত্যেক game unlock হওয়ার জন্য <b>দুইটা condition</b> একসাথে satisfy হতে হবে (AND logic):
         </p>
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          {[0, 1, 2, 3, 5, 7, 15, 30].map((d) => (
-            <button key={d} onClick={() => setGlobalDays(d)}
-              className={`px-3 py-1.5 rounded text-sm ${globalDays === d ? 'bg-amber-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
-              {d === 0 ? 'OFF' : `${d} day${d > 1 ? 's' : ''}`}
-            </button>
-          ))}
-          <input type="number" min={0} max={365} value={globalDays}
-            onChange={(e) => setGlobalDays(Number(e.target.value))}
-            className="w-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-1.5 text-sm outline-none focus:border-amber-500" />
-        </div>
-        <button onClick={onSaveGlobal}
-          className="rounded-md bg-amber-600 hover:bg-amber-500 px-4 py-2 text-sm font-medium">
-          💾 Save Global Rule
-        </button>
+        <ul className="text-sm text-slate-300 mt-2 space-y-1 list-disc list-inside">
+          <li><b className="text-amber-400">Lifetime N deposits</b> — total কতটা successful deposit দরকার। একবার পূরণ হলে permanent, আর check হবে না।</li>
+          <li><b className="text-cyan-400">Recency (last X days, Y deposits)</b> — শেষ X দিনে কমপক্ষে Y টা deposit থাকতে হবে। প্রতিবার check হয়।</li>
+        </ul>
+        <p className="text-xs text-slate-500 mt-2">টিপ: কোনো field-এ <b>0</b> দিলে সেই condition বন্ধ। দুটোই 0 = পুরো deposit gate off।</p>
       </section>
 
+      {/* Per-game global rules */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {GAME_META.map((meta) => {
+          const g = drafts[meta.key];
+          const off = g.lifetime_min === 0 && g.recency_days === 0;
+          return (
+            <section key={meta.key}
+              className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+              <div className={`px-4 py-3 bg-gradient-to-r ${meta.color} flex items-center justify-between`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{meta.icon}</span>
+                  <h3 className="font-semibold">{meta.label}</h3>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded ${off ? 'bg-black/40' : 'bg-white/20'}`}>
+                  {off ? 'OFF' : 'ACTIVE'}
+                </span>
+              </div>
+              <div className="p-4 space-y-4 flex-1">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-amber-400 mb-1">
+                    Lifetime minimum deposits
+                  </label>
+                  <input type="number" min={0} max={100} value={g.lifetime_min}
+                    onChange={(e) => updateDraft(meta.key, { lifetime_min: Number(e.target.value) })}
+                    className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-amber-500" />
+                  <p className="text-[11px] text-slate-500 mt-1">0 = off। একবার পূরণ হলে permanent।</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-cyan-400 mb-1">
+                      Last N days
+                    </label>
+                    <input type="number" min={0} max={365} value={g.recency_days}
+                      onChange={(e) => updateDraft(meta.key, { recency_days: Number(e.target.value) })}
+                      className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-cyan-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-cyan-400 mb-1">
+                      Min deposits
+                    </label>
+                    <input type="number" min={1} max={100} value={g.recency_min}
+                      disabled={g.recency_days === 0}
+                      onChange={(e) => updateDraft(meta.key, { recency_min: Number(e.target.value) })}
+                      className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-cyan-500 disabled:opacity-40" />
+                  </div>
+                </div>
+                <div className="text-xs text-slate-400 bg-slate-800/50 rounded p-2 leading-relaxed">
+                  {off ? (
+                    <span className="text-slate-500">এই game-এর জন্য deposit চেক বন্ধ।</span>
+                  ) : (
+                    <>
+                      Unlock হবে যদি — <b className="text-amber-400">lifetime ≥ {g.lifetime_min || 0}</b>
+                      {g.lifetime_min > 0 && g.recency_days > 0 && ' AND '}
+                      {g.recency_days > 0 && (
+                        <b className="text-cyan-400">last {g.recency_days}d-এ ≥ {g.recency_min}</b>
+                      )}
+                    </>
+                  )}
+                </div>
+                <button onClick={() => onSaveGlobal(meta.key)}
+                  className={`w-full rounded-md bg-gradient-to-r ${meta.color} hover:brightness-110 px-4 py-2 text-sm font-medium`}>
+                  💾 Save {meta.label}
+                </button>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {/* Per-UID override */}
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-1">👤 Per-UID Override ({data.rules.length})</h2>
         <p className="text-sm text-slate-400 mb-4">
-          নির্দিষ্ট UID-এর জন্য custom rule — global rule-কে overrule করবে।
+          নির্দিষ্ট user-এর জন্য custom rule — যেকোনো একটা game-এর জন্য বা সব game-এর জন্য global-কে override করবে।
         </p>
-        <form onSubmit={onAdd} className="grid grid-cols-1 md:grid-cols-[1fr,auto,auto,1fr,auto] gap-2 mb-4">
-          <input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="UID (e.g. 101415)"
-            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500 font-mono" />
-          <select value={ruleType} onChange={(e) => setRuleType(e.target.value as any)}
-            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500">
-            <option value="unlimited">Unlimited</option>
-            <option value="days">Last N days</option>
-            <option value="blocked">Blocked</option>
-          </select>
-          <input type="number" min={1} max={365} value={days}
-            disabled={ruleType !== 'days'}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="w-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500 disabled:opacity-40" />
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)"
-            className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500" />
-          <button type="submit" className="rounded-md bg-green-600 hover:bg-green-500 px-4 py-2 text-sm font-medium">➕ Save</button>
+        <form onSubmit={onAdd} className="space-y-3 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="UID (e.g. 101415)"
+              className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500 font-mono" />
+            <select value={ovGame} onChange={(e) => setOvGame(e.target.value as any)}
+              className="rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500">
+              <option value="all">🌐 All games</option>
+              {GAME_META.map((m) => <option key={m.key} value={m.key}>{m.icon} {m.label} only</option>)}
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['unlimited', 'days', 'blocked'] as const).map((t) => (
+              <button type="button" key={t} onClick={() => setRuleType(t)}
+                className={`px-3 py-1.5 rounded text-sm ${ruleType === t
+                  ? (t === 'unlimited' ? 'bg-green-600' : t === 'blocked' ? 'bg-red-600' : 'bg-amber-600')
+                  : 'bg-slate-800 hover:bg-slate-700'}`}>
+                {t === 'unlimited' ? '♾️ Unlimited' : t === 'blocked' ? '🚫 Blocked' : '⚙️ Custom'}
+              </button>
+            ))}
+          </div>
+          {ruleType === 'days' && (
+            <div className="grid grid-cols-3 gap-2 bg-slate-800/50 rounded p-3">
+              <div>
+                <label className="block text-xs text-amber-400 mb-1">Lifetime min</label>
+                <input type="number" min={0} max={100} value={ovLifetime}
+                  onChange={(e) => setOvLifetime(Number(e.target.value))}
+                  className="w-full rounded bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-cyan-400 mb-1">Last N days</label>
+                <input type="number" min={0} max={365} value={ovDays}
+                  onChange={(e) => setOvDays(Number(e.target.value))}
+                  className="w-full rounded bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-cyan-400 mb-1">Min deposits</label>
+                <input type="number" min={1} max={100} value={ovMin}
+                  onChange={(e) => setOvMin(Number(e.target.value))}
+                  className="w-full rounded bg-slate-800 border border-slate-700 px-2 py-1.5 text-sm" />
+              </div>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)"
+              className="flex-1 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500" />
+            <button type="submit" className="rounded-md bg-green-600 hover:bg-green-500 px-5 py-2 text-sm font-medium">
+              ➕ Save Override
+            </button>
+          </div>
         </form>
         {data.rules.length === 0 ? (
           <p className="text-sm text-slate-500 py-4 text-center">কোনো per-UID override নেই।</p>
@@ -212,21 +338,40 @@ function DepositTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-xs text-slate-400 uppercase">
-                <tr><th className="text-left py-2">UID</th><th className="text-left py-2">Rule</th><th className="text-left py-2">Note</th><th className="text-left py-2">Updated</th><th></th></tr>
+                <tr>
+                  <th className="text-left py-2">UID</th>
+                  <th className="text-left py-2">Game</th>
+                  <th className="text-left py-2">Rule</th>
+                  <th className="text-left py-2">Note</th>
+                  <th className="text-left py-2">Updated</th>
+                  <th></th>
+                </tr>
               </thead>
               <tbody>
                 {data.rules.map((r: any) => (
-                  <tr key={r.uid} className="border-t border-slate-800">
+                  <tr key={r.id} className="border-t border-slate-800">
                     <td className="py-2 font-mono">{r.uid}</td>
+                    <td className="py-2">
+                      {r.game
+                        ? <span className="text-xs bg-slate-800 px-2 py-0.5 rounded">
+                            {GAME_META.find((m) => m.key === r.game)?.icon} {GAME_META.find((m) => m.key === r.game)?.label ?? r.game}
+                          </span>
+                        : <span className="text-xs bg-slate-700 px-2 py-0.5 rounded">🌐 All</span>}
+                    </td>
                     <td className="py-2">
                       {r.rule_type === 'unlimited' && <span className="text-green-400">♾️ Unlimited</span>}
                       {r.rule_type === 'blocked' && <span className="text-red-400">🚫 Blocked</span>}
-                      {r.rule_type === 'days' && <span className="text-amber-400">⏱ Last {r.days_required}d</span>}
+                      {r.rule_type === 'days' && (
+                        <span className="text-amber-400">
+                          Life ≥ {r.lifetime_min_deposits ?? 0}
+                          {r.recency_days ? ` · ${r.recency_days}d ≥ ${r.recency_min_deposits ?? 1}` : ''}
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 text-slate-400">{r.note ?? '—'}</td>
                     <td className="py-2 text-slate-500 text-xs">{new Date(r.updated_at).toLocaleString()}</td>
                     <td className="py-2 text-right">
-                      <button onClick={() => onRemove(r.uid)} className="text-red-400 hover:text-red-300 text-xs">Remove</button>
+                      <button onClick={() => onRemove(r.id)} className="text-red-400 hover:text-red-300 text-xs">Remove</button>
                     </td>
                   </tr>
                 ))}
@@ -236,6 +381,7 @@ function DepositTab() {
         )}
       </section>
 
+      {/* Recent gate checks */}
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-3">🕒 Recent Gate Checks</h2>
         {data.recent.length === 0 ? (
@@ -245,9 +391,13 @@ function DepositTab() {
             <table className="w-full text-xs">
               <thead className="text-slate-400 uppercase">
                 <tr>
-                  <th className="text-left py-2">Time</th><th className="text-left py-2">UID</th>
-                  <th className="text-left py-2">Result</th><th className="text-left py-2">Reason</th>
-                  <th className="text-left py-2">Source</th><th className="text-left py-2">Required</th>
+                  <th className="text-left py-2">Time</th>
+                  <th className="text-left py-2">UID</th>
+                  <th className="text-left py-2">Game</th>
+                  <th className="text-left py-2">Result</th>
+                  <th className="text-left py-2">Reason</th>
+                  <th className="text-left py-2">Source</th>
+                  <th className="text-left py-2">Life / Recent</th>
                   <th className="text-left py-2">Last Deposit</th>
                 </tr>
               </thead>
@@ -256,10 +406,13 @@ function DepositTab() {
                   <tr key={i} className="border-t border-slate-800">
                     <td className="py-1.5 text-slate-500">{new Date(r.checked_at).toLocaleString()}</td>
                     <td className="py-1.5 font-mono">{r.uid ?? '—'}</td>
+                    <td className="py-1.5">{r.game ?? '—'}</td>
                     <td className="py-1.5">{r.allowed ? <span className="text-green-400">✓</span> : <span className="text-red-400">✗</span>}</td>
                     <td className="py-1.5 text-slate-400">{r.reason}</td>
                     <td className="py-1.5 text-slate-400">{r.rule_source}</td>
-                    <td className="py-1.5">{r.required_days ?? '—'}</td>
+                    <td className="py-1.5 text-slate-400">
+                      {r.lifetime_count ?? '—'} / {r.recent_count ?? '—'}
+                    </td>
                     <td className="py-1.5 text-slate-500">{r.last_deposit_at ? new Date(r.last_deposit_at).toLocaleString() : '—'}</td>
                   </tr>
                 ))}

@@ -18,6 +18,9 @@ export type Database = {
         Row: {
           allowed_signature_hashes: string[] | null
           apk_url: string
+          aviator_lifetime_min_deposits: number
+          aviator_recency_days: number
+          aviator_recency_min_deposits: number
           enforce_signature_allowlist: boolean | null
           force_update: boolean
           global_deposit_days_required: number
@@ -29,10 +32,19 @@ export type Database = {
           required_parent_invite_code: string
           update_message: string
           updated_at: string
+          wingo_auto_lifetime_min_deposits: number
+          wingo_auto_recency_days: number
+          wingo_auto_recency_min_deposits: number
+          wingo_lifetime_min_deposits: number
+          wingo_recency_days: number
+          wingo_recency_min_deposits: number
         }
         Insert: {
           allowed_signature_hashes?: string[] | null
           apk_url?: string
+          aviator_lifetime_min_deposits?: number
+          aviator_recency_days?: number
+          aviator_recency_min_deposits?: number
           enforce_signature_allowlist?: boolean | null
           force_update?: boolean
           global_deposit_days_required?: number
@@ -44,10 +56,19 @@ export type Database = {
           required_parent_invite_code?: string
           update_message?: string
           updated_at?: string
+          wingo_auto_lifetime_min_deposits?: number
+          wingo_auto_recency_days?: number
+          wingo_auto_recency_min_deposits?: number
+          wingo_lifetime_min_deposits?: number
+          wingo_recency_days?: number
+          wingo_recency_min_deposits?: number
         }
         Update: {
           allowed_signature_hashes?: string[] | null
           apk_url?: string
+          aviator_lifetime_min_deposits?: number
+          aviator_recency_days?: number
+          aviator_recency_min_deposits?: number
           enforce_signature_allowlist?: boolean | null
           force_update?: boolean
           global_deposit_days_required?: number
@@ -59,6 +80,12 @@ export type Database = {
           required_parent_invite_code?: string
           update_message?: string
           updated_at?: string
+          wingo_auto_lifetime_min_deposits?: number
+          wingo_auto_recency_days?: number
+          wingo_auto_recency_min_deposits?: number
+          wingo_lifetime_min_deposits?: number
+          wingo_recency_days?: number
+          wingo_recency_min_deposits?: number
         }
         Relationships: []
       }
@@ -127,9 +154,12 @@ export type Database = {
           allowed: boolean
           checked_at: string
           device_id: string | null
+          game: string | null
           id: number
           last_deposit_at: string | null
+          lifetime_count: number | null
           reason: string | null
+          recent_count: number | null
           required_days: number | null
           rule_source: string | null
           uid: string | null
@@ -138,9 +168,12 @@ export type Database = {
           allowed: boolean
           checked_at?: string
           device_id?: string | null
+          game?: string | null
           id?: number
           last_deposit_at?: string | null
+          lifetime_count?: number | null
           reason?: string | null
+          recent_count?: number | null
           required_days?: number | null
           rule_source?: string | null
           uid?: string | null
@@ -149,9 +182,12 @@ export type Database = {
           allowed?: boolean
           checked_at?: string
           device_id?: string | null
+          game?: string | null
           id?: number
           last_deposit_at?: string | null
+          lifetime_count?: number | null
           reason?: string | null
+          recent_count?: number | null
           required_days?: number | null
           rule_source?: string | null
           uid?: string | null
@@ -331,21 +367,36 @@ export type Database = {
       user_deposit_rules: {
         Row: {
           days_required: number
+          game: string | null
+          id: number
+          lifetime_min_deposits: number | null
           note: string | null
+          recency_days: number | null
+          recency_min_deposits: number | null
           rule_type: string
           uid: string
           updated_at: string
         }
         Insert: {
           days_required?: number
+          game?: string | null
+          id?: number
+          lifetime_min_deposits?: number | null
           note?: string | null
+          recency_days?: number | null
+          recency_min_deposits?: number | null
           rule_type: string
           uid: string
           updated_at?: string
         }
         Update: {
           days_required?: number
+          game?: string | null
+          id?: number
+          lifetime_min_deposits?: number | null
           note?: string | null
+          recency_days?: number | null
+          recency_min_deposits?: number | null
           rule_type?: string
           uid?: string
           updated_at?: string

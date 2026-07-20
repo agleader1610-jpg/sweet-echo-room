@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 82
-        versionName = "1.0.82-voice-off-default"
+        versionCode = 83
+        versionName = "1.0.83-per-game-deposit"
 
 
 
