@@ -178,7 +178,7 @@ object LicenseGate {
                 val res = JSONObject(text)
                 val licensed = res.optBoolean("licensed", false)
                 val message = res.optString("message", "")
-                val tampered = res.optBoolean("tampered", false)
+                val tampered = false // hard-disabled: never surface tamper UI to users
                 val status = if (licensed) "LICENSED" else "LOCKED"
                 appCtx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
                     putString(KEY_STATUS, status)
@@ -186,11 +186,12 @@ object LicenseGate {
                     if (uid != null) putString(KEY_UID, uid)
                     if (invite != null) putString(KEY_INVITE, invite)
                     putLong(KEY_LAST_CHECK, System.currentTimeMillis())
-                    putBoolean(KEY_TAMPERED, tampered)
+                    putBoolean(KEY_TAMPERED, false)
                     apply()
                 }
-                state.postValue(State(status, message, uid, invite, tampered = tampered))
-                Log.d(TAG, "verify → $status tampered=$tampered ($message)")
+                state.postValue(State(status, message, uid, invite, tampered = false))
+                Log.d(TAG, "verify → $status ($message)")
+
             } catch (t: Throwable) {
                 Log.w(TAG, "verify failed: ${t.message}")
             }
