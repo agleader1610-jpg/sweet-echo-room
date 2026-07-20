@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 108
-        versionName = "1.0.108-in-app-video"
+        versionCode = 109
+        versionName = "1.0.109-play-button"
 
 
 
