@@ -21,6 +21,7 @@ import {
   createNotification,
   deleteNotification,
   getUsageStats,
+  getAiUsageStats,
 } from '@/lib/admin-gate.functions';
 
 export const Route = createFileRoute('/admin')({
@@ -86,7 +87,7 @@ function AdminPage() {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications' | 'users'>('users');
+  const [tab, setTab] = useState<'update' | 'analytics' | 'license' | 'deposit' | 'notifications' | 'users' | 'ai'>('users');
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
@@ -113,6 +114,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               className={`px-3 py-1.5 rounded text-sm ${tab === 'analytics' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               📊 Analytics
             </button>
+            <button onClick={() => setTab('ai')}
+              className={`px-3 py-1.5 rounded text-sm ${tab === 'ai' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
+              🤖 AI Usage
+            </button>
             <button onClick={() => setTab('update')}
               className={`px-3 py-1.5 rounded text-sm ${tab === 'update' ? 'bg-cyan-600' : 'bg-slate-800 hover:bg-slate-700'}`}>
               🚀 App Update
@@ -126,6 +131,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         : tab === 'deposit' ? <DepositTab />
         : tab === 'notifications' ? <NotificationsTab />
         : tab === 'users' ? <UsersTab />
+        : tab === 'ai' ? <AiUsageTab />
         : <LicenseTab />}
     </div>
   );
@@ -1049,3 +1055,175 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub?: s
     </div>
   );
 }
+
+function AiUsageTab() {
+  const load = useServerFn(getAiUsageStats);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getAiUsageStats>> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function refresh() {
+    setLoading(true); setErr('');
+    try { setData(await load()); }
+    catch (e: any) { setErr(e?.message ?? 'load failed'); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { refresh(); }, []);
+
+  if (!data) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {err ? <p className="text-red-400">{err}</p> : <p className="text-slate-400">Loading…</p>}
+      </div>
+    );
+  }
+
+  const fmt = (n: number) => n.toLocaleString();
+  const fmtCost = (n: number) => n.toFixed(4);
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-bold">🤖 AI Usage & Cost</h2>
+          <p className="text-xs text-slate-400 mt-1">Signal AI-এর token খরচ, request সংখ্যা, credit spend। Local fallback আলাদা count হয়।</p>
+        </div>
+        <button onClick={refresh} disabled={loading}
+          className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-sm disabled:opacity-50">
+          {loading ? '…' : '↻ Refresh'}
+        </button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="24h Requests" value={data.last24h.count} sub={`AI ${data.last24h.ai} / Local ${data.last24h.local}`} />
+        <StatCard label="24h Tokens" value={data.last24h.totalTok} sub={`In ${fmt(data.last24h.promptTok)} · Out ${fmt(data.last24h.completionTok)}`} />
+        <StatCard label="24h Cost" value={fmtCost(data.last24h.cost) as any} sub="credits" />
+        <StatCard label="7d Cost" value={fmtCost(data.last7d.cost) as any} sub={`${fmt(data.last7d.count)} requests`} />
+      </div>
+
+      {/* By model */}
+      <div className="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 text-sm font-semibold">By Model (last 7 days)</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-800/50 text-xs text-slate-400">
+              <tr>
+                <th className="text-left px-3 py-2">Model</th>
+                <th className="text-right px-3 py-2">Requests</th>
+                <th className="text-right px-3 py-2">Prompt Tok</th>
+                <th className="text-right px-3 py-2">Completion Tok</th>
+                <th className="text-right px-3 py-2">Cost (credits)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.byModel.length === 0 && <tr><td colSpan={5} className="text-center py-4 text-slate-500">No data</td></tr>}
+              {data.byModel.map(m => (
+                <tr key={m.model} className="border-t border-slate-800">
+                  <td className="px-3 py-2 font-mono text-xs">{m.model}</td>
+                  <td className="text-right px-3 py-2">{fmt(m.count)}</td>
+                  <td className="text-right px-3 py-2 text-slate-400">{fmt(m.promptTok)}</td>
+                  <td className="text-right px-3 py-2 text-slate-400">{fmt(m.completionTok)}</td>
+                  <td className="text-right px-3 py-2 text-amber-400 font-mono">{fmtCost(m.cost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Daily series */}
+      <div className="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 text-sm font-semibold">Daily Breakdown</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-800/50 text-xs text-slate-400">
+              <tr>
+                <th className="text-left px-3 py-2">Date</th>
+                <th className="text-right px-3 py-2">Total</th>
+                <th className="text-right px-3 py-2">AI</th>
+                <th className="text-right px-3 py-2">Local</th>
+                <th className="text-right px-3 py-2">Tokens</th>
+                <th className="text-right px-3 py-2">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.dailySeries.slice().reverse().map(d => (
+                <tr key={d.date} className="border-t border-slate-800">
+                  <td className="px-3 py-2">{d.date}</td>
+                  <td className="text-right px-3 py-2">{fmt(d.count)}</td>
+                  <td className="text-right px-3 py-2 text-cyan-400">{fmt(d.ai)}</td>
+                  <td className="text-right px-3 py-2 text-slate-500">{fmt(d.local)}</td>
+                  <td className="text-right px-3 py-2 text-slate-400">{fmt(d.promptTok + d.completionTok)}</td>
+                  <td className="text-right px-3 py-2 text-amber-400 font-mono">{fmtCost(d.cost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Top spenders */}
+      <div className="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 text-sm font-semibold">Top Cost Devices (7d)</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-800/50 text-xs text-slate-400">
+              <tr>
+                <th className="text-left px-3 py-2">Device ID</th>
+                <th className="text-right px-3 py-2">Signals</th>
+                <th className="text-right px-3 py-2">Cost (credits)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.topDevices.length === 0 && <tr><td colSpan={3} className="text-center py-4 text-slate-500">No data</td></tr>}
+              {data.topDevices.map(d => (
+                <tr key={d.device_id} className="border-t border-slate-800">
+                  <td className="px-3 py-2 font-mono text-xs truncate max-w-[280px]">{d.device_id}</td>
+                  <td className="text-right px-3 py-2">{fmt(d.count)}</td>
+                  <td className="text-right px-3 py-2 text-amber-400 font-mono">{fmtCost(d.cost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Recent requests */}
+      <div className="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 text-sm font-semibold">Recent Requests (last 30)</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-800/50 text-slate-400">
+              <tr>
+                <th className="text-left px-3 py-2">Time</th>
+                <th className="text-left px-3 py-2">Source</th>
+                <th className="text-left px-3 py-2">Model</th>
+                <th className="text-right px-3 py-2">In</th>
+                <th className="text-right px-3 py-2">Out</th>
+                <th className="text-right px-3 py-2">Cost</th>
+                <th className="text-right px-3 py-2">Latency</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.recent.map(r => (
+                <tr key={r.id} className="border-t border-slate-800">
+                  <td className="px-3 py-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2">
+                    <span className={r.source === 'ai' ? 'text-cyan-400' : 'text-slate-500'}>{r.source}</span>
+                  </td>
+                  <td className="px-3 py-2 font-mono truncate max-w-[180px]">{r.model ?? '—'}</td>
+                  <td className="text-right px-3 py-2 text-slate-400">{r.prompt_tokens ?? '—'}</td>
+                  <td className="text-right px-3 py-2 text-slate-400">{r.completion_tokens ?? '—'}</td>
+                  <td className="text-right px-3 py-2 text-amber-400 font-mono">{r.cost_credits != null ? Number(r.cost_credits).toFixed(4) : '—'}</td>
+                  <td className="text-right px-3 py-2 text-slate-500">{r.latency_ms != null ? `${r.latency_ms}ms` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -2,8 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, type Signal } from '@/lib/local-prediction-logic';
 
-// Gemini 3.1 Flash Lite — fastest + cheapest, ~18x cheaper than gpt-5.4.
-const AI_MODEL = 'google/gemini-3.1-flash-lite';
+// GPT-5.4 with priority tier — best reasoning + low latency (per user request).
+const AI_MODEL = 'openai/gpt-5.4';
 const AI_TIMEOUT_MS = 8000;
 
 interface Body {
@@ -86,12 +86,20 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let aiModel: string | null = null;
         let aiError: string | null = null;
         let aiRaw: string | null = null;
+        let promptTokens: number | null = null;
+        let completionTokens: number | null = null;
+        let totalTokens: number | null = null;
+        let costCredits: number | null = null;
         try {
           const r = await callAI(history, memory);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
           aiModel = AI_MODEL;
+          promptTokens = r.promptTokens;
+          completionTokens = r.completionTokens;
+          totalTokens = r.totalTokens;
+          costCredits = estimateCost(AI_MODEL, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
           signal = applyMemoryToLocal(computeLocalSignal(history), memory);
@@ -112,6 +120,10 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           reasoning: signal.reasoning,
           ai_model: aiModel,
           latency_ms: latency,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: totalTokens,
+          cost_credits: costCredits,
           raw: { history_len: history.length, memory, ai_error: aiError, ai_raw: aiRaw },
         }).select('id').maybeSingle();
 
@@ -131,6 +143,10 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           latency_ms: latency,
           ai_raw: aiRaw,
           ai_error: aiError,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: totalTokens,
+          cost_credits: costCredits,
           memory_count: memory.memoryCount,
           memory_loss_streak: memory.lossStreak,
           memory_accuracy: memory.accuracy,
@@ -145,7 +161,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
 async function callAI(
   history: Array<{ round_id: number; multiplier: number }>,
   memory: MemoryStats,
-): Promise<{ signal: Signal; raw: string }> {
+): Promise<{ signal: Signal; raw: string; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null }> {
 
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error('no_ai_key');
@@ -167,6 +183,7 @@ async function callAI(
       },
       body: JSON.stringify({
         model: AI_MODEL,
+        service_tier: 'priority',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
@@ -188,6 +205,7 @@ async function callAI(
     const reasoning = String(parsed.reasoning ?? '').slice(0, 140);
     if (!['BET', 'STRONG BET', 'SKIP'].includes(action)) throw new Error('ai_bad_action');
     if (target !== null && (!isFinite(target) || target < 1.01 || target > 100)) throw new Error('ai_bad_target');
+    const usage = data?.usage ?? {};
     return {
       signal: {
         action: action as Signal['action'],
@@ -196,12 +214,35 @@ async function callAI(
         reasoning: reasoning || 'AI analysis',
       },
       raw: String(content).slice(0, 2000),
+      promptTokens: typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : null,
+      completionTokens: typeof usage.completion_tokens === 'number' ? usage.completion_tokens : null,
+      totalTokens: typeof usage.total_tokens === 'number' ? usage.total_tokens : null,
     };
 
   } finally {
     clearTimeout(t);
   }
 }
+
+// Estimate cost in Lovable credits from token counts. Rates are approximations
+// derived from observed AI Gateway logs; used only for display.
+function estimateCost(model: string, promptTok: number | null, completionTok: number | null): number | null {
+  if (promptTok == null && completionTok == null) return null;
+  const pt = promptTok ?? 0;
+  const ct = completionTok ?? 0;
+  // Credits per 1K tokens (approximate, per model)
+  const rates: Record<string, { in: number; out: number }> = {
+    'openai/gpt-5.4': { in: 0.025, out: 0.070 },
+    'openai/gpt-5.4-mini': { in: 0.005, out: 0.020 },
+    'openai/gpt-5.4-nano': { in: 0.001, out: 0.004 },
+    'google/gemini-3-flash-preview': { in: 0.0015, out: 0.006 },
+    'google/gemini-3.1-flash-lite': { in: 0.0008, out: 0.003 },
+    'google/gemini-3.5-flash': { in: 0.002, out: 0.008 },
+  };
+  const r = rates[model] ?? { in: 0.01, out: 0.03 };
+  return Number((((pt / 1000) * r.in) + ((ct / 1000) * r.out)).toFixed(6));
+}
+
 
 function applyMemoryToLocal(signal: Signal, memory: MemoryStats): Signal {
   if (memory.lossStreak >= 2) {
