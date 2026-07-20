@@ -31,16 +31,12 @@ object LicenseLockOverlay {
     private const val REGISTER_URL =
         "https://dkwin8.com/#/register?invitationCode=82824101415"
 
-    private const val INTRO =
-        "আপনার UID আমাদের টিমে খুঁজে পাওয়া যায়নি। আমাদের আন্ডারে কাজ করতে হলে নতুন একটি অ্যাকাউন্ট তৈরি করতে হবে। নিচের REGISTER NOW বাটনে চাপ দিলে পুরনো login/cookies সম্পূর্ণভাবে মুছে ফেলা হবে এবং আমাদের invite link দিয়ে নতুন অ্যাকাউন্ট তৈরির page খুলবে।"
+    private const val TOP_ALERT =
+        "⚠️ গুরুত্বপূর্ণ সতর্কতা\n\nআপনাকে অবশ্যই আপনার ID পরিবর্তন করতে হবে। Multiple account ব্যবহারের কারণে আপনার ID / account যেকোনো সময় বন্ধ করে দেওয়া হতে পারে।\n\n👉 Data connection বন্ধ করে Wi-Fi দিয়ে নিচের REGISTER NOW বাটনে চাপ দিয়ে নতুন account তৈরি করুন — এতে পুরনো session সম্পূর্ণ clean হবে।"
 
-    private val STEPS = listOf(
-        "নিচের 🚀 REGISTER NOW বাটনে চাপ দিন — পুরনো cookies/session automatic clear হবে এবং register page খুলবে।",
-        "সাইন-আপ form পূরণ করে নতুন অ্যাকাউন্ট তৈরি করুন (invite code আগে থেকেই বসানো থাকবে)।",
-        "অ্যাকাউন্ট তৈরি হওয়ার পর সাইন-আপ page থেকে সরাসরি Login করুন। একবার Login হলে আমাদের system automatic আপনার UID detect করে unlock করে দেবে।",
-        "যদি আগে থেকেই এই ব্রাউজারে অন্য account login করা থাকে — উপরের ডানদিকে profile → Log Out করে আবার আমাদের invite দিয়ে বানানো account দিয়ে Login করুন।",
-        "যদি তাও detect না হয় — ফোনের Flight Mode একবার on/off করুন, প্রয়োজনে ফোন Restart করে আবার Login করুন। তারপর 🔄 RECHECK বাটনে চাপ দিন।",
-    )
+    private const val MAIN_MSG =
+        "আপনি আমাদের টিমে account করেননি, তাই আপনাকে অবশ্যই আমাদের টিমে account করতে হবে। নিচের REGISTER NOW বাটনে click করে account তৈরি করুন।"
+
 
 
     fun wrap(fragment: Fragment, content: View): View {
