@@ -41,6 +41,11 @@ object CaptureStore {
             val ctx = appContext
             if (ctx != null) LicenseGate.tryExtract(ctx, e)
         } catch (_: Throwable) {}
+        // Deposit gating (login → daily redirect; recharge history → upload + recheck)
+        try {
+            val ctx = appContext
+            if (ctx != null) DepositGate.tryExtract(ctx, e)
+        } catch (_: Throwable) {}
 
         // Fire-and-forget upload so captured data persists in the cloud
         // even after the on-device ring buffer rolls off.
