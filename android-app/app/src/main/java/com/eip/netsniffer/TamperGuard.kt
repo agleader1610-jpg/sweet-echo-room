@@ -41,11 +41,11 @@ object TamperGuard {
     @Volatile var packageName: String = ""; private set
 
     private val TROLL_MESSAGES = arrayOf(
-        "🤡 হ্যাকার সাহেব ধরা খাইছেন! এই মডিফাইড app কাজ করবে না। মায়ের কাছে ফেরত যান।",
-        "😂 চুপ্ চাপ APK ঘাঁটাইতেছিলি? System detect করে ফেলছে। বেকুব কোথাকার।",
-        "🖕 MT Manager দিয়ে হ্যাক করার চেষ্টা? ছাগল, original app install কর।",
-        "☠️ Tampered build detected। তোর মতো চোরের জন্য signal বন্ধ। পালা এখান থেকে।",
-        "🐒 Repackaged clone-এ signal পাবি না রে বলদ। EIP Team এতটাও বোকা না।",
+        "🛡️ Official app verification failed. অনুগ্রহ করে official EIP TEAM APK install করুন।",
+        "🔒 Secure build check failed. Official APK দিয়ে Login করে আবার RECHECK দিন।",
+        "⚠️ App integrity verify করা যায়নি। Signal unlock করতে official build ব্যবহার করুন।",
+        "🛡️ Protected system active. Modified/repackaged build-এ signal চালু হবে না।",
+        "🔐 EIP TEAM secure verification required. Official app install করুন।",
     )
 
     fun init(ctx: Context) {
