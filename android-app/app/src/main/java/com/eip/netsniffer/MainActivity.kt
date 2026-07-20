@@ -60,7 +60,13 @@ class MainActivity : AppCompatActivity() {
         VersionChecker.check(this)
 
         // Telegram channel invite on app open.
-        b.root.post { showTelegramJoinDialog() }
+        b.root.post {
+            showTelegramJoinDialog()
+            // First-run guided coach marks (bell → VIP FAB).
+            b.root.postDelayed({
+                OnboardingCoach.maybeShow(this, b.bellWrap, b.launcherFab)
+            }, 600)
+        }
         // Review reminder এখন panel-এ ঢুকলে তারপর দেখাবে (Aviator / WinGo / AutoBet fragment onResume-এ)।
     }
 
