@@ -166,79 +166,142 @@ export const removeLicensedUid = createServerFn({ method: 'POST' })
     return { ok: true };
   });
 
-// ---------- Deposit Gate ----------
+// ---------- Deposit Gate (per-game) ----------
+
+const DEPOSIT_GAMES = ['aviator', 'wingo', 'wingo_auto'] as const;
+type DepositGame = (typeof DEPOSIT_GAMES)[number];
+function normGame(v: unknown): DepositGame {
+  const s = String(v ?? '').toLowerCase();
+  return (DEPOSIT_GAMES as readonly string[]).includes(s) ? (s as DepositGame) : 'aviator';
+}
 
 export const getDepositSettings = createServerFn({ method: 'GET' }).handler(async () => {
   await requireUnlocked();
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  const cols =
+    'aviator_lifetime_min_deposits, aviator_recency_days, aviator_recency_min_deposits,' +
+    ' wingo_lifetime_min_deposits, wingo_recency_days, wingo_recency_min_deposits,' +
+    ' wingo_auto_lifetime_min_deposits, wingo_auto_recency_days, wingo_auto_recency_min_deposits';
   const { data: cfg } = await supabaseAdmin
-    .from('app_config')
-    .select('global_deposit_days_required')
-    .eq('id', 1)
-    .maybeSingle();
+    .from('app_config').select(cols).eq('id', 1).maybeSingle();
   const { data: rules } = await supabaseAdmin
     .from('user_deposit_rules')
-    .select('uid, rule_type, days_required, note, updated_at')
+    .select('id, uid, game, rule_type, days_required, lifetime_min_deposits, recency_days, recency_min_deposits, note, updated_at')
     .order('updated_at', { ascending: false })
     .limit(500);
   const { data: recent } = await supabaseAdmin
     .from('deposit_gate_log')
-    .select('uid, allowed, reason, rule_source, required_days, last_deposit_at, checked_at')
+    .select('uid, game, allowed, reason, rule_source, required_days, lifetime_count, recent_count, last_deposit_at, checked_at')
     .order('checked_at', { ascending: false })
     .limit(50);
-  return {
-    global_days: Number((cfg as any)?.global_deposit_days_required ?? 0),
-    rules: rules ?? [],
-    recent: recent ?? [],
-  };
+  const c: any = cfg ?? {};
+  const globals = DEPOSIT_GAMES.reduce((acc, g) => {
+    acc[g] = {
+      lifetime_min: Number(c[`${g}_lifetime_min_deposits`]) || 0,
+      recency_days: Number(c[`${g}_recency_days`]) || 0,
+      recency_min:  Math.max(1, Number(c[`${g}_recency_min_deposits`]) || 1),
+    };
+    return acc;
+  }, {} as Record<DepositGame, { lifetime_min: number; recency_days: number; recency_min: number }>);
+  return { globals, rules: rules ?? [], recent: recent ?? [] };
 });
 
 export const updateDepositGlobal = createServerFn({ method: 'POST' })
-  .inputValidator((d: { global_days: number }) => d)
+  .inputValidator((d: {
+    game: string;
+    lifetime_min: number;
+    recency_days: number;
+    recency_min: number;
+  }) => d)
   .handler(async ({ data }) => {
     await requireUnlocked();
-    const days = Math.max(0, Math.min(365, Math.floor(Number(data.global_days) || 0)));
+    const game = normGame(data.game);
+    const lifetimeMin = Math.max(0, Math.min(100, Math.floor(Number(data.lifetime_min) || 0)));
+    const recencyDays = Math.max(0, Math.min(365, Math.floor(Number(data.recency_days) || 0)));
+    const recencyMin  = Math.max(1, Math.min(100, Math.floor(Number(data.recency_min) || 1)));
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { error } = await supabaseAdmin
-      .from('app_config')
-      .update({ global_deposit_days_required: days, updated_at: new Date().toISOString() })
-      .eq('id', 1);
+    const patch: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+      [`${game}_lifetime_min_deposits`]: lifetimeMin,
+      [`${game}_recency_days`]: recencyDays,
+      [`${game}_recency_min_deposits`]: recencyMin,
+    };
+    const { error } = await supabaseAdmin.from('app_config').update(patch).eq('id', 1);
     if (error) throw error;
-    return { ok: true, global_days: days };
+    return { ok: true, game, lifetime_min: lifetimeMin, recency_days: recencyDays, recency_min: recencyMin };
   });
 
 export const upsertDepositRule = createServerFn({ method: 'POST' })
-  .inputValidator((d: { uid: string; rule_type: 'unlimited' | 'days' | 'blocked'; days_required?: number; note?: string }) => d)
+  .inputValidator((d: {
+    uid: string;
+    game?: string | null;
+    rule_type: 'unlimited' | 'days' | 'blocked';
+    lifetime_min?: number;
+    recency_days?: number;
+    recency_min?: number;
+    note?: string;
+  }) => d)
   .handler(async ({ data }) => {
     await requireUnlocked();
     const uid = String(data.uid || '').trim();
     if (!uid) throw new Error('UID required');
     if (!['unlimited', 'days', 'blocked'].includes(data.rule_type)) throw new Error('invalid rule_type');
+    const game = data.game ? normGame(data.game) : null; // null = applies to all games
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { error } = await supabaseAdmin
-      .from('user_deposit_rules')
-      .upsert({
-        uid,
-        rule_type: data.rule_type,
-        days_required: data.rule_type === 'days'
-          ? Math.max(1, Math.min(365, Math.floor(Number(data.days_required) || 1)))
-          : 0,
-        note: data.note ? String(data.note).slice(0, 500) : null,
-        updated_at: new Date().toISOString(),
-      });
-    if (error) throw error;
+
+    const row: Record<string, unknown> = {
+      uid,
+      game,
+      rule_type: data.rule_type,
+      note: data.note ? String(data.note).slice(0, 500) : null,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.rule_type === 'days') {
+      row.lifetime_min_deposits = Math.max(0, Math.min(100, Math.floor(Number(data.lifetime_min) || 0)));
+      row.recency_days = Math.max(0, Math.min(365, Math.floor(Number(data.recency_days) || 0)));
+      row.recency_min_deposits = Math.max(1, Math.min(100, Math.floor(Number(data.recency_min) || 1)));
+      row.days_required = row.recency_days; // legacy mirror
+    } else {
+      row.lifetime_min_deposits = null;
+      row.recency_days = null;
+      row.recency_min_deposits = null;
+      row.days_required = 0;
+    }
+
+    // Manual "upsert by (uid, game)" — Supabase upsert can't target the
+    // partial expression index we created (COALESCE(game,'*')).
+    const q = supabaseAdmin.from('user_deposit_rules').select('id').eq('uid', uid);
+    const { data: existing } = game === null
+      ? await q.is('game', null).maybeSingle()
+      : await q.eq('game', game).maybeSingle();
+
+    if (existing?.id) {
+      const { error } = await supabaseAdmin
+        .from('user_deposit_rules').update(row).eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseAdmin.from('user_deposit_rules').insert(row);
+      if (error) throw error;
+    }
     return { ok: true };
   });
 
 export const removeDepositRule = createServerFn({ method: 'POST' })
-  .inputValidator((d: { uid: string }) => d)
+  .inputValidator((d: { id?: number; uid?: string; game?: string | null }) => d)
   .handler(async ({ data }) => {
     await requireUnlocked();
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { error } = await supabaseAdmin
-      .from('user_deposit_rules')
-      .delete()
-      .eq('uid', String(data.uid || '').trim());
+    if (data.id) {
+      const { error } = await supabaseAdmin.from('user_deposit_rules').delete().eq('id', data.id);
+      if (error) throw error;
+      return { ok: true };
+    }
+    const uid = String(data.uid || '').trim();
+    if (!uid) throw new Error('id or uid required');
+    let q = supabaseAdmin.from('user_deposit_rules').delete().eq('uid', uid);
+    if (data.game === null || data.game === undefined) q = q.is('game', null);
+    else q = q.eq('game', normGame(data.game));
+    const { error } = await q;
     if (error) throw error;
     return { ok: true };
   });
