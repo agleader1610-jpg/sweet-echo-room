@@ -298,20 +298,12 @@ object DepositLockOverlay {
             LinearLayout.LayoutParams.WRAP_CONTENT,
         ).apply { topMargin = dp(ctx, 12) })
 
-        // ── Refresh button (full width) ──
-        card.addView(buildPrimaryButton(ctx, "🔄", "REFRESH DEPOSIT STATUS", isGreen = false) {
-            triggerRefresh(ctx, h)
-        }, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { topMargin = dp(ctx, 14) })
-
-        // ── Deposit + History row (same line, responsive) ──
+        // ── Deposit + History row (same line, responsive, balanced) ──
         val actionRow = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
-        actionRow.addView(buildPrimaryButton(ctx, "💰", "DEPOSIT NOW", isGreen = true) {
+        actionRow.addView(buildPrimaryButton(ctx, "💰", "DEPOSIT", isGreen = true) {
             openInBrowser(ctx, DEPOSIT_URL)
         }, LinearLayout.LayoutParams(0,
             LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(ctx, 8) })
@@ -322,7 +314,34 @@ object DepositLockOverlay {
         card.addView(actionRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 14) })
+
+        // ── Explicit hint linking Deposit → Refresh ──
+        card.addView(TextView(ctx).apply {
+            text = "✅ Deposit শেষ করে নিচের 🔄 REFRESH STATUS বাটনে চাপ দিন — কয়েক সেকেন্ডেই automatic unlock হয়ে যাবে।"
+            setTextColor(0xFFFDE68A.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            setLineSpacing(dp(ctx, 3).toFloat(), 1.15f)
+            gravity = Gravity.CENTER
+            setPadding(dp(ctx, 12), dp(ctx, 10), dp(ctx, 12), dp(ctx, 10))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 12).toFloat()
+                setColor(0x1AFCD34D.toInt())
+                setStroke(dp(ctx, 1), 0x44FCD34D.toInt())
+            }
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 12) })
+
+        // ── Refresh button (full width, bottom) ──
+        card.addView(buildPrimaryButton(ctx, "🔄", "REFRESH STATUS", isGreen = false) {
+            triggerRefresh(ctx, h)
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
         ).apply { topMargin = dp(ctx, 10) })
+
 
         // ── Footer trust ──
         val footer = LinearLayout(ctx).apply {
