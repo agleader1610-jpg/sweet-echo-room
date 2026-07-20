@@ -166,6 +166,83 @@ export const removeLicensedUid = createServerFn({ method: 'POST' })
     return { ok: true };
   });
 
+// ---------- Deposit Gate ----------
+
+export const getDepositSettings = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUnlocked();
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  const { data: cfg } = await supabaseAdmin
+    .from('app_config')
+    .select('global_deposit_days_required')
+    .eq('id', 1)
+    .maybeSingle();
+  const { data: rules } = await supabaseAdmin
+    .from('user_deposit_rules')
+    .select('uid, rule_type, days_required, note, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(500);
+  const { data: recent } = await supabaseAdmin
+    .from('deposit_gate_log')
+    .select('uid, allowed, reason, rule_source, required_days, last_deposit_at, checked_at')
+    .order('checked_at', { ascending: false })
+    .limit(50);
+  return {
+    global_days: Number((cfg as any)?.global_deposit_days_required ?? 0),
+    rules: rules ?? [],
+    recent: recent ?? [],
+  };
+});
+
+export const updateDepositGlobal = createServerFn({ method: 'POST' })
+  .inputValidator((d: { global_days: number }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const days = Math.max(0, Math.min(365, Math.floor(Number(data.global_days) || 0)));
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('app_config')
+      .update({ global_deposit_days_required: days, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+    if (error) throw error;
+    return { ok: true, global_days: days };
+  });
+
+export const upsertDepositRule = createServerFn({ method: 'POST' })
+  .inputValidator((d: { uid: string; rule_type: 'unlimited' | 'days' | 'blocked'; days_required?: number; note?: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const uid = String(data.uid || '').trim();
+    if (!uid) throw new Error('UID required');
+    if (!['unlimited', 'days', 'blocked'].includes(data.rule_type)) throw new Error('invalid rule_type');
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('user_deposit_rules')
+      .upsert({
+        uid,
+        rule_type: data.rule_type,
+        days_required: data.rule_type === 'days'
+          ? Math.max(1, Math.min(365, Math.floor(Number(data.days_required) || 1)))
+          : 0,
+        note: data.note ? String(data.note).slice(0, 500) : null,
+        updated_at: new Date().toISOString(),
+      });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const removeDepositRule = createServerFn({ method: 'POST' })
+  .inputValidator((d: { uid: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('user_deposit_rules')
+      .delete()
+      .eq('uid', String(data.uid || '').trim());
+    if (error) throw error;
+    return { ok: true };
+  });
+
 // ---------- Prediction Analytics ----------
 
 
