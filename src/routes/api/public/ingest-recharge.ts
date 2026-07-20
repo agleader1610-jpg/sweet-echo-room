@@ -73,41 +73,47 @@ type Row = {
   currency: string | null;
   deposited_at: string;
   device_id: string | null;
+  status: 'success' | 'pending' | 'failed';
   raw: any;
 };
 
 function normalize(r: any, uid: string, deviceId: string | null): Row | null {
   if (!r || typeof r !== 'object') return null;
 
-  // DK Win / dkwinapi.com recharge history uses `state` as a numeric code:
-  //   0 = pending / created (no money yet)
+  // DK Win / dkwinapi.com recharge history `state`:
+  //   0 = pending (created, no money yet)
   //   1 = failed / cancelled
-  //   2 = success (money credited)   ← the ONLY thing we count
-  // Other platforms sometimes use 1=success or "success"/"paid" strings, so
-  // we keep those as fallbacks — but we NEVER count state=1 as success when
-  // the payload also has DK Win markers (rechargeNumber/addTime), because
-  // there 1 means failed.
+  //   2 = success (money credited)
+  // Other platforms sometimes use 1=success or "success"/"paid" strings.
   const state = r.state ?? r.status ?? r.orderStatus;
   const stateStr = String(state ?? '').toLowerCase();
   const looksLikeDkwin = 'rechargeNumber' in r || 'addTime' in r;
-  const isSuccess =
-    state === 2 || state === '2' ||
-    (!looksLikeDkwin && (state === 1 || state === '1' || state === true)) ||
-    stateStr === 'success' || stateStr === 'successful' ||
-    stateStr === 'paid' || stateStr === 'completed' || stateStr === 'complete';
-  if (!isSuccess) return null;
 
-  // Order number — DK Win calls it `rechargeNumber`.
+  let status: 'success' | 'pending' | 'failed';
+  if (state === 2 || state === '2' ||
+      stateStr === 'success' || stateStr === 'successful' ||
+      stateStr === 'paid' || stateStr === 'completed' || stateStr === 'complete') {
+    status = 'success';
+  } else if (looksLikeDkwin && (state === 1 || state === '1')) {
+    status = 'failed';
+  } else if (state === 0 || state === '0' || stateStr === 'pending' || stateStr === 'processing') {
+    status = 'pending';
+  } else if (!looksLikeDkwin && (state === 1 || state === '1' || state === true)) {
+    status = 'success'; // non-DKWin platforms where 1=success
+  } else if (stateStr === 'failed' || stateStr === 'cancelled' || stateStr === 'canceled' || stateStr === 'reject' || stateStr === 'rejected') {
+    status = 'failed';
+  } else {
+    status = 'pending';
+  }
+
   const orderNo = String(
     r.rechargeNumber ?? r.orderNo ?? r.order_no ?? r.orderId ?? r.order_id ?? r.id ?? '',
   ).trim();
   if (!orderNo) return null;
 
-  // Amount — DK Win uses `price` as a string.
   const amount = Number(r.price ?? r.amount ?? r.money ?? r.rechargeAmount ?? 0);
   const currency = (r.currency ?? r.currencyCode ?? null) as string | null;
 
-  // Time — DK Win uses `addTime` in "YYYY-MM-DD HH:mm:ss" (server local).
   const rawTime =
     r.addTime ?? r.createTime ?? r.create_time ??
     r.rechargeTime ?? r.updateTime ?? r.payTime ?? r.time;
@@ -127,6 +133,7 @@ function normalize(r: any, uid: string, deviceId: string | null): Row | null {
     currency: currency ? String(currency).slice(0, 16) : null,
     deposited_at: deposited.toISOString(),
     device_id: deviceId,
+    status,
     raw: r,
   };
 }
