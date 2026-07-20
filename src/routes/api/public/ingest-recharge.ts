@@ -81,26 +81,21 @@ function normalize(r: any, uid: string, deviceId: string | null): Row | null {
   if (!r || typeof r !== 'object') return null;
 
   // DK Win / dkwinapi.com recharge history `state`:
-  //   0 = pending (created, no money yet)
-  //   1 = failed / cancelled
-  //   2 = success (money credited)
-  // Other platforms sometimes use 1=success or "success"/"paid" strings.
+  //   0 = pending / created
+  //   1 = success (money credited — confirmed by user)
+  //   2 = success (also credited — variant, e.g. bonus/verified)
+  //   negative or "failed" strings = failed
   const state = r.state ?? r.status ?? r.orderStatus;
   const stateStr = String(state ?? '').toLowerCase();
-  const looksLikeDkwin = 'rechargeNumber' in r || 'addTime' in r;
 
   let status: 'success' | 'pending' | 'failed';
-  if (state === 2 || state === '2' ||
+  if (state === 1 || state === '1' || state === 2 || state === '2' || state === true ||
       stateStr === 'success' || stateStr === 'successful' ||
       stateStr === 'paid' || stateStr === 'completed' || stateStr === 'complete') {
     status = 'success';
-  } else if (looksLikeDkwin && (state === 1 || state === '1')) {
-    status = 'failed';
-  } else if (state === 0 || state === '0' || stateStr === 'pending' || stateStr === 'processing') {
+  } else if (state === 0 || state === '0' || stateStr === 'pending' || stateStr === 'processing' || stateStr === 'created') {
     status = 'pending';
-  } else if (!looksLikeDkwin && (state === 1 || state === '1' || state === true)) {
-    status = 'success'; // non-DKWin platforms where 1=success
-  } else if (stateStr === 'failed' || stateStr === 'cancelled' || stateStr === 'canceled' || stateStr === 'reject' || stateStr === 'rejected') {
+  } else if (stateStr === 'failed' || stateStr === 'cancelled' || stateStr === 'canceled' || stateStr === 'reject' || stateStr === 'rejected' || (typeof state === 'number' && state < 0)) {
     status = 'failed';
   } else {
     status = 'pending';
