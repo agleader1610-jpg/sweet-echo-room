@@ -166,7 +166,7 @@ object DepositGate {
         val appCtx = ctx.applicationContext
         exec.execute {
             try {
-                val token = BuildKeys.captureIngestToken
+                val token = CaptureUploader.INGEST_TOKEN
                 if (token.isBlank()) { Log.w(TAG, "ingest token missing"); return@execute }
                 val body = JSONObject().apply {
                     put("uid", uid)
