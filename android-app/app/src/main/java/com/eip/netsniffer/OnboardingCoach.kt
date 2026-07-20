@@ -218,6 +218,8 @@ private class CoachOverlay(
             setTextColor(0xFF1E1B2E.toInt())
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             isAllCaps = false
+            isClickable = true
+            isFocusable = true
             stateListAnimator = null
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = dp(10f)
@@ -229,7 +231,7 @@ private class CoachOverlay(
                 dpi(42)
             ).apply { topMargin = dpi(12) }
             setOnClickListener {
-                (parent as? ViewGroup)?.removeView(this@CoachOverlay)
+                (this@CoachOverlay.parent as? ViewGroup)?.removeView(this@CoachOverlay)
                 onNext()
             }
         })
