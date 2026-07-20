@@ -643,8 +643,7 @@ export const getUsageStats = createServerFn({ method: 'GET' }).handler(async () 
  * approximate credit cost — for the admin AI Usage panel.
  */
 export const getAiUsageStats = createServerFn({ method: 'GET' }).handler(async () => {
-  const { requireAdminSession } = await import('./admin-gate.server');
-  await requireAdminSession();
+  await requireUnlocked();
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
 
   const now = Date.now();
