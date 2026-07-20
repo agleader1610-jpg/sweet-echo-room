@@ -20,6 +20,7 @@ export type Database = {
           apk_url: string
           enforce_signature_allowlist: boolean | null
           force_update: boolean
+          global_deposit_days_required: number
           id: number
           latest_version: number
           latest_version_name: string
@@ -34,6 +35,7 @@ export type Database = {
           apk_url?: string
           enforce_signature_allowlist?: boolean | null
           force_update?: boolean
+          global_deposit_days_required?: number
           id?: number
           latest_version?: number
           latest_version_name?: string
@@ -48,6 +50,7 @@ export type Database = {
           apk_url?: string
           enforce_signature_allowlist?: boolean | null
           force_update?: boolean
+          global_deposit_days_required?: number
           id?: number
           latest_version?: number
           latest_version_name?: string
@@ -116,6 +119,42 @@ export type Database = {
           source?: string | null
           status?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      deposit_gate_log: {
+        Row: {
+          allowed: boolean
+          checked_at: string
+          device_id: string | null
+          id: number
+          last_deposit_at: string | null
+          reason: string | null
+          required_days: number | null
+          rule_source: string | null
+          uid: string | null
+        }
+        Insert: {
+          allowed: boolean
+          checked_at?: string
+          device_id?: string | null
+          id?: number
+          last_deposit_at?: string | null
+          reason?: string | null
+          required_days?: number | null
+          rule_source?: string | null
+          uid?: string | null
+        }
+        Update: {
+          allowed?: boolean
+          checked_at?: string
+          device_id?: string | null
+          id?: number
+          last_deposit_at?: string | null
+          reason?: string | null
+          required_days?: number | null
+          rule_source?: string | null
+          uid?: string | null
         }
         Relationships: []
       }
@@ -286,6 +325,63 @@ export type Database = {
           id?: number
           multiplier?: number
           round_id?: number
+        }
+        Relationships: []
+      }
+      user_deposit_rules: {
+        Row: {
+          days_required: number
+          note: string | null
+          rule_type: string
+          uid: string
+          updated_at: string
+        }
+        Insert: {
+          days_required?: number
+          note?: string | null
+          rule_type: string
+          uid: string
+          updated_at?: string
+        }
+        Update: {
+          days_required?: number
+          note?: string | null
+          rule_type?: string
+          uid?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_deposits: {
+        Row: {
+          amount: number
+          captured_at: string
+          currency: string | null
+          deposited_at: string
+          device_id: string | null
+          order_no: string
+          raw: Json | null
+          uid: string
+        }
+        Insert: {
+          amount?: number
+          captured_at?: string
+          currency?: string | null
+          deposited_at: string
+          device_id?: string | null
+          order_no: string
+          raw?: Json | null
+          uid: string
+        }
+        Update: {
+          amount?: number
+          captured_at?: string
+          currency?: string | null
+          deposited_at?: string
+          device_id?: string | null
+          order_no?: string
+          raw?: Json | null
+          uid?: string
         }
         Relationships: []
       }
