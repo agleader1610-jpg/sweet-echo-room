@@ -351,9 +351,24 @@ object LicenseLockOverlay {
             setPadding(0, 0, 0, dp(ctx, 18))
         })
 
-        // Intro (highlight card)
+        // Top red alert card
         card.addView(TextView(ctx).apply {
-            text = INTRO
+            text = TOP_ALERT
+            setTextColor(0xFFFECACA.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
+            setLineSpacing(dp(ctx, 3).toFloat(), 1f)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(ctx, 14).toFloat()
+                colors = intArrayOf(0x55450A0A.toInt(), 0x33111827.toInt())
+                orientation = GradientDrawable.Orientation.LEFT_RIGHT
+                setStroke(dp(ctx, 1), 0xFFEF4444.toInt())
+            }
+        })
+
+        // Main message card
+        card.addView(TextView(ctx).apply {
+            text = MAIN_MSG
             setTextColor(0xFFFDE68A.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 14), dp(ctx, 12))
@@ -363,41 +378,12 @@ object LicenseLockOverlay {
                 setColor(0x22F59E0B.toInt())
                 setStroke(dp(ctx, 1), 0x66F59E0B.toInt())
             }
-        })
+            (layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(ctx, 12)
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(ctx, 12) })
 
-        // Steps
-        val stepsBox = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(ctx, 14), 0, dp(ctx, 4))
-        }
-        STEPS.forEachIndexed { idx, text ->
-            val row = LinearLayout(ctx).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, dp(ctx, 6), 0, dp(ctx, 6))
-            }
-            row.addView(TextView(ctx).apply {
-                this.text = (idx + 1).toString()
-                setTextColor(Color.WHITE)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                gravity = Gravity.CENTER
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(0xFF6D28D9.toInt())
-                }
-                val sz = dp(ctx, 24)
-                layoutParams = LinearLayout.LayoutParams(sz, sz).apply {
-                    topMargin = dp(ctx, 2); rightMargin = dp(ctx, 10)
-                }
-            })
-            row.addView(TextView(ctx).apply {
-                this.text = text
-                setTextColor(0xFFE2E8F0.toInt())
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-                setLineSpacing(dp(ctx, 3).toFloat(), 1f)
-            })
-            stepsBox.addView(row)
-        }
-        card.addView(stepsBox)
 
         // Register button
         card.addView(Button(ctx).apply {
