@@ -47,6 +47,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let body: Body;
         try { body = (await request.json()) as Body; } catch { return json({ ok: false, error: 'bad_json' }, 400); }
         const deviceId = (body.device_id ?? '').slice(0, 128);
+        const mode: Mode = (String(body.mode ?? 'normal').toLowerCase() === 'risk') ? 'risk' : 'normal';
         const history = (body.history ?? []).slice(0, 30).filter(h => typeof h.round_id === 'number' && typeof h.multiplier === 'number');
         if (history.length < 3) return json({ ok: false, error: 'need_history' }, 200);
 
