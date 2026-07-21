@@ -197,7 +197,6 @@ async function callAI(
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        service_tier: 'priority',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
