@@ -2,10 +2,36 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, computeRiskSignal, type Signal } from '@/lib/local-prediction-logic';
 
-// Fast + cheap model — Aviator bet window is only ~5s, so latency and cost matter more than deep reasoning.
-// Gemini 3 Flash: ~500ms-1s latency, ~20x cheaper than GPT-5.4, still smart enough for market+memory analysis.
-const AI_MODEL = 'google/gemini-3-flash-preview';
-const AI_TIMEOUT_MS = 4000;
+// Defaults used only if DB config is missing. Live values come from public.ai_config
+// (editable via /admin), cached in memory for 60s so we don't hit the DB every request.
+const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
+const DEFAULT_TIMEOUT_MS = 4000;
+const DEFAULT_SYS_NORMAL = 'You are an Aviator crash-game analyst with persistent MEMORY of your own past signals. You must use both recent crash history and your prior prediction outcomes before choosing the NEXT round signal. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null.';
+const DEFAULT_SYS_RISK = 'You are an Aviator crash-game analyst in RISK-RECOVERY mode. Read the market AND your own past signals; pick a recovery target that fits both. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=120 chars"}.';
+
+type AiCfg = { model: string; timeoutMs: number; sysNormal: string; sysRisk: string };
+let cfgCache: { at: number; cfg: AiCfg } | null = null;
+const CFG_TTL_MS = 60_000;
+
+async function loadAiConfig(supa: ReturnType<typeof supaClient>): Promise<AiCfg> {
+  const now = Date.now();
+  if (cfgCache && now - cfgCache.at < CFG_TTL_MS) return cfgCache.cfg;
+  try {
+    const { data } = await supa.from('ai_config').select('model,timeout_ms,sys_normal,sys_risk').eq('id', 1).maybeSingle();
+    const cfg: AiCfg = {
+      model: (data?.model as string) || DEFAULT_MODEL,
+      timeoutMs: Number(data?.timeout_ms) || DEFAULT_TIMEOUT_MS,
+      sysNormal: (data?.sys_normal as string) || DEFAULT_SYS_NORMAL,
+      sysRisk: (data?.sys_risk as string) || DEFAULT_SYS_RISK,
+    };
+    cfgCache = { at: now, cfg };
+    return cfg;
+  } catch {
+    return { model: DEFAULT_MODEL, timeoutMs: DEFAULT_TIMEOUT_MS, sysNormal: DEFAULT_SYS_NORMAL, sysRisk: DEFAULT_SYS_RISK };
+  }
+}
+
+export function invalidateAiConfigCache() { cfgCache = null; }
 
 type Mode = 'normal' | 'risk';
 
