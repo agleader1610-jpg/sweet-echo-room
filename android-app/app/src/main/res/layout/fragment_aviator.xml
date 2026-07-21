@@ -97,6 +97,99 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- ═════════════ SIGNAL MODE: NORMAL vs RISK ═════════════ -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#111C33"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="SIGNAL MODE"
+                        android:textColor="#FACC15"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.2"/>
+                    <TextView
+                        android:id="@+id/modeCurrentLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="NORMAL"
+                        android:textColor="#4ADE80"
+                        android:textStyle="bold"
+                        android:textSize="11sp"
+                        android:letterSpacing="0.15"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="Normal = balanced • Risk = loss-recovery martingale"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/modeNormalBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="#16A34A"
+                        android:text="⚖ NORMAL"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.15"
+                        android:clickable="true"
+                        android:focusable="true"/>
+
+                    <TextView
+                        android:id="@+id/modeRiskBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="#1F2937"
+                        android:text="🔥 RISK (RECOVERY)"
+                        android:textColor="#94A3B8"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.15"
+                        android:clickable="true"
+                        android:focusable="true"/>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <TextView
             android:id="@+id/emptyText"
             android:layout_width="match_parent"
