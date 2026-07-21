@@ -94,6 +94,34 @@ class AviatorFragment : Fragment() {
         AviatorStore.overlayEnabled.observe(viewLifecycleOwner) { on ->
             if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
+
+        // Signal mode (Normal / Risk) — persisted; changing forces a fresh fetch.
+        signalMode = prefs.getString(PREF_MODE, "normal") ?: "normal"
+        applyModeUi()
+        b.modeNormalBtn.setOnClickListener { setSignalMode("normal") }
+        b.modeRiskBtn.setOnClickListener { setSignalMode("risk") }
+    }
+
+    private fun setSignalMode(mode: String) {
+        val next = if (mode == "risk") "risk" else "normal"
+        if (next == signalMode) return
+        signalMode = next
+        prefs.edit().putString(PREF_MODE, next).apply()
+        applyModeUi()
+        // Force re-fetch so the running round's card refreshes with new logic.
+        lastFetchedRoundId = null
+        AviatorStore.rounds.value?.let { renderRounds(it) }
+    }
+
+    private fun applyModeUi() {
+        if (_b == null) return
+        val isRisk = signalMode == "risk"
+        b.modeCurrentLabel.text = if (isRisk) "🔥 RISK" else "⚖ NORMAL"
+        b.modeCurrentLabel.setTextColor(if (isRisk) 0xFFEF4444.toInt() else 0xFF4ADE80.toInt())
+        b.modeNormalBtn.setBackgroundColor(if (isRisk) 0xFF1F2937.toInt() else 0xFF16A34A.toInt())
+        b.modeNormalBtn.setTextColor(if (isRisk) 0xFF94A3B8.toInt() else 0xFFFFFFFF.toInt())
+        b.modeRiskBtn.setBackgroundColor(if (isRisk) 0xFFDC2626.toInt() else 0xFF1F2937.toInt())
+        b.modeRiskBtn.setTextColor(if (isRisk) 0xFFFFFFFF.toInt() else 0xFF94A3B8.toInt())
     }
 
     private fun renderState(st: AviatorState?) {
@@ -164,7 +192,7 @@ class AviatorFragment : Fragment() {
         b.debugFetchLog.text = "req sent • ${timeStamp()} • hist=${rounds.size}"
 
         val t0 = System.currentTimeMillis()
-        PredictionClient.fetchSignal(deviceId, rounds) { sig ->
+        PredictionClient.fetchSignal(deviceId, rounds, signalMode) { sig ->
             if (_b == null) return@fetchSignal
             val roundTrip = System.currentTimeMillis() - t0
             if (sig == null) {
@@ -506,5 +534,6 @@ class AviatorFragment : Fragment() {
 
     companion object {
         private const val PREF_OVERLAY = "vip_overlay_enabled"
+        private const val PREF_MODE = "aviator_signal_mode"
     }
 }
