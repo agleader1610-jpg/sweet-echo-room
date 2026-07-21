@@ -223,7 +223,7 @@ async function callAI(
         'Authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: AI_MODEL,
+        model: cfg.model,
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
