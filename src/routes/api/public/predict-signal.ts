@@ -95,7 +95,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory);
+          const r = await callAI(history, memory, mode);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
@@ -106,7 +106,9 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           costCredits = estimateCost(AI_MODEL, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
-          signal = applyMemoryToLocal(computeLocalSignal(history), memory);
+          signal = mode === 'risk'
+            ? computeRiskSignal(history, memory.lossStreak)
+            : applyMemoryToLocal(computeLocalSignal(history), memory);
           source = 'local';
         }
 
