@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_config: {
+        Row: {
+          id: number
+          model: string
+          sys_normal: string
+          sys_risk: string
+          timeout_ms: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          model?: string
+          sys_normal?: string
+          sys_risk?: string
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          model?: string
+          sys_normal?: string
+          sys_risk?: string
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           allowed_signature_hashes: string[] | null

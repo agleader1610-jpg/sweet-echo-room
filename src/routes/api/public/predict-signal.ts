@@ -2,10 +2,36 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, computeRiskSignal, type Signal } from '@/lib/local-prediction-logic';
 
-// Fast + cheap model — Aviator bet window is only ~5s, so latency and cost matter more than deep reasoning.
-// Gemini 3 Flash: ~500ms-1s latency, ~20x cheaper than GPT-5.4, still smart enough for market+memory analysis.
-const AI_MODEL = 'google/gemini-3-flash-preview';
-const AI_TIMEOUT_MS = 4000;
+// Defaults used only if DB config is missing. Live values come from public.ai_config
+// (editable via /admin), cached in memory for 60s so we don't hit the DB every request.
+const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
+const DEFAULT_TIMEOUT_MS = 4000;
+const DEFAULT_SYS_NORMAL = 'You are an Aviator crash-game analyst with persistent MEMORY of your own past signals. You must use both recent crash history and your prior prediction outcomes before choosing the NEXT round signal. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null.';
+const DEFAULT_SYS_RISK = 'You are an Aviator crash-game analyst in RISK-RECOVERY mode. Read the market AND your own past signals; pick a recovery target that fits both. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=120 chars"}.';
+
+type AiCfg = { model: string; timeoutMs: number; sysNormal: string; sysRisk: string };
+let cfgCache: { at: number; cfg: AiCfg } | null = null;
+const CFG_TTL_MS = 60_000;
+
+async function loadAiConfig(supa: ReturnType<typeof supaClient>): Promise<AiCfg> {
+  const now = Date.now();
+  if (cfgCache && now - cfgCache.at < CFG_TTL_MS) return cfgCache.cfg;
+  try {
+    const { data } = await supa.from('ai_config').select('model,timeout_ms,sys_normal,sys_risk').eq('id', 1).maybeSingle();
+    const cfg: AiCfg = {
+      model: (data?.model as string) || DEFAULT_MODEL,
+      timeoutMs: Number(data?.timeout_ms) || DEFAULT_TIMEOUT_MS,
+      sysNormal: (data?.sys_normal as string) || DEFAULT_SYS_NORMAL,
+      sysRisk: (data?.sys_risk as string) || DEFAULT_SYS_RISK,
+    };
+    cfgCache = { at: now, cfg };
+    return cfg;
+  } catch {
+    return { model: DEFAULT_MODEL, timeoutMs: DEFAULT_TIMEOUT_MS, sysNormal: DEFAULT_SYS_NORMAL, sysRisk: DEFAULT_SYS_RISK };
+  }
+}
+
+export function invalidateAiConfigCache() { cfgCache = null; }
 
 type Mode = 'normal' | 'risk';
 
@@ -86,6 +112,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         const memory = summarizeMemory(priors);
 
         // Try AI first
+        const cfg = await loadAiConfig(supa);
         let signal: Signal | null = null;
         let source: 'ai' | 'local' = 'local';
         let aiModel: string | null = null;
@@ -96,15 +123,15 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory, mode);
+          const r = await callAI(history, memory, mode, cfg);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
-          aiModel = AI_MODEL;
+          aiModel = cfg.model;
           promptTokens = r.promptTokens;
           completionTokens = r.completionTokens;
           totalTokens = r.totalTokens;
-          costCredits = estimateCost(AI_MODEL, promptTokens, completionTokens);
+          costCredits = estimateCost(cfg.model, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
           signal = mode === 'risk'
@@ -112,6 +139,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
             : applyMemoryToLocal(computeLocalSignal(history), memory);
           source = 'local';
         }
+
 
         const runningRoundId = newest.round_id + 1;
         const latency = Date.now() - started;
@@ -170,19 +198,18 @@ async function callAI(
   history: Array<{ round_id: number; multiplier: number }>,
   memory: MemoryStats,
   mode: Mode,
+  cfg: AiCfg,
 ): Promise<{ signal: Signal; raw: string; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null }> {
 
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error('no_ai_key');
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  const t = setTimeout(() => controller.abort(), cfg.timeoutMs);
   const recent = history.slice(0, 20);
   const compact = recent.map(r => `#${r.round_id}:${r.multiplier.toFixed(2)}x`).join(', ');
 
-  const sysNormal = 'You are an Aviator crash-game analyst with persistent MEMORY of your own past signals. You must use both recent crash history and your prior prediction outcomes before choosing the NEXT round signal. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Adapt to performance: after 1 loss become conservative; after 2+ consecutive losses avoid STRONG BET and use either SKIP or low target 1.30-1.60. If recent hit-rate is weak, reduce risk; if hit-rate is strong, keep the successful target band. Analyze crash streaks (<2x pinks, >=2x greens), drought since 10x+, momentum, average trend, skip correctness, and target hit-rate. Targets typically 1.30-3.50; 5+ only on strong long-drought evidence.';
+  const sys = mode === 'risk' ? cfg.sysRisk : cfg.sysNormal;
 
-  const sysRisk = 'You are an Aviator crash-game analyst in RISK-RECOVERY mode. You have persistent MEMORY of every past signal you gave (target, actual crash, win/loss). NO fixed martingale ladder — you must READ THE MARKET (recent crashes, pink/green streaks, drought since 10x+, momentum, average trend) TOGETHER with your own prior signals and their outcomes, and choose a recovery target that a smart human trader would pick to clear prior losses AND lock small profit on the very next winning round. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=120 chars"}. Guidelines: (1) Give BET signals aggressively — SKIP only when the market clearly says danger (e.g. a huge >=15x just landed, or 4+ of your own recent BETs lost in a row and the pattern hasn\'t shifted). (2) After losses, raise the target intelligently based on how many units you must recover AND what the market actually supports — do not blindly double. If the market looks weak, prefer a slightly lower but still recovery-positive target with STRONG BET confidence; if the market looks primed (long pink streak, long drought), aim higher. (3) After wins, reset to a fresh conservative target. (4) Always justify in reasoning why THIS target fits BOTH the market read AND the loss/win history. Reasoning may be short Bengali or English.';
-  const sys = mode === 'risk' ? sysRisk : sysNormal;
   const userNormal = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}. Predict only round #${recent[0].round_id + 1}.`;
   const userRisk = `MODE: RISK-RECOVERY (market-aware, NOT martingale).\nRecent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak L=${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}%. Pending: ${memory.pending}. Predict only round #${recent[0].round_id + 1}. Read the market AND your own past signals — pick a recovery target that fits BOTH, not a fixed ladder.`;
   const user = mode === 'risk' ? userRisk : userNormal;
@@ -196,7 +223,7 @@ async function callAI(
         'Authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: AI_MODEL,
+        model: cfg.model,
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
