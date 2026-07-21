@@ -103,14 +103,9 @@ export const Route = createFileRoute('/api/public/verify-license')({
         if (pkg && pkg !== expectedPkg) {
           return respond(false, `pkg_renamed:${pkg}`, secureLock);
         }
-        // 2) Signature allowlist. Only enforced when admin has turned it on
-        //    AND at least one hash is registered. TOFU below auto-populates
-        //    the first legit sig, so official CI builds keep working.
-        if (enforceSig && allowedSigs.length > 0 && sig && !allowedSigs.includes(sig)) {
-          return respond(false, `sig_mismatch:${sig.slice(0, 12)}`, secureLock);
-        }
-
-
+        // 2) License check FIRST — so a valid-invite user on a brand-new
+        //    official build can auto-register their sig via TOFU below
+        //    before the sig gate rejects them.
         let licensed = false;
         let reason = 'no_login';
         if (uid) {
@@ -126,20 +121,32 @@ export const Route = createFileRoute('/api/public/verify-license')({
         }
         if (!licensed && (uid || inviteCode)) reason = 'mismatch';
 
-
-        // 3) TOFU: auto-adopt the first legit signature we see and turn on
-        //    enforcement so any repackaged clone is rejected from now on.
-        //    Runs only once (list is empty + enforce is off + we trust this call).
-        if (licensed && sig && !enforceSig && allowedSigs.length === 0) {
+        // 3) TOFU (continuous): a legit-licensed user (valid invite or
+        //    whitelisted UID) on an unknown sig auto-registers that sig.
+        //    Every new official build "self-registers" on first legit
+        //    login — no manual allowlist maintenance. Old hashes stay,
+        //    so old versions keep working. Users without a valid invite
+        //    never reach this branch, so a repackaged APK can never
+        //    sneak its sig in.
+        let effectiveAllowedSigs = allowedSigs;
+        if (licensed && sig && !allowedSigs.includes(sig)) {
           try {
+            effectiveAllowedSigs = Array.from(new Set([...allowedSigs, sig]));
             await supabaseAdmin
               .from('app_config')
               .update({
-                allowed_signature_hashes: [sig],
+                allowed_signature_hashes: effectiveAllowedSigs,
                 enforce_signature_allowlist: true,
               })
               .eq('id', 1);
           } catch {}
+        }
+
+        // 4) Signature allowlist gate — runs AFTER TOFU so the just-added
+        //    sig passes. Non-licensed callers with an unknown sig are
+        //    still rejected here.
+        if (enforceSig && effectiveAllowedSigs.length > 0 && sig && !effectiveAllowedSigs.includes(sig)) {
+          return respond(false, `sig_mismatch:${sig.slice(0, 12)}`, secureLock);
         }
 
         if (licensed) return respond(true, reason, '');
