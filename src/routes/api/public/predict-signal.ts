@@ -1,13 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
-import { computeLocalSignal, type Signal } from '@/lib/local-prediction-logic';
+import { computeLocalSignal, computeRiskSignal, type Signal } from '@/lib/local-prediction-logic';
 
 // GPT-5.4 with priority tier — best reasoning + low latency (per user request).
 const AI_MODEL = 'openai/gpt-5.4';
 const AI_TIMEOUT_MS = 8000;
 
+type Mode = 'normal' | 'risk';
+
 interface Body {
   device_id?: string;
+  mode?: string;
   history?: Array<{ round_id: number; multiplier: number }>;
 }
 
@@ -44,6 +47,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let body: Body;
         try { body = (await request.json()) as Body; } catch { return json({ ok: false, error: 'bad_json' }, 400); }
         const deviceId = (body.device_id ?? '').slice(0, 128);
+        const mode: Mode = (String(body.mode ?? 'normal').toLowerCase() === 'risk') ? 'risk' : 'normal';
         const history = (body.history ?? []).slice(0, 30).filter(h => typeof h.round_id === 'number' && typeof h.multiplier === 'number');
         if (history.length < 3) return json({ ok: false, error: 'need_history' }, 200);
 
@@ -91,7 +95,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory);
+          const r = await callAI(history, memory, mode);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
@@ -102,7 +106,9 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           costCredits = estimateCost(AI_MODEL, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
-          signal = applyMemoryToLocal(computeLocalSignal(history), memory);
+          signal = mode === 'risk'
+            ? computeRiskSignal(history, memory.lossStreak)
+            : applyMemoryToLocal(computeLocalSignal(history), memory);
           source = 'local';
         }
 
@@ -134,6 +140,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           history_newest_round_id: newest.round_id,
           history_newest_multiplier: newest.multiplier,
           history_len: history.length,
+          mode,
           target: signal.target,
           action: signal.action,
           confidence: signal.confidence,
@@ -161,6 +168,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
 async function callAI(
   history: Array<{ round_id: number; multiplier: number }>,
   memory: MemoryStats,
+  mode: Mode,
 ): Promise<{ signal: Signal; raw: string; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null }> {
 
   const key = process.env.LOVABLE_API_KEY;
@@ -170,8 +178,14 @@ async function callAI(
   const recent = history.slice(0, 20);
   const compact = recent.map(r => `#${r.round_id}:${r.multiplier.toFixed(2)}x`).join(', ');
 
-  const sys = 'You are an Aviator crash-game analyst with persistent MEMORY of your own past signals. You must use both recent crash history and your prior prediction outcomes before choosing the NEXT round signal. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Adapt to performance: after 1 loss become conservative; after 2+ consecutive losses avoid STRONG BET and use either SKIP or low target 1.30-1.60. If recent hit-rate is weak, reduce risk; if hit-rate is strong, keep the successful target band. Analyze crash streaks (<2x pinks, >=2x greens), drought since 10x+, momentum, average trend, skip correctness, and target hit-rate. Targets typically 1.30-3.50; 5+ only on strong long-drought evidence.';
-  const user = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}. Predict only round #${recent[0].round_id + 1}.`;
+  const sysNormal = 'You are an Aviator crash-game analyst with persistent MEMORY of your own past signals. You must use both recent crash history and your prior prediction outcomes before choosing the NEXT round signal. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. If SKIP, target=null. Adapt to performance: after 1 loss become conservative; after 2+ consecutive losses avoid STRONG BET and use either SKIP or low target 1.30-1.60. If recent hit-rate is weak, reduce risk; if hit-rate is strong, keep the successful target band. Analyze crash streaks (<2x pinks, >=2x greens), drought since 10x+, momentum, average trend, skip correctness, and target hit-rate. Targets typically 1.30-3.50; 5+ only on strong long-drought evidence.';
+
+  const sysRisk = 'You are an Aviator crash-game analyst in RISK-RECOVERY mode. Assume flat stake=1 unit per round. Your job is to give MORE signals (rarely SKIP) and use a martingale-style RECOVERY target so ONE win clears prior losses AND locks small profit. Only output JSON: {"action":"BET"|"STRONG BET"|"SKIP","target":number|null,"confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=100 chars"}. Recovery ladder based on verified BET loss streak L: L=0 → target 1.60-1.80; L=1 → target 2.15 (recover 1 + profit); L=2 → target 3.15 (recover 2 + profit), action STRONG BET; L=3 → target 4.15, STRONG BET; L>=4 → SKIP one round to reset. Also SKIP if the very last crash was >=15x (fresh mega-spike). Otherwise ALWAYS BET — do not SKIP on ordinary hot/cold reads. Bias target slightly upward on long pink streaks (>=5) or long drought (>=20), but never below the recovery floor for that L. Keep reasoning short in Bengali or English.';
+
+  const sys = mode === 'risk' ? sysRisk : sysNormal;
+  const userNormal = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}. Predict only round #${recent[0].round_id + 1}.`;
+  const userRisk = `MODE: RISK-RECOVERY (martingale target ladder).\nRecent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak L=${memory.lossStreak} — use recovery target for L=${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). Predict only round #${recent[0].round_id + 1}. Do NOT SKIP unless L>=4 or last crash >=15x.`;
+  const user = mode === 'risk' ? userRisk : userNormal;
 
   try {
     const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

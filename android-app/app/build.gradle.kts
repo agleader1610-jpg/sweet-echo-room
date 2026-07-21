@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 114
-        versionName = "1.0.114-spotlight-button-fix"
+        versionCode = 115
+        versionName = "1.0.115-aviator-risk-mode"
 
 
 
