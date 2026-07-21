@@ -2,9 +2,10 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, computeRiskSignal, type Signal } from '@/lib/local-prediction-logic';
 
-// GPT-5.4 with priority tier — best reasoning + low latency (per user request).
-const AI_MODEL = 'openai/gpt-5.4';
-const AI_TIMEOUT_MS = 8000;
+// Fast + cheap model — Aviator bet window is only ~5s, so latency and cost matter more than deep reasoning.
+// Gemini 3 Flash: ~500ms-1s latency, ~20x cheaper than GPT-5.4, still smart enough for market+memory analysis.
+const AI_MODEL = 'google/gemini-3-flash-preview';
+const AI_TIMEOUT_MS = 4000;
 
 type Mode = 'normal' | 'risk';
 
@@ -196,7 +197,6 @@ async function callAI(
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        service_tier: 'priority',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: user },
