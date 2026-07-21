@@ -1,13 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
-import { computeLocalSignal, type Signal } from '@/lib/local-prediction-logic';
+import { computeLocalSignal, computeRiskSignal, type Signal } from '@/lib/local-prediction-logic';
 
 // GPT-5.4 with priority tier — best reasoning + low latency (per user request).
 const AI_MODEL = 'openai/gpt-5.4';
 const AI_TIMEOUT_MS = 8000;
 
+type Mode = 'normal' | 'risk';
+
 interface Body {
   device_id?: string;
+  mode?: string;
   history?: Array<{ round_id: number; multiplier: number }>;
 }
 
