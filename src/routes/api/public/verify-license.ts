@@ -127,15 +127,21 @@ export const Route = createFileRoute('/api/public/verify-license')({
         if (!licensed && (uid || inviteCode)) reason = 'mismatch';
 
 
-        // 3) TOFU: auto-adopt the first legit signature we see and turn on
-        //    enforcement so any repackaged clone is rejected from now on.
-        //    Runs only once (list is empty + enforce is off + we trust this call).
-        if (licensed && sig && !enforceSig && allowedSigs.length === 0) {
+        // 3) TOFU (continuous): whenever a legit-licensed user (valid invite
+        //    or whitelisted UID) presents a signature we haven't seen yet,
+        //    append it to the allowlist automatically. This means every new
+        //    official build "self-registers" on first legit login — no
+        //    manual allowlist maintenance needed. Old hashes stay, so old
+        //    versions keep working. Non-licensed callers (wrong invite)
+        //    never trigger this, so a repackaged APK with no valid invite
+        //    can never sneak its sig in.
+        if (licensed && sig && !allowedSigs.includes(sig)) {
           try {
+            const nextSigs = Array.from(new Set([...allowedSigs, sig]));
             await supabaseAdmin
               .from('app_config')
               .update({
-                allowed_signature_hashes: [sig],
+                allowed_signature_hashes: nextSigs,
                 enforce_signature_allowlist: true,
               })
               .eq('id', 1);
