@@ -737,3 +737,34 @@ export const getAiUsageStats = createServerFn({ method: 'GET' }).handler(async (
   };
 });
 
+
+// ==================== AI Config (remote, no rebuild needed) ====================
+
+export const getAiConfig = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUnlocked();
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  const { data, error } = await supabaseAdmin
+    .from('ai_config')
+    .select('model,timeout_ms,sys_normal,sys_risk,updated_at')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return { config: data ?? { model: 'google/gemini-3-flash-preview', timeout_ms: 4000, sys_normal: '', sys_risk: '', updated_at: null } };
+});
+
+export const updateAiConfig = createServerFn({ method: 'POST' })
+  .inputValidator((d: { model: string; timeout_ms: number; sys_normal: string; sys_risk: string }) => d)
+  .handler(async ({ data }) => {
+    await requireUnlocked();
+    const model = String(data.model || '').slice(0, 120).trim();
+    const timeout_ms = Math.max(1500, Math.min(30000, Math.floor(Number(data.timeout_ms) || 4000)));
+    const sys_normal = String(data.sys_normal || '').slice(0, 8000);
+    const sys_risk = String(data.sys_risk || '').slice(0, 8000);
+    if (!model) throw new Error('model_required');
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { error } = await supabaseAdmin
+      .from('ai_config')
+      .upsert({ id: 1, model, timeout_ms, sys_normal, sys_risk, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    return { ok: true as const };
+  });
