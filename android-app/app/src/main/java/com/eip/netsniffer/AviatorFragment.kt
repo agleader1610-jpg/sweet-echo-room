@@ -40,6 +40,8 @@ class AviatorFragment : Fragment() {
     private var armedPredictionId: Long? = null
     private var armedRoundId: Long? = null
     private var armedTarget: Double? = null
+    // Signal mode: "normal" or "risk" — persisted so the choice survives restarts.
+    private var signalMode: String = "normal"
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentAviatorBinding.inflate(i, c, false)
