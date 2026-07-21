@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatRouteImport } from './routes/stat'
+import { Route as AdminAiRouteImport } from './routes/admin-ai'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamProxyRouteImport } from './routes/api/stream/proxy'
@@ -27,6 +28,11 @@ import { Route as ApiStreamPlaylistChannelIdRouteImport } from './routes/api/str
 const StatRoute = StatRouteImport.update({
   id: '/stat',
   path: '/stat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAiRoute = AdminAiRouteImport.update({
+  id: '/admin-ai',
+  path: '/admin-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -101,6 +107,7 @@ const ApiStreamPlaylistChannelIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-ai': typeof AdminAiRoute
   '/stat': typeof StatRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-ai': typeof AdminAiRoute
   '/stat': typeof StatRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-ai': typeof AdminAiRoute
   '/stat': typeof StatRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/captures-ingest': typeof ApiPublicCapturesIngestRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-ai'
     | '/stat'
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/admin-ai'
     | '/stat'
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-ai'
     | '/stat'
     | '/api/public/app-version'
     | '/api/public/captures-ingest'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdminAiRoute: typeof AdminAiRoute
   StatRoute: typeof StatRoute
   ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
   ApiPublicCapturesIngestRoute: typeof ApiPublicCapturesIngestRoute
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/stat'
       fullPath: '/stat'
       preLoaderRoute: typeof StatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-ai': {
+      id: '/admin-ai'
+      path: '/admin-ai'
+      fullPath: '/admin-ai'
+      preLoaderRoute: typeof AdminAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -321,6 +341,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdminAiRoute: AdminAiRoute,
   StatRoute: StatRoute,
   ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
   ApiPublicCapturesIngestRoute: ApiPublicCapturesIngestRoute,
