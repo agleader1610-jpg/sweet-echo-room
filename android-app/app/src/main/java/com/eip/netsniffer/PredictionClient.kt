@@ -55,11 +55,13 @@ object PredictionClient {
     fun fetchSignal(
         deviceId: String,
         rounds: List<AviatorRound>,
+        mode: String = "normal",
         callback: (Signal?) -> Unit,
     ) {
         if (rounds.size < 3) { callback(null); return }
+        val safeMode = if (mode.equals("risk", ignoreCase = true)) "risk" else "normal"
         exec.execute {
-            val result = try { doFetch(deviceId, rounds) } catch (t: Throwable) {
+            val result = try { doFetch(deviceId, rounds, safeMode) } catch (t: Throwable) {
                 Log.w(TAG, "fetch failed: ${t.message}"); null
             }
             main.post { callback(result) }
@@ -81,7 +83,7 @@ object PredictionClient {
         }
     }
 
-    private fun doFetch(deviceId: String, rounds: List<AviatorRound>): Signal? {
+    private fun doFetch(deviceId: String, rounds: List<AviatorRound>, mode: String): Signal? {
         val hist = JSONArray()
         rounds.take(20).forEach { r ->
             hist.put(JSONObject().apply {
@@ -91,6 +93,7 @@ object PredictionClient {
         }
         val body = JSONObject().apply {
             put("device_id", deviceId)
+            put("mode", mode)
             put("history", hist)
         }
         val respText = postJson(ENDPOINT, body.toString()) ?: return null
