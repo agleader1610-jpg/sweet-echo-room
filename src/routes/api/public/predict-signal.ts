@@ -112,6 +112,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         const memory = summarizeMemory(priors);
 
         // Try AI first
+        const cfg = await loadAiConfig(supa);
         let signal: Signal | null = null;
         let source: 'ai' | 'local' = 'local';
         let aiModel: string | null = null;
@@ -122,15 +123,15 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory, mode);
+          const r = await callAI(history, memory, mode, cfg);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
-          aiModel = AI_MODEL;
+          aiModel = cfg.model;
           promptTokens = r.promptTokens;
           completionTokens = r.completionTokens;
           totalTokens = r.totalTokens;
-          costCredits = estimateCost(AI_MODEL, promptTokens, completionTokens);
+          costCredits = estimateCost(cfg.model, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
           signal = mode === 'risk'
@@ -138,6 +139,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
             : applyMemoryToLocal(computeLocalSignal(history), memory);
           source = 'local';
         }
+
 
         const runningRoundId = newest.round_id + 1;
         const latency = Date.now() - started;
