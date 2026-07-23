@@ -220,7 +220,8 @@ async function callAI(
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
+        'Lovable-API-Key': key,
+        'X-Lovable-AIG-SDK': 'manual-fetch',
       },
       body: JSON.stringify({
         model: cfg.model,
