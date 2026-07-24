@@ -348,6 +348,21 @@ function normalizeOutcome(v: unknown): string {
   return String(v ?? '').toUpperCase();
 }
 
+function deriveMarketState(history: Array<{ round_id: number; multiplier: number }>): {
+  lastMultiplier: number; avgRecent: number; lowStreak: number; drought: number;
+} {
+  const all = history.map(h => h.multiplier);
+  const lastMultiplier = all[0] ?? 0;
+  const recent = all.slice(0, 15);
+  const avgRecent = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+  let lowStreak = 0;
+  for (const x of all) { if (x < 2) lowStreak++; else break; }
+  const droughtIdx = all.findIndex(x => x >= 10);
+  const drought = droughtIdx < 0 ? all.length : droughtIdx;
+  return { lastMultiplier, avgRecent, lowStreak, drought };
+}
+
+
 function summarizeMemory(priors: PriorSignal[]): MemoryStats {
   const priorStr = priors.length
     ? priors.map((p) => {
