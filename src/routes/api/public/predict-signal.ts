@@ -114,6 +114,12 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         });
         const memory = summarizeMemory(priors);
 
+        // Global patterns — mined from ALL devices' AI signals + outcomes.
+        // Cached for 5 min so we don't hit the DB every request.
+        let global: GlobalPatterns;
+        try { global = await getGlobalPatterns(supa); }
+        catch { global = { sampleSize: 0, overallWinRate: 0, skipAccuracy: 0, targetBuckets: [], marketBuckets: {}, bestTargetOverall: null, worstTargetOverall: null, summary: 'unavailable' }; }
+
         // Try AI first
         const cfg = await loadAiConfig(supa);
         let signal: Signal | null = null;
@@ -126,7 +132,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory, mode, cfg);
+          const r = await callAI(history, memory, mode, cfg, global);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
@@ -138,9 +144,12 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
           // Smart fallback — uses history + this device's own past signal
-          // outcomes (memory) to pick a data-driven target. If memory is too
-          // thin, falls back to pure heuristic inside computeSmartSignal.
+          // outcomes (memory) + GLOBAL patterns mined from all devices' AI
+          // signals to pick a data-driven target. If everything is thin,
+          // falls back to pure heuristic inside computeSmartSignal.
           try {
+            const marketState = deriveMarketState(history);
+            const globalPick = pickTargetFromGlobal(global, marketState);
             signal = computeSmartSignal(history, {
               priors: priors.map(p => ({
                 target_multiplier: p.target_multiplier,
@@ -151,6 +160,10 @@ export const Route = createFileRoute('/api/public/predict-signal')({
               wins: memory.wins,
               losses: memory.losses,
               accuracy: memory.accuracy,
+              globalTarget: globalPick.target,
+              globalReason: globalPick.reason,
+              globalWinRate: global.overallWinRate,
+              globalSampleSize: global.sampleSize,
             }, mode);
             source = 'smart';
           } catch {
@@ -160,6 +173,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
             source = 'local';
           }
         }
+
 
 
         const runningRoundId = newest.round_id + 1;
