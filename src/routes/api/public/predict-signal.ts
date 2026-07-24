@@ -114,13 +114,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         });
         const memory = summarizeMemory(priors);
 
-        // Global patterns — mined from ALL devices' AI signals + outcomes.
-        // Cached for 5 min so we don't hit the DB every request.
-        let global: GlobalPatterns;
-        try { global = await getGlobalPatterns(supa); }
-        catch { global = { sampleSize: 0, overallWinRate: 0, skipAccuracy: 0, targetBuckets: [], marketBuckets: {}, bestTargetOverall: null, worstTargetOverall: null, summary: 'unavailable' }; }
-
-        // Try AI first
+        // Try AI first — AI stays lean & instant, no global summary in the prompt.
         const cfg = await loadAiConfig(supa);
         let signal: Signal | null = null;
         let source: 'ai' | 'smart' | 'local' = 'local';
@@ -132,7 +126,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory, mode, cfg, global);
+          const r = await callAI(history, memory, mode, cfg);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
@@ -143,11 +137,12 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           costCredits = estimateCost(cfg.model, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
-          // Smart fallback — uses history + this device's own past signal
-          // outcomes (memory) + GLOBAL patterns mined from all devices' AI
-          // signals to pick a data-driven target. If everything is thin,
-          // falls back to pure heuristic inside computeSmartSignal.
+          // AI off / credits gone — now (and only now) load global patterns
+          // mined from ALL devices' past AI signals to pick a data-driven target.
           try {
+            let global: GlobalPatterns;
+            try { global = await getGlobalPatterns(supa); }
+            catch { global = { sampleSize: 0, overallWinRate: 0, skipAccuracy: 0, targetBuckets: [], marketBuckets: {}, bestTargetOverall: null, worstTargetOverall: null, summary: 'unavailable' }; }
             const marketState = deriveMarketState(history);
             const globalPick = pickTargetFromGlobal(global, marketState);
             signal = computeSmartSignal(history, {
@@ -173,6 +168,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
             source = 'local';
           }
         }
+
 
 
 
