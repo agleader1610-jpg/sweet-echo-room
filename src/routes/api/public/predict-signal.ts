@@ -114,13 +114,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         });
         const memory = summarizeMemory(priors);
 
-        // Global patterns — mined from ALL devices' AI signals + outcomes.
-        // Cached for 5 min so we don't hit the DB every request.
-        let global: GlobalPatterns;
-        try { global = await getGlobalPatterns(supa); }
-        catch { global = { sampleSize: 0, overallWinRate: 0, skipAccuracy: 0, targetBuckets: [], marketBuckets: {}, bestTargetOverall: null, worstTargetOverall: null, summary: 'unavailable' }; }
-
-        // Try AI first
+        // Try AI first — AI stays lean & instant, no global summary in the prompt.
         const cfg = await loadAiConfig(supa);
         let signal: Signal | null = null;
         let source: 'ai' | 'smart' | 'local' = 'local';
@@ -132,7 +126,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         let totalTokens: number | null = null;
         let costCredits: number | null = null;
         try {
-          const r = await callAI(history, memory, mode, cfg, global);
+          const r = await callAI(history, memory, mode, cfg);
           signal = r.signal;
           aiRaw = r.raw;
           source = 'ai';
@@ -143,11 +137,12 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           costCredits = estimateCost(cfg.model, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
-          // Smart fallback — uses history + this device's own past signal
-          // outcomes (memory) + GLOBAL patterns mined from all devices' AI
-          // signals to pick a data-driven target. If everything is thin,
-          // falls back to pure heuristic inside computeSmartSignal.
+          // AI off / credits gone — now (and only now) load global patterns
+          // mined from ALL devices' past AI signals to pick a data-driven target.
           try {
+            let global: GlobalPatterns;
+            try { global = await getGlobalPatterns(supa); }
+            catch { global = { sampleSize: 0, overallWinRate: 0, skipAccuracy: 0, targetBuckets: [], marketBuckets: {}, bestTargetOverall: null, worstTargetOverall: null, summary: 'unavailable' }; }
             const marketState = deriveMarketState(history);
             const globalPick = pickTargetFromGlobal(global, marketState);
             signal = computeSmartSignal(history, {
@@ -173,6 +168,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
             source = 'local';
           }
         }
+
 
 
 
@@ -234,7 +230,6 @@ async function callAI(
   memory: MemoryStats,
   mode: Mode,
   cfg: AiCfg,
-  global: GlobalPatterns,
 ): Promise<{ signal: Signal; raw: string; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null }> {
 
   const key = process.env.LOVABLE_API_KEY;
@@ -246,9 +241,9 @@ async function callAI(
 
   const sys = mode === 'risk' ? cfg.sysRisk : cfg.sysNormal;
 
-  const globalLine = `\nGlobal AI-signal history across ALL devices (${global.sampleSize} verified): ${global.summary}.`;
-  const userNormal = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}.${globalLine}\nPredict only round #${recent[0].round_id + 1}. Weight global winning-target patterns when picking your target.`;
-  const userRisk = `MODE: RISK-RECOVERY (market-aware, NOT martingale).\nRecent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak L=${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}%. Pending: ${memory.pending}.${globalLine}\nPredict only round #${recent[0].round_id + 1}. Read the market AND your own past signals AND global winning-target patterns — pick a recovery target that fits ALL, not a fixed ladder.`;
+  const userNormal = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}.\nPredict only round #${recent[0].round_id + 1}.`;
+  const userRisk = `MODE: RISK-RECOVERY (market-aware, NOT martingale).\nRecent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak L=${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}%. Pending: ${memory.pending}.\nPredict only round #${recent[0].round_id + 1}. Read the market AND your own past signals — pick a recovery target that fits both, not a fixed ladder.`;
+
 
   const user = mode === 'risk' ? userRisk : userNormal;
 
