@@ -234,6 +234,7 @@ async function callAI(
   memory: MemoryStats,
   mode: Mode,
   cfg: AiCfg,
+  global: GlobalPatterns,
 ): Promise<{ signal: Signal; raw: string; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null }> {
 
   const key = process.env.LOVABLE_API_KEY;
@@ -245,8 +246,10 @@ async function callAI(
 
   const sys = mode === 'risk' ? cfg.sysRisk : cfg.sysNormal;
 
-  const userNormal = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}. Predict only round #${recent[0].round_id + 1}.`;
-  const userRisk = `MODE: RISK-RECOVERY (market-aware, NOT martingale).\nRecent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak L=${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}%. Pending: ${memory.pending}. Predict only round #${recent[0].round_id + 1}. Read the market AND your own past signals — pick a recovery target that fits BOTH, not a fixed ladder.`;
+  const globalLine = `\nGlobal AI-signal history across ALL devices (${global.sampleSize} verified): ${global.summary}.`;
+  const userNormal = `Recent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak: ${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}% (${memory.skipWins} correct/${memory.skipLosses} wrong). Pending signals: ${memory.pending}.${globalLine}\nPredict only round #${recent[0].round_id + 1}. Weight global winning-target patterns when picking your target.`;
+  const userRisk = `MODE: RISK-RECOVERY (market-aware, NOT martingale).\nRecent crashes (newest first): ${compact}.\nYour signal memory (newest first, target→actual=result): ${memory.priorStr}.\nVerified BET loss streak L=${memory.lossStreak}. BET hit-rate: ${memory.accuracy}% (${memory.wins}W/${memory.losses}L). SKIP accuracy: ${memory.skipAccuracy}%. Pending: ${memory.pending}.${globalLine}\nPredict only round #${recent[0].round_id + 1}. Read the market AND your own past signals AND global winning-target patterns — pick a recovery target that fits ALL, not a fixed ladder.`;
+
   const user = mode === 'risk' ? userRisk : userNormal;
 
   try {
