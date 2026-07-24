@@ -99,13 +99,18 @@ export function computeSmartSignal(
                  memory.lossStreak === 1 ? 2.15 :
                  memory.lossStreak === 2 ? 3.15 : 4.15;
     let target = base;
-    if (memoryTarget != null && memory.lossStreak === 0) {
-      // Blend memory median with base, keep in sensible band
+    const gt = memory.globalTarget;
+    const gSample = memory.globalSampleSize ?? 0;
+    if (gt != null && gSample >= 30 && memory.lossStreak === 0) {
+      // Anchor first-shot recovery in the globally-winning target
+      target = Math.max(1.4, Math.min(3.0, (gt + base) / 2));
+    } else if (memoryTarget != null && memory.lossStreak === 0) {
       target = Math.max(1.4, Math.min(3.0, (memoryTarget + base) / 2));
     }
     if (losingAvg != null && target > losingAvg - 0.15 && memory.lossStreak <= 1) {
       target = Math.max(1.5, losingAvg - 0.2); // avoid the loss zone
     }
+
     if (lowStreak >= 6 || drought >= 25) target = Math.max(target, 2.5);
     const conf: Signal['confidence'] =
       memory.accuracy >= 55 && memory.wins + memory.losses >= 5 ? 'HIGH' :
