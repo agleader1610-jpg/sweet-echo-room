@@ -115,7 +115,7 @@ export const Route = createFileRoute('/api/public/predict-signal')({
         // Try AI first
         const cfg = await loadAiConfig(supa);
         let signal: Signal | null = null;
-        let source: 'ai' | 'local' = 'local';
+        let source: 'ai' | 'smart' | 'local' = 'local';
         let aiModel: string | null = null;
         let aiError: string | null = null;
         let aiRaw: string | null = null;
@@ -135,10 +135,28 @@ export const Route = createFileRoute('/api/public/predict-signal')({
           costCredits = estimateCost(cfg.model, promptTokens, completionTokens);
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 500);
-          signal = mode === 'risk'
-            ? computeRiskSignal(history, memory.lossStreak)
-            : applyMemoryToLocal(computeLocalSignal(history), memory);
-          source = 'local';
+          // Smart fallback — uses history + this device's own past signal
+          // outcomes (memory) to pick a data-driven target. If memory is too
+          // thin, falls back to pure heuristic inside computeSmartSignal.
+          try {
+            signal = computeSmartSignal(history, {
+              priors: priors.map(p => ({
+                target_multiplier: p.target_multiplier,
+                action: p.action,
+                result: p.result,
+              })),
+              lossStreak: memory.lossStreak,
+              wins: memory.wins,
+              losses: memory.losses,
+              accuracy: memory.accuracy,
+            }, mode);
+            source = 'smart';
+          } catch {
+            signal = mode === 'risk'
+              ? computeRiskSignal(history, memory.lossStreak)
+              : applyMemoryToLocal(computeLocalSignal(history), memory);
+            source = 'local';
+          }
         }
 
 
