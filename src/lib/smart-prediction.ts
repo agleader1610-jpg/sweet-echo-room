@@ -134,9 +134,19 @@ export function computeSmartSignal(
     return { action: 'BET', target: 1.3, confidence: 'MEDIUM', reasoning: 'smart: hot market — small & fast.' };
   }
 
-  // Default — use memory median if we have enough data, else safe 1.6
+  // Default — blend GLOBAL winning target (all-devices AI wisdom) with
+  // this device's own memory median. Global has priority when meaningful.
   let target = 1.6;
-  if (memoryTarget != null) {
+  const gt = memory.globalTarget;
+  const gSample = memory.globalSampleSize ?? 0;
+  if (gt != null && gSample >= 30) {
+    // Global winner in this market bucket, clamped to a sane band
+    target = Math.max(1.3, Math.min(gt, 3.0));
+    if (memoryTarget != null) {
+      // small pull toward the device's own winners
+      target = Number(((target * 2 + memoryTarget) / 3).toFixed(2));
+    }
+  } else if (memoryTarget != null) {
     target = Math.max(1.4, Math.min(memoryTarget, 2.2));
   }
   if (losingAvg != null && Math.abs(target - losingAvg) < 0.15) {
@@ -144,16 +154,23 @@ export function computeSmartSignal(
   }
   if (lowStreak >= 3) target = Math.max(target, 1.7);
 
+  const hasGlobal = gt != null && gSample >= 30;
   const conf: Signal['confidence'] =
+    hasGlobal && (memory.globalWinRate ?? 0) >= 55 ? 'HIGH' :
     memory.accuracy >= 55 && memory.wins + memory.losses >= 5 ? 'HIGH' :
-    memory.wins + memory.losses >= 3 ? 'MEDIUM' : 'LOW';
+    (hasGlobal || memory.wins + memory.losses >= 3) ? 'MEDIUM' : 'LOW';
+
+  const reasoning = hasGlobal
+    ? `smart: ${memory.globalReason} + me ${memory.accuracy}% → ${target.toFixed(2)}x.`
+    : (memory.wins + memory.losses >= 3
+        ? `smart: memory ${memory.accuracy}% (${memory.wins}W/${memory.losses}L) → ${target.toFixed(2)}x.`
+        : `smart: warming up — ${target.toFixed(2)}x safe.`);
 
   return {
     action: 'BET',
     target: Number(target.toFixed(2)),
     confidence: conf,
-    reasoning: memory.wins + memory.losses >= 3
-      ? `smart: memory ${memory.accuracy}% (${memory.wins}W/${memory.losses}L) → ${target.toFixed(2)}x.`
-      : `smart: warming up — ${target.toFixed(2)}x safe.`,
+    reasoning: reasoning.slice(0, 140),
   };
 }
+
