@@ -23,7 +23,13 @@ export interface SmartMemory {
   wins: number;
   losses: number;
   accuracy: number;
+  // Global cross-device intelligence (mined from all AI signals + outcomes)
+  globalTarget?: number | null;   // best-performing target under current market
+  globalReason?: string;          // human-readable why (e.g. "global:warm wr=62% best~1.6x")
+  globalWinRate?: number;         // overall global BET win rate
+  globalSampleSize?: number;      // how many verified global signals mined
 }
+
 
 /**
  * Analyze history + prior signal outcomes to produce a data-driven signal.
