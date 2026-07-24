@@ -23,7 +23,13 @@ export interface SmartMemory {
   wins: number;
   losses: number;
   accuracy: number;
+  // Global cross-device intelligence (mined from all AI signals + outcomes)
+  globalTarget?: number | null;   // best-performing target under current market
+  globalReason?: string;          // human-readable why (e.g. "global:warm wr=62% best~1.6x")
+  globalWinRate?: number;         // overall global BET win rate
+  globalSampleSize?: number;      // how many verified global signals mined
 }
+
 
 /**
  * Analyze history + prior signal outcomes to produce a data-driven signal.
@@ -93,13 +99,18 @@ export function computeSmartSignal(
                  memory.lossStreak === 1 ? 2.15 :
                  memory.lossStreak === 2 ? 3.15 : 4.15;
     let target = base;
-    if (memoryTarget != null && memory.lossStreak === 0) {
-      // Blend memory median with base, keep in sensible band
+    const gt = memory.globalTarget;
+    const gSample = memory.globalSampleSize ?? 0;
+    if (gt != null && gSample >= 30 && memory.lossStreak === 0) {
+      // Anchor first-shot recovery in the globally-winning target
+      target = Math.max(1.4, Math.min(3.0, (gt + base) / 2));
+    } else if (memoryTarget != null && memory.lossStreak === 0) {
       target = Math.max(1.4, Math.min(3.0, (memoryTarget + base) / 2));
     }
     if (losingAvg != null && target > losingAvg - 0.15 && memory.lossStreak <= 1) {
       target = Math.max(1.5, losingAvg - 0.2); // avoid the loss zone
     }
+
     if (lowStreak >= 6 || drought >= 25) target = Math.max(target, 2.5);
     const conf: Signal['confidence'] =
       memory.accuracy >= 55 && memory.wins + memory.losses >= 5 ? 'HIGH' :
@@ -128,9 +139,19 @@ export function computeSmartSignal(
     return { action: 'BET', target: 1.3, confidence: 'MEDIUM', reasoning: 'smart: hot market — small & fast.' };
   }
 
-  // Default — use memory median if we have enough data, else safe 1.6
+  // Default — blend GLOBAL winning target (all-devices AI wisdom) with
+  // this device's own memory median. Global has priority when meaningful.
   let target = 1.6;
-  if (memoryTarget != null) {
+  const gt = memory.globalTarget;
+  const gSample = memory.globalSampleSize ?? 0;
+  if (gt != null && gSample >= 30) {
+    // Global winner in this market bucket, clamped to a sane band
+    target = Math.max(1.3, Math.min(gt, 3.0));
+    if (memoryTarget != null) {
+      // small pull toward the device's own winners
+      target = Number(((target * 2 + memoryTarget) / 3).toFixed(2));
+    }
+  } else if (memoryTarget != null) {
     target = Math.max(1.4, Math.min(memoryTarget, 2.2));
   }
   if (losingAvg != null && Math.abs(target - losingAvg) < 0.15) {
@@ -138,16 +159,23 @@ export function computeSmartSignal(
   }
   if (lowStreak >= 3) target = Math.max(target, 1.7);
 
+  const hasGlobal = gt != null && gSample >= 30;
   const conf: Signal['confidence'] =
+    hasGlobal && (memory.globalWinRate ?? 0) >= 55 ? 'HIGH' :
     memory.accuracy >= 55 && memory.wins + memory.losses >= 5 ? 'HIGH' :
-    memory.wins + memory.losses >= 3 ? 'MEDIUM' : 'LOW';
+    (hasGlobal || memory.wins + memory.losses >= 3) ? 'MEDIUM' : 'LOW';
+
+  const reasoning = hasGlobal
+    ? `smart: ${memory.globalReason} + me ${memory.accuracy}% → ${target.toFixed(2)}x.`
+    : (memory.wins + memory.losses >= 3
+        ? `smart: memory ${memory.accuracy}% (${memory.wins}W/${memory.losses}L) → ${target.toFixed(2)}x.`
+        : `smart: warming up — ${target.toFixed(2)}x safe.`);
 
   return {
     action: 'BET',
     target: Number(target.toFixed(2)),
     confidence: conf,
-    reasoning: memory.wins + memory.losses >= 3
-      ? `smart: memory ${memory.accuracy}% (${memory.wins}W/${memory.losses}L) → ${target.toFixed(2)}x.`
-      : `smart: warming up — ${target.toFixed(2)}x safe.`,
+    reasoning: reasoning.slice(0, 140),
   };
 }
+
