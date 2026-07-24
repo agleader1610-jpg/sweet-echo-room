@@ -2,6 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createClient } from '@supabase/supabase-js';
 import { computeLocalSignal, computeRiskSignal, type Signal } from '@/lib/local-prediction-logic';
 import { computeSmartSignal } from '@/lib/smart-prediction';
+import { getGlobalPatterns, pickTargetFromGlobal, type GlobalPatterns } from '@/lib/global-patterns';
+
 
 // Defaults used only if DB config is missing. Live values come from public.ai_config
 // (editable via /admin), cached in memory for 60s so we don't hit the DB every request.
