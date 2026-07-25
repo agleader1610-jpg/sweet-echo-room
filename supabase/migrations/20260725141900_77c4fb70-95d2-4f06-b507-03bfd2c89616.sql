@@ -1,0 +1,1 @@
+ALTER TABLE public.app_config ADD COLUMN IF NOT EXISTS startup_note text NOT NULL DEFAULT '';
