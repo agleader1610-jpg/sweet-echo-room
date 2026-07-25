@@ -586,6 +586,45 @@ export type Database = {
         }
         Relationships: []
       }
+      wingo_signal_cache: {
+        Row: {
+          ai_error: string | null
+          ai_model: string | null
+          confidence: string
+          created_at: string
+          credits_exhausted: boolean
+          game_code: string
+          issue_id: string
+          pick: string
+          reasoning: string | null
+          source: string
+        }
+        Insert: {
+          ai_error?: string | null
+          ai_model?: string | null
+          confidence?: string
+          created_at?: string
+          credits_exhausted?: boolean
+          game_code?: string
+          issue_id: string
+          pick: string
+          reasoning?: string | null
+          source?: string
+        }
+        Update: {
+          ai_error?: string | null
+          ai_model?: string | null
+          confidence?: string
+          created_at?: string
+          credits_exhausted?: boolean
+          game_code?: string
+          issue_id?: string
+          pick?: string
+          reasoning?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
