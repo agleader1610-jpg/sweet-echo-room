@@ -116,44 +116,39 @@ class WinGoFragment : Fragment() {
         b.aiSignalSwitch.isChecked = mode == "ai"
         b.serverSignalSwitch.isChecked = mode == "server"
         applySignalModeState()
-        b.aiSignalSwitch.setOnCheckedChangeListener { _, checked ->
+        attachAiSignalListener()
+        attachServerSignalListener()
+    }
+
+    private fun attachAiSignalListener() {
+        val bnd = _b ?: return
+        bnd.aiSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
             if (checked) {
-                b.serverSignalSwitch.setOnCheckedChangeListener(null)
-                b.serverSignalSwitch.isChecked = false
-                b.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
+                bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
+                bnd.serverSignalSwitch.isChecked = false
+                attachServerSignalListener()
                 prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
-            } else if (!b.serverSignalSwitch.isChecked) {
+            } else if (!bnd.serverSignalSwitch.isChecked) {
                 prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
             }
             resetArmedSignalForModeChange()
         }
-        b.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
     }
 
-    private val serverSwitchListener: CompoundButton.OnCheckedChangeListener =
-        CompoundButton.OnCheckedChangeListener { _, checked ->
-            val bnd = _b ?: return@OnCheckedChangeListener
+    private fun attachServerSignalListener() {
+        val bnd = _b ?: return
+        bnd.serverSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
             if (checked) {
                 bnd.aiSignalSwitch.setOnCheckedChangeListener(null)
                 bnd.aiSignalSwitch.isChecked = false
-                // Re-attach the AI listener (re-declared inline to avoid cross-ref)
-                bnd.aiSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, aiOn: Boolean ->
-                    if (aiOn) {
-                        bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
-                        bnd.serverSignalSwitch.isChecked = false
-                        bnd.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
-                        prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
-                    } else if (!bnd.serverSignalSwitch.isChecked) {
-                        prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
-                    }
-                    resetArmedSignalForModeChange()
-                }
+                attachAiSignalListener()
                 prefs.edit().putString(PREF_SIGNAL_MODE, "server").apply()
             } else if (!bnd.aiSignalSwitch.isChecked) {
                 prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
             }
             resetArmedSignalForModeChange()
         }
+    }
 
 
 

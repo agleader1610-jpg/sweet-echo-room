@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 124
-        versionName = "1.0.124-server-local-random"
+        versionCode = 125
+        versionName = "1.0.125-switch-listener-fix"
 
 
 
