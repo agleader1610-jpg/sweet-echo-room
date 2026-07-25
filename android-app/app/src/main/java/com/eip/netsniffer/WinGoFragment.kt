@@ -274,7 +274,8 @@ class WinGoFragment : Fragment() {
         bnd.predConfidence.text = "—"
         bnd.predConfidence.setTextColor(0xFF94A3B8.toInt())
         bnd.predReasoning.text =
-            "🛑 AI credit শেষ। Update Notice: signal system বন্ধ। নতুন update-এর জন্য owner-কে inbox করুন।"
+            "🛑 System সাময়িকভাবে বন্ধ। কোনো সমস্যার কারণে signal off হয়েছে। Owner-কে inbox করুন।"
+
         WinGoStore.currentSignal.postValue(null)
         WinGoStore.currentTargetIssue.postValue(null)
         // Turn off auto-bet so no more random bets go through.
