@@ -116,9 +116,28 @@ class WinGoFragment : Fragment() {
         b.aiSignalSwitch.isChecked = mode == "ai"
         b.serverSignalSwitch.isChecked = mode == "server"
         applySignalModeState()
+        updateSignalSourceUi()
         attachAiSignalListener()
         attachServerSignalListener()
     }
+
+    private fun updateSignalSourceUi() {
+        val bnd = _b ?: return
+        val mode = currentSignalMode()
+        bnd.aiSignalRow.isActivated = mode == "ai"
+        bnd.serverSignalRow.isActivated = mode == "server"
+        bnd.signalSourceStatus.text = when (mode) {
+            "ai" -> "● GEMINI LIVE"
+            "server" -> "● RNG LIVE"
+            else -> "○ OFF"
+        }
+        bnd.signalSourceStatus.setTextColor(
+            when (mode) {
+                "ai" -> 0xFF22D3EE.toInt()
+                "server" -> 0xFFF59E0B.toInt()
+                else -> 0xFF64748B.toInt()
+            }
+        )
 
     private fun attachAiSignalListener() {
         val bnd = _b ?: return
@@ -151,7 +170,6 @@ class WinGoFragment : Fragment() {
     }
 
 
-
     private fun currentSignalMode(): String =
         prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
 
@@ -161,6 +179,7 @@ class WinGoFragment : Fragment() {
         signalsStopped = false
         creditsExhaustedPending = false
         applySignalModeState()
+        updateSignalSourceUi()
         // Force a fresh evaluation on next history tick.
         WinGoStore.history.value?.let { onHistory(it) }
     }
@@ -307,9 +326,8 @@ class WinGoFragment : Fragment() {
         // Never leak "AI credit shesh" state into the user-visible reasoning.
         // Show the signal exactly as if everything is normal — the internal
         // creditsExhausted flag still triggers the silent stop after a win.
-        val label = when (ai.mode) { "server" -> "SERVER"; else -> "AI" }
-        val model = ai.model?.let { " · ${it.substringAfterLast('/')}" } ?: ""
-        val reasoning = "${label}$model · ${ai.reasoning}".take(180)
+        val label = when (ai.mode) { "server" -> "Random Engine"; else -> "Connected Gemini AI" }
+        val reasoning = "${label} · ${ai.reasoning}".take(180)
         return WinGoLogic.Signal(
             pick = ai.pick,
             category = "SIZE",
@@ -324,7 +342,7 @@ class WinGoFragment : Fragment() {
             pick = pick,
             category = "SIZE",
             confidence = "MEDIUM",
-            reasoning = "SERVER · Random signal।",
+            reasoning = "Random Engine · Local random pick।",
         )
     }
 
