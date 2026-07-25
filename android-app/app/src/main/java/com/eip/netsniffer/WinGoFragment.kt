@@ -138,6 +138,7 @@ class WinGoFragment : Fragment() {
                 else -> 0xFF64748B.toInt()
             }
         )
+    }
 
     private fun attachAiSignalListener() {
         val bnd = _b ?: return
