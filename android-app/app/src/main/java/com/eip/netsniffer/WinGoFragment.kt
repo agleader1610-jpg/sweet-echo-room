@@ -252,20 +252,23 @@ class WinGoFragment : Fragment() {
 
         if (signalsStopped) return
 
-        // 3) Lock one signal per target period. AI signal comes from the shared
-        // /api/public/wingo-signal endpoint — one AI call per period across
-        // ALL devices (server-side cache), so extra credits are never burned.
+        val mode = currentSignalMode()
+        if (mode == "off") {
+            applySignalModeState()
+            return
+        }
+
+        // 3) Lock one signal per target period. Signal comes from the shared
+        // /api/public/wingo-signal endpoint keyed by (issue, mode) — one call
+        // per period across ALL devices in that mode, so no wasted credits.
         val runningId = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
         val targetIssue = when {
             runningId != null && runningId != newest.issue -> runningId
             else -> nextIssueOf(newest.issue)
         }
         if (targetIssue != armedIssue || armedSignal == null) {
-            // Prefer already-armed local log for this period, then AI shared
-            // cache; otherwise trigger ONE async fetch and let the callback
-            // arm + render when the AI signal arrives.
             val existing = readPendingLogSignal(targetIssue)
-            val aiCached = WinGoAiClient.cachedFor(targetIssue)
+            val aiCached = WinGoAiClient.cachedFor(targetIssue, mode)
             val sig = existing ?: aiCached?.let(::signalFromAi)
             if (sig != null) {
                 armedIssue = targetIssue
@@ -274,7 +277,7 @@ class WinGoFragment : Fragment() {
                 renderLog()
                 if (aiCached?.creditsExhausted == true) creditsExhaustedPending = true
             } else {
-                requestAiSignal(targetIssue, list)
+                requestAiSignal(targetIssue, list, mode)
                 return
             }
         }
@@ -291,9 +294,12 @@ class WinGoFragment : Fragment() {
     private var creditsExhaustedPending = false
 
     private fun signalFromAi(ai: WinGoAiClient.AiSignal): WinGoLogic.Signal {
-        val prefix = if (ai.source == "ai") "AI" else "AI-off"
+        // Never leak "AI credit shesh" state into the user-visible reasoning.
+        // Show the signal exactly as if everything is normal — the internal
+        // creditsExhausted flag still triggers the silent stop after a win.
+        val label = when (ai.mode) { "server" -> "SERVER"; else -> "AI" }
         val model = ai.model?.let { " · ${it.substringAfterLast('/')}" } ?: ""
-        val reasoning = "${prefix}$model · ${ai.reasoning}".take(180)
+        val reasoning = "${label}$model · ${ai.reasoning}".take(180)
         return WinGoLogic.Signal(
             pick = ai.pick,
             category = "SIZE",
@@ -302,13 +308,13 @@ class WinGoFragment : Fragment() {
         )
     }
 
-    private fun requestAiSignal(targetIssue: String, history: List<WinGoRound>) {
+    private fun requestAiSignal(targetIssue: String, history: List<WinGoRound>, mode: String) {
         val deviceId = prefs.getString("device_id", "") ?: ""
         val gameCode = WinGoStore.activeGameCode.value ?: "WinGo_30S"
-        WinGoAiClient.fetchSignal(deviceId, gameCode, targetIssue, history) { ai ->
-            val bnd = _b ?: return@fetchSignal
+        WinGoAiClient.fetchSignal(deviceId, gameCode, targetIssue, mode, history) { ai ->
             if (ai == null) return@fetchSignal
             if (signalsStopped) return@fetchSignal
+            if (currentSignalMode() != mode) return@fetchSignal
             // Period may have advanced while we waited.
             val newestNow = WinGoStore.history.value?.firstOrNull() ?: return@fetchSignal
             val runningNow = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
@@ -326,14 +332,12 @@ class WinGoFragment : Fragment() {
             WinGoStore.currentTargetIssue.postValue(targetIssue)
             renderSignal(sig, targetIssue)
             AutoBetEngine.onSignal(targetIssue, sig)
-            if (ai.creditsExhausted) {
-                creditsExhaustedPending = true
-                bnd.predReasoning.text =
-                    "⚠ System temporarily unstable — win আসলে system off হবে। Owner-কে inbox করুন।"
-
-            }
+            // Silent: mark exhausted internally, but DO NOT change the visible
+            // signal card. User only sees the stop message after a win.
+            if (ai.creditsExhausted) creditsExhaustedPending = true
         }
     }
+
 
     private fun stopSignalsCreditExhausted() {
         signalsStopped = true
