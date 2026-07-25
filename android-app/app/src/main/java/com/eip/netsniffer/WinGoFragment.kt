@@ -110,6 +110,76 @@ class WinGoFragment : Fragment() {
             if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
 
+        // Signal source: AI or Server (random). Mutually exclusive.
+        val mode = prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
+        b.aiSignalSwitch.isChecked = mode == "ai"
+        b.serverSignalSwitch.isChecked = mode == "server"
+        applySignalModeState()
+        b.aiSignalSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                b.serverSignalSwitch.setOnCheckedChangeListener(null)
+                b.serverSignalSwitch.isChecked = false
+                b.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
+                prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
+            } else if (!b.serverSignalSwitch.isChecked) {
+                prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+            }
+            resetArmedSignalForModeChange()
+        }
+        b.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
+    }
+
+    private val serverSwitchListener = androidx.appcompat.widget.SwitchCompat.OnCheckedChangeListener { _, checked ->
+        val bnd = _b ?: return@OnCheckedChangeListener
+        if (checked) {
+            bnd.aiSignalSwitch.setOnCheckedChangeListener(null)
+            bnd.aiSignalSwitch.isChecked = false
+            // Re-attach the AI listener (re-declared inline to avoid cross-ref)
+            bnd.aiSignalSwitch.setOnCheckedChangeListener { _, aiOn ->
+                if (aiOn) {
+                    bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
+                    bnd.serverSignalSwitch.isChecked = false
+                    bnd.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
+                    prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
+                } else if (!bnd.serverSignalSwitch.isChecked) {
+                    prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+                }
+                resetArmedSignalForModeChange()
+            }
+            prefs.edit().putString(PREF_SIGNAL_MODE, "server").apply()
+        } else if (!bnd.aiSignalSwitch.isChecked) {
+            prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+        }
+        resetArmedSignalForModeChange()
+    }
+
+    private fun currentSignalMode(): String =
+        prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
+
+    private fun resetArmedSignalForModeChange() {
+        armedIssue = null
+        armedSignal = null
+        signalsStopped = false
+        creditsExhaustedPending = false
+        applySignalModeState()
+        // Force a fresh evaluation on next history tick.
+        WinGoStore.history.value?.let { onHistory(it) }
+    }
+
+    private fun applySignalModeState() {
+        val bnd = _b ?: return
+        val mode = currentSignalMode()
+        if (mode == "off") {
+            bnd.signalCard.visibility = View.VISIBLE
+            bnd.predPick.text = "OFF"
+            bnd.predPick.setBackgroundResource(R.drawable.hero_neutral_gradient)
+            bnd.predCategory.text = "SIGNAL OFF"
+            bnd.predConfidence.text = "—"
+            bnd.predConfidence.setTextColor(0xFF94A3B8.toInt())
+            bnd.predReasoning.text = "Signal source (AI বা Server) থেকে একটি on করুন।"
+            WinGoStore.currentSignal.postValue(null)
+            WinGoStore.currentTargetIssue.postValue(null)
+        }
     }
 
     companion object {
@@ -118,8 +188,10 @@ class WinGoFragment : Fragment() {
         private const val PREF_LOSSES = "wingo_losses"
         private const val PREF_LOG = "wingo_signal_log"
         private const val PREF_RESOLVED = "wingo_resolved_issues"
+        private const val PREF_SIGNAL_MODE = "wingo_signal_mode"  // "ai" | "server" | "off"
         private const val LOG_CAP = 60
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
