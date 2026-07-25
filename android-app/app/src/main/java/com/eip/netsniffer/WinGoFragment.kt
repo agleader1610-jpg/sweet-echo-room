@@ -170,7 +170,6 @@ class WinGoFragment : Fragment() {
     }
 
 
-
     private fun currentSignalMode(): String =
         prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
 
