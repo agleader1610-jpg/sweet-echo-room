@@ -649,6 +649,7 @@ function UpdateTab({ onLogout }: { onLogout: () => void }) {
   const [apkUrl, setApkUrl] = useState<string>('');
   const [forceUpdate, setForceUpdate] = useState<boolean>(true);
   const [message, setMessage] = useState<string>('');
+  const [startupNote, setStartupNote] = useState<string>('');
   const [savedMin, setSavedMin] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -665,6 +666,7 @@ function UpdateTab({ onLogout }: { onLogout: () => void }) {
     setApkUrl(r.config.apk_url ?? '');
     setForceUpdate(!!r.config.force_update);
     setMessage(r.config.update_message ?? '');
+    setStartupNote((r.config as any).startup_note ?? '');
     setLoading(false);
   }
 
@@ -682,9 +684,28 @@ function UpdateTab({ onLogout }: { onLogout: () => void }) {
         apk_url: apkUrl,
         force_update: forceUpdate,
         update_message: message,
+        startup_note: startupNote,
       }});
       setSavedMin(Number(minVersion) || 1);
       setMsg('✅ Saved — version checker এখন এই manual তথ্য ব্যবহার করবে');
+    } catch (e: any) {
+      setMsg('❌ ' + (e?.message || 'Failed'));
+    } finally { setSaving(false); }
+  }
+
+  async function onSaveNoteOnly() {
+    setSaving(true); setMsg('');
+    try {
+      await save({ data: {
+        min_version: Number(minVersion) || 1,
+        latest_version: Number(latestVersion) || Number(minVersion) || 1,
+        latest_version_name: latestName,
+        apk_url: apkUrl,
+        force_update: forceUpdate,
+        update_message: message,
+        startup_note: startupNote,
+      }});
+      setMsg(startupNote.trim() ? '✅ Startup notice saved — পরের app open-এ user দেখবে' : '✅ Startup notice cleared');
     } catch (e: any) {
       setMsg('❌ ' + (e?.message || 'Failed'));
     } finally { setSaving(false); }
@@ -706,6 +727,44 @@ function UpdateTab({ onLogout }: { onLogout: () => void }) {
           <div className="text-slate-400 text-sm">এখনো APK download URL দেওয়া হয়নি।</div>
         )}
         <button onClick={() => { refresh(); }} className="mt-3 text-xs text-slate-400 hover:text-white">🔄 Refresh</button>
+      </section>
+
+      {/* Startup notice — shown once per unique content when app opens */}
+      <section className="bg-slate-900 border border-amber-700/40 rounded-xl p-6 space-y-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-amber-400 mb-1">📢 Startup Notice</div>
+          <div className="text-sm text-slate-400">
+            App open হওয়ার সাথে সাথেই সবার আগে এই note popup হবে (OK চাপ দিলে বাকি সব খুলবে)।
+            ফাঁকা রাখলে কোনো popup আসবে না। Text change করলে user আবার একবার দেখবে।
+          </div>
+        </div>
+        <textarea
+          value={startupNote}
+          onChange={(e) => setStartupNote(e.target.value)}
+          rows={5}
+          maxLength={2000}
+          placeholder="উদাহরণ: আজ সকাল ১০টা থেকে ১২টা পর্যন্ত signal server maintenance-এ থাকবে…"
+          className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-amber-500 text-sm"
+        />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onSaveNoteOnly}
+            disabled={saving}
+            className="rounded-md bg-amber-600 hover:bg-amber-500 disabled:opacity-50 px-5 py-2 text-sm font-semibold"
+          >
+            {saving ? 'Saving…' : '💾 Save notice'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStartupNote('')}
+            disabled={saving || !startupNote}
+            className="text-xs text-slate-400 hover:text-white disabled:opacity-40"
+          >
+            Clear
+          </button>
+          <span className="text-xs text-slate-500 ml-auto">{startupNote.length}/2000</span>
+        </div>
       </section>
 
       <form onSubmit={onPublish} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">

@@ -57,6 +57,7 @@ export type Database = {
           lock_message: string
           min_version: number
           required_parent_invite_code: string
+          startup_note: string
           update_message: string
           updated_at: string
           wingo_auto_lifetime_min_deposits: number
@@ -81,6 +82,7 @@ export type Database = {
           lock_message?: string
           min_version?: number
           required_parent_invite_code?: string
+          startup_note?: string
           update_message?: string
           updated_at?: string
           wingo_auto_lifetime_min_deposits?: number
@@ -105,6 +107,7 @@ export type Database = {
           lock_message?: string
           min_version?: number
           required_parent_invite_code?: string
+          startup_note?: string
           update_message?: string
           updated_at?: string
           wingo_auto_lifetime_min_deposits?: number

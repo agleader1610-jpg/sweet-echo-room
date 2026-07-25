@@ -53,7 +53,7 @@ export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
   const { data, error } = await supabaseAdmin
     .from('app_config')
-    .select('min_version,latest_version,latest_version_name,apk_url,force_update,update_message,updated_at')
+    .select('min_version,latest_version,latest_version_name,apk_url,force_update,update_message,startup_note,updated_at')
     .eq('id', 1)
     .maybeSingle();
   if (error) throw error;
@@ -66,6 +66,7 @@ export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async
       apk_url: '',
       force_update: true,
       update_message: '',
+      startup_note: '',
       updated_at: null,
     },
   };
@@ -80,6 +81,7 @@ export const publishUpdate = createServerFn({ method: 'POST' })
     apk_url: string;
     force_update: boolean;
     update_message: string;
+    startup_note?: string;
   }) => d)
   .handler(async ({ data }) => {
     await requireUnlocked();
@@ -93,6 +95,7 @@ export const publishUpdate = createServerFn({ method: 'POST' })
         apk_url: String(data.apk_url || '').trim(),
         force_update: data.force_update,
         update_message: data.update_message,
+        startup_note: String(data.startup_note ?? '').trim(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', 1);

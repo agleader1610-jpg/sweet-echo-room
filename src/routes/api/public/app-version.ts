@@ -26,7 +26,7 @@ export const Route = createFileRoute('/api/public/app-version')({
 
           const cfgRes = await supa
             .from('app_config')
-            .select('min_version,latest_version,latest_version_name,apk_url,update_message,force_update,updated_at')
+            .select('min_version,latest_version,latest_version_name,apk_url,update_message,force_update,startup_note,updated_at')
             .eq('id', 1)
             .maybeSingle();
 
@@ -40,6 +40,7 @@ export const Route = createFileRoute('/api/public/app-version')({
             latest_version: cfgRes.data.latest_version,
             latest_version_name: cfgRes.data.latest_version_name,
             apk_url: cfgRes.data.apk_url,
+            startup_note: cfgRes.data.startup_note ?? '',
             updated_at: cfgRes.data.updated_at,
           }, 200);
         } catch {
