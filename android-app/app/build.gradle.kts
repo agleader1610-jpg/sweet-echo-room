@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 129
-        versionName = "1.0.129-ui-polish-setup-autobet"
+        versionCode = 130
+        versionName = "1.0.130-wingo-build-scope-fix"
 
 
 
