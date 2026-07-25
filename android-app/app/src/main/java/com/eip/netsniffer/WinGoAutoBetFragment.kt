@@ -44,22 +44,19 @@ class WinGoAutoBetFragment : Fragment() {
         b.stepsInput.setText(cfg.steps.toString())
         b.multInput.setText(cfg.multiplier.toString())
         b.durationInput.setText(cfg.durationMinutes.toString())
-        val modeId = when (cfg.mode) { "RANDOM" -> R.id.modeRandom; "PATTERN" -> R.id.modePattern; else -> R.id.modeApp }
-        b.autoBetModeGroup.check(modeId)
         b.skipLowConfBox.isChecked = cfg.skipLowConfidence
         b.useApiBalanceSwitch.isChecked = cfg.useApiBalance
         b.balanceInput.isEnabled = !cfg.useApiBalance
 
         val push = {
-            val mode = when (b.autoBetModeGroup.checkedRadioButtonId) {
-                R.id.modeRandom -> "RANDOM"; R.id.modePattern -> "PATTERN"; else -> "APP"
-            }
             AutoBetEngine.updateConfig(AutoBetEngine.Config(
                 enabled = b.autoBetSwitch.isChecked,
                 steps = (b.stepsInput.text.toString().toIntOrNull() ?: 7).coerceIn(1, 15),
                 balance = (b.balanceInput.text.toString().toIntOrNull() ?: 100).coerceAtLeast(1),
                 multiplier = (b.multInput.text.toString().toIntOrNull() ?: 1).coerceAtLeast(1),
-                mode = mode,
+                // Signal source is now always driven by WinGoFragment's active mode;
+                // engine follows sig.pick regardless of this legacy field.
+                mode = "APP",
                 durationMinutes = (b.durationInput.text.toString().toIntOrNull() ?: 10).coerceIn(1, 1440),
                 skipLowConfidence = b.skipLowConfBox.isChecked,
                 useApiBalance = b.useApiBalanceSwitch.isChecked
@@ -67,7 +64,6 @@ class WinGoAutoBetFragment : Fragment() {
         }
 
         b.autoBetSwitch.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
-        b.autoBetModeGroup.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
         b.skipLowConfBox.setOnCheckedChangeListener { _, _ -> if (!syncingUi) push() }
         b.useApiBalanceSwitch.setOnCheckedChangeListener { _, checked ->
             b.balanceInput.isEnabled = !checked
@@ -95,6 +91,10 @@ class WinGoAutoBetFragment : Fragment() {
             }
             renderTimer(AutoBetEngine.state.value)
         }
+
+        // Live signal-source label — mirrors whatever mode is on in WinGo Tab.
+        WinGoStore.signalMode.observe(viewLifecycleOwner) { renderSignalSource(it) }
+        renderSignalSource(WinGoStore.signalMode.value)
 
         AutoBetEngine.state.observe(viewLifecycleOwner) { st ->
             st ?: return@observe
@@ -134,6 +134,18 @@ class WinGoAutoBetFragment : Fragment() {
                 (if (st.ladder.isNotEmpty()) "  ·  ladder ${st.ladder.joinToString("·")}" else "")
         }
         ui.post(timerTick)
+    }
+
+    private fun renderSignalSource(mode: String?) {
+        val bnd = _b ?: return
+        val (text, color) = when (mode) {
+            "ai" -> "🤖 Connected Gemini AI থেকে Bet হবে" to 0xFF22D3EE.toInt()
+            "server" -> "🎲 Random Engine থেকে Bet হবে" to 0xFFF59E0B.toInt()
+            "jack" -> "🧩 Your Jack থেকে Bet হবে" to 0xFF10B981.toInt()
+            else -> "⚠️ WinGo Tab থেকে Signal Mode চালু করুন" to 0xFFF59E0B.toInt()
+        }
+        bnd.abSignalSourceText.text = text
+        bnd.abSignalSourceText.setTextColor(color)
     }
 
     private fun renderTimer(st: AutoBetEngine.State?) {

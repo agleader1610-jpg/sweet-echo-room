@@ -49,6 +49,8 @@ object WinGoStore {
     val lastResult = MutableLiveData<LastResult?>(null)
     val score = MutableLiveData(0 to 0) // wins to losses
     val activeGameCode = MutableLiveData(gameCode)
+    /** Active WinGo signal mode, mirrored from WinGoFragment prefs. "off" | "ai" | "server" | "jack". */
+    val signalMode = MutableLiveData("off")
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(6, TimeUnit.SECONDS)

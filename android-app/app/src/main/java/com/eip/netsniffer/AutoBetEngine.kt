@@ -277,22 +277,17 @@ object AutoBetEngine {
         if (slot.inflight) return              // request in progress
         if (slot.tries >= MAX_SUBMIT_TRIES) return  // bounded retry only when API confirms no order
 
-        // ── Pick based on signal mode ────────────────────────────
-        val pick: String = when (cfg.mode) {
-            "RANDOM"  -> if (Math.random() < 0.5) "BIG" else "SMALL"
-            "PATTERN" -> if (st.lastResult == "BIG") "SMALL" else "BIG"   // mean-reversion
-            else      -> {
-                if (cfg.skipLowConfidence && sig.confidence == "LOW") {
-                    slot.success = true       // treat as "handled" so we don't retry
-                    pushState(st.copy(
-                        nextBetIssue = targetIssue, nextBetPick = "SKIP",
-                        nextBetAmount = 0, lastNote = "SKIP · low confidence",
-                    ))
-                    return
-                }
-                sig.pick
-            }
+        // ── Pick: always follow WinGo signal source (AI / Server / Your Jack).
+        //    Mode field kept for backward-compat but no longer branches pick logic.
+        if (cfg.skipLowConfidence && sig.confidence == "LOW") {
+            slot.success = true       // treat as "handled" so we don't retry
+            pushState(st.copy(
+                nextBetIssue = targetIssue, nextBetPick = "SKIP",
+                nextBetAmount = 0, lastNote = "SKIP · low confidence",
+            ))
+            return
         }
+        val pick: String = sig.pick
 
         // ── Build ladder if needed (step 1 only).
         //    Config toggle decides balance source:
@@ -586,21 +581,15 @@ object AutoBetEngine {
         }
 
         // 3) API-driven auto-fire.
-        // In APP mode, only bet with the exact signal locked by WinGoFragment for
-        // this running period. Never synthesize a fallback signal here; otherwise
-        // Auto-Bet can place an old/local pick while the WinGo AI card later shows
-        // a different AI pick for the same period.
+        // Always require the exact locked WinGo signal for the running period.
+        // Never synthesize a fallback — otherwise Auto-Bet can place a pick that
+        // differs from what the WinGo card shows for the same period.
         val current = snap.currentIssue ?: return
         val latest = state.value ?: return
         if (cfg.enabled && latest.stepPendingIssue == null && !latest.stopAfterClear) {
             val slot = issueSlots[current]
             if (slot == null || (!slot.success && !slot.inflight && slot.tries < MAX_SUBMIT_TRIES)) {
-                val sig = if (cfg.mode == "APP") {
-                    WinGoStore.signalForIssue(current)
-                } else {
-                    WinGoLogic.predict(WinGoStore.history.value ?: emptyList())
-                        ?: WinGoLogic.Signal("BIG", "SIZE", "MEDIUM", "AutoBet internal signal")
-                }
+                val sig = WinGoStore.signalForIssue(current)
                 if (sig != null) {
                     onSignal(current, sig)
                 } else {

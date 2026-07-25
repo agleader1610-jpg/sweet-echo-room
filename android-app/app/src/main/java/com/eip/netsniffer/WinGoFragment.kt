@@ -111,14 +111,17 @@ class WinGoFragment : Fragment() {
             if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
 
-        // Signal source: AI or Server (random). Mutually exclusive. Default = OFF.
+        // Signal source: AI, Server (random), or Your Jack. Mutually exclusive. Default = OFF.
         val mode = prefs.getString(PREF_SIGNAL_MODE, "off") ?: "off"
         b.aiSignalSwitch.isChecked = mode == "ai"
         b.serverSignalSwitch.isChecked = mode == "server"
+        b.jackSignalSwitch.isChecked = mode == "jack"
+        WinGoStore.signalMode.postValue(mode)
         applySignalModeState()
         updateSignalSourceUi()
         attachAiSignalListener()
         attachServerSignalListener()
+        attachJackSignalListener()
     }
 
     private fun updateSignalSourceUi() {
@@ -126,15 +129,18 @@ class WinGoFragment : Fragment() {
         val mode = currentSignalMode()
         bnd.aiSignalRow.isActivated = mode == "ai"
         bnd.serverSignalRow.isActivated = mode == "server"
+        bnd.jackSignalRow.isActivated = mode == "jack"
         bnd.signalSourceStatus.text = when (mode) {
             "ai" -> "● GEMINI LIVE"
             "server" -> "● RNG LIVE"
+            "jack" -> "● JACK LIVE"
             else -> "○ OFF"
         }
         bnd.signalSourceStatus.setTextColor(
             when (mode) {
                 "ai" -> 0xFF22D3EE.toInt()
                 "server" -> 0xFFF59E0B.toInt()
+                "jack" -> 0xFF10B981.toInt()
                 else -> 0xFF64748B.toInt()
             }
         )
@@ -145,11 +151,14 @@ class WinGoFragment : Fragment() {
         bnd.aiSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
             if (checked) {
                 bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
+                bnd.jackSignalSwitch.setOnCheckedChangeListener(null)
                 bnd.serverSignalSwitch.isChecked = false
+                bnd.jackSignalSwitch.isChecked = false
                 attachServerSignalListener()
-                prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
-            } else if (!bnd.serverSignalSwitch.isChecked) {
-                prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+                attachJackSignalListener()
+                setSignalMode("ai")
+            } else if (!bnd.serverSignalSwitch.isChecked && !bnd.jackSignalSwitch.isChecked) {
+                setSignalMode("off")
             }
             resetArmedSignalForModeChange()
         }
@@ -160,16 +169,41 @@ class WinGoFragment : Fragment() {
         bnd.serverSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
             if (checked) {
                 bnd.aiSignalSwitch.setOnCheckedChangeListener(null)
+                bnd.jackSignalSwitch.setOnCheckedChangeListener(null)
                 bnd.aiSignalSwitch.isChecked = false
+                bnd.jackSignalSwitch.isChecked = false
                 attachAiSignalListener()
-                prefs.edit().putString(PREF_SIGNAL_MODE, "server").apply()
-            } else if (!bnd.aiSignalSwitch.isChecked) {
-                prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+                attachJackSignalListener()
+                setSignalMode("server")
+            } else if (!bnd.aiSignalSwitch.isChecked && !bnd.jackSignalSwitch.isChecked) {
+                setSignalMode("off")
             }
             resetArmedSignalForModeChange()
         }
     }
 
+    private fun attachJackSignalListener() {
+        val bnd = _b ?: return
+        bnd.jackSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
+            if (checked) {
+                bnd.aiSignalSwitch.setOnCheckedChangeListener(null)
+                bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
+                bnd.aiSignalSwitch.isChecked = false
+                bnd.serverSignalSwitch.isChecked = false
+                attachAiSignalListener()
+                attachServerSignalListener()
+                setSignalMode("jack")
+            } else if (!bnd.aiSignalSwitch.isChecked && !bnd.serverSignalSwitch.isChecked) {
+                setSignalMode("off")
+            }
+            resetArmedSignalForModeChange()
+        }
+    }
+
+    private fun setSignalMode(mode: String) {
+        prefs.edit().putString(PREF_SIGNAL_MODE, mode).apply()
+        WinGoStore.signalMode.postValue(mode)
+    }
 
     private fun currentSignalMode(): String =
         prefs.getString(PREF_SIGNAL_MODE, "off") ?: "off"
@@ -195,7 +229,7 @@ class WinGoFragment : Fragment() {
             bnd.predCategory.text = "SIGNAL OFF"
             bnd.predConfidence.text = "—"
             bnd.predConfidence.setTextColor(0xFF94A3B8.toInt())
-            bnd.predReasoning.text = "Signal source (AI বা Server) থেকে একটি on করুন।"
+            bnd.predReasoning.text = "Signal source (AI / Server / Your Jack) থেকে একটি on করুন।"
             WinGoStore.clearCurrentSignal()
         }
     }
@@ -206,7 +240,7 @@ class WinGoFragment : Fragment() {
         private const val PREF_LOSSES = "wingo_losses"
         private const val PREF_LOG = "wingo_signal_log"
         private const val PREF_RESOLVED = "wingo_resolved_issues"
-        private const val PREF_SIGNAL_MODE = "wingo_signal_mode"  // "ai" | "server" | "off"
+        private const val PREF_SIGNAL_MODE = "wingo_signal_mode"  // "ai" | "server" | "jack" | "off"
         private const val LOG_CAP = 60
     }
 
@@ -279,6 +313,7 @@ class WinGoFragment : Fragment() {
         // 3) Lock one signal per target period.
         //    - AI mode: shared across devices via /api/public/wingo-signal (credit-safe).
         //    - SERVER mode: pure local random per device, no network call.
+        //    - JACK mode: pure local math from last 10 completed history.
         val runningId = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
         val targetIssue = when {
             runningId != null && runningId != newest.issue -> runningId
@@ -293,6 +328,24 @@ class WinGoFragment : Fragment() {
             } else if (mode == "server") {
                 // Local random — different for every device, no server round-trip.
                 val sig = localRandomSignal()
+                armedIssue = targetIssue
+                armedSignal = sig
+                appendPendingLog(targetIssue, sig, mode)
+                renderLog()
+            } else if (mode == "jack") {
+                // Pure local math: needs at least 10 completed periods.
+                val sig = computeJackSignal(list)
+                if (sig == null) {
+                    val bnd = _b ?: return
+                    bnd.signalCard.visibility = View.VISIBLE
+                    bnd.predPick.text = "WAIT"
+                    bnd.predPick.setBackgroundResource(R.drawable.hero_neutral_gradient)
+                    bnd.predCategory.text = "JACK · কমপক্ষে ১০টি history দরকার"
+                    bnd.predConfidence.text = "—"
+                    bnd.predForIssue.text = "PERIOD  #${targetIssue.takeLast(6)}"
+                    bnd.predReasoning.text = "Your Jack চালু আছে · আরও ${(10 - list.size).coerceAtLeast(1)}টি history জমা হলে signal দেখানো হবে।"
+                    return
+                }
                 armedIssue = targetIssue
                 armedSignal = sig
                 appendPendingLog(targetIssue, sig, mode)
@@ -344,6 +397,32 @@ class WinGoFragment : Fragment() {
             category = "SIZE",
             confidence = "MEDIUM",
             reasoning = "Random Engine · Local random pick।",
+        )
+    }
+
+    /**
+     * Your Jack — pure local math from last 10 completed periods.
+     *  Y = list[0].number + list[1].number   (শেষ ২টার যোগফল)
+     *  X = list[9].number                    (১০ নম্বর position)
+     *  If Y > 9  → signal_number = X
+     *  Else      → signal_number = |Y - X|
+     *  Pick = signal_number >= 5 ? BIG : SMALL
+     */
+    private fun computeJackSignal(list: List<WinGoRound>): WinGoLogic.Signal? {
+        if (list.size < 10) return null
+        val a = list[0].number
+        val b0 = list[1].number
+        val x = list[9].number
+        val y = a + b0
+        val signalNum = if (y > 9) x else kotlin.math.abs(y - x)
+        val pick = if (signalNum >= 5) "BIG" else "SMALL"
+        val branch = if (y > 9) "Y>9 → X" else "|Y-X|"
+        val reasoning = "Your Jack · last2=$a+$b0=$y · pos10=$x · $branch = $signalNum → $pick"
+        return WinGoLogic.Signal(
+            pick = pick,
+            category = "SIZE",
+            confidence = "MEDIUM",
+            reasoning = reasoning,
         )
     }
 
