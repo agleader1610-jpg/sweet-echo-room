@@ -326,9 +326,8 @@ class WinGoFragment : Fragment() {
         // Never leak "AI credit shesh" state into the user-visible reasoning.
         // Show the signal exactly as if everything is normal — the internal
         // creditsExhausted flag still triggers the silent stop after a win.
-        val label = when (ai.mode) { "server" -> "SERVER"; else -> "AI" }
-        val model = ai.model?.let { " · ${it.substringAfterLast('/')}" } ?: ""
-        val reasoning = "${label}$model · ${ai.reasoning}".take(180)
+        val label = when (ai.mode) { "server" -> "Random Engine"; else -> "Connected Gemini AI" }
+        val reasoning = "${label} · ${ai.reasoning}".take(180)
         return WinGoLogic.Signal(
             pick = ai.pick,
             category = "SIZE",
