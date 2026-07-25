@@ -121,21 +121,30 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="SIGNAL MODE"
+                    android:text="SIGNAL SOURCE"
                     android:textColor="#94A3B8"
                     android:textSize="9sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.24"/>
-                <RadioGroup
-                    android:id="@+id/autoBetModeGroup"
+                <TextView
+                    android:id="@+id/abSignalSourceText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:orientation="horizontal">
-                    <RadioButton android:id="@+id/modeApp"     android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="AI (In-App)" android:textColor="#E2E8F0" android:textSize="11sp"/>
-                    <RadioButton android:id="@+id/modeRandom"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Random"     android:textColor="#E2E8F0" android:textSize="11sp"/>
-                    <RadioButton android:id="@+id/modePattern" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Pattern"    android:textColor="#E2E8F0" android:textSize="11sp"/>
-                </RadioGroup>
+                    android:padding="11dp"
+                    android:paddingStart="14dp"
+                    android:background="@drawable/terminal_ticker_bg"
+                    android:text="⚠️ WinGo Tab থেকে Signal Mode চালু করুন"
+                    android:textColor="#F59E0B"
+                    android:textSize="11sp"
+                    android:fontFamily="@font/roboto_mono"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="WinGo Tab-এ যে Signal on থাকবে, Auto-Bet সেই signal অনুযায়ীই bet দেবে।"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
