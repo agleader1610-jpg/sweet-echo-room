@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 128
-        versionName = "1.0.128-default-off-ai-feedback"
+        versionCode = 129
+        versionName = "1.0.129-ui-polish-setup-autobet"
 
 
 
