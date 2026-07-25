@@ -1,13 +1,24 @@
 package com.eip.netsniffer
 
+import android.app.AlertDialog
+import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Html
+import android.text.method.LinkMovementMethod
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.eip.netsniffer.databinding.FragmentWingoAutobetBinding
+
 
 /**
  * Dedicated tab for the WinGo Auto-Bet control panel.
