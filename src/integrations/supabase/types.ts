@@ -595,6 +595,7 @@ export type Database = {
           credits_exhausted: boolean
           game_code: string
           issue_id: string
+          mode: string
           pick: string
           reasoning: string | null
           source: string
@@ -607,6 +608,7 @@ export type Database = {
           credits_exhausted?: boolean
           game_code?: string
           issue_id: string
+          mode?: string
           pick: string
           reasoning?: string | null
           source?: string
@@ -619,6 +621,7 @@ export type Database = {
           credits_exhausted?: boolean
           game_code?: string
           issue_id?: string
+          mode?: string
           pick?: string
           reasoning?: string | null
           source?: string

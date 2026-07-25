@@ -27,49 +27,57 @@ object WinGoAiClient {
     private val exec = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
-    /** Local per-issue cache so this device never re-hits the server for the same period. */
+    /** Local per-(issue,mode) cache so this device never re-hits the server for the same period. */
     private val inflight = HashSet<String>()
     private val cache = HashMap<String, AiSignal>()
 
     data class AiSignal(
         val issueId: String,
+        val mode: String,           // "ai" | "server"
         val pick: String,           // "BIG" | "SMALL"
         val confidence: String,     // "LOW" | "MEDIUM" | "HIGH"
         val reasoning: String,
-        val source: String,         // "ai" | "random"
+        val source: String,         // "ai" | "random" | "server"
         val model: String?,
-        val cached: Boolean,        // was returned from server-side cache
+        val cached: Boolean,
         val aiError: String?,
         val creditsExhausted: Boolean,
     )
 
-    fun cachedFor(issueId: String): AiSignal? = synchronized(cache) { cache[issueId] }
+    private fun key(issueId: String, mode: String) = "$mode|$issueId"
+
+    fun cachedFor(issueId: String, mode: String): AiSignal? =
+        synchronized(cache) { cache[key(issueId, mode)] }
 
     fun fetchSignal(
         deviceId: String,
         gameCode: String,
         issueId: String,
+        mode: String,                 // "ai" | "server"
         history: List<WinGoRound>,
         callback: (AiSignal?) -> Unit,
     ) {
-        val cached = cachedFor(issueId)
+        val m = if (mode.equals("server", true)) "server" else "ai"
+        val k = key(issueId, m)
+        val cached = cachedFor(issueId, m)
         if (cached != null) { callback(cached); return }
-        if (history.size < 3) { callback(null); return }
+        // AI mode needs history; server (random) mode does not.
+        if (m == "ai" && history.size < 3) { callback(null); return }
         synchronized(inflight) {
-            if (issueId in inflight) { callback(null); return }
-            inflight.add(issueId)
+            if (k in inflight) { callback(null); return }
+            inflight.add(k)
         }
         exec.execute {
-            val result = try { doFetch(deviceId, gameCode, issueId, history) } catch (t: Throwable) {
+            val result = try { doFetch(deviceId, gameCode, issueId, m, history) } catch (t: Throwable) {
                 Log.w(TAG, "fetch failed: ${t.message}"); null
             }
-            if (result != null) synchronized(cache) { cache[issueId] = result }
-            synchronized(inflight) { inflight.remove(issueId) }
+            if (result != null) synchronized(cache) { cache[k] = result }
+            synchronized(inflight) { inflight.remove(k) }
             main.post { callback(result) }
         }
     }
 
-    private fun doFetch(deviceId: String, gameCode: String, issueId: String, history: List<WinGoRound>): AiSignal? {
+    private fun doFetch(deviceId: String, gameCode: String, issueId: String, mode: String, history: List<WinGoRound>): AiSignal? {
         val hist = JSONArray()
         history.take(10).forEach { r ->
             hist.put(JSONObject().apply {
@@ -81,6 +89,7 @@ object WinGoAiClient {
             put("device_id", deviceId)
             put("game_code", gameCode)
             put("issue_id", issueId)
+            put("mode", mode)
             put("history", hist)
         }
         val text = postJson(ENDPOINT, body.toString()) ?: return null
@@ -90,6 +99,7 @@ object WinGoAiClient {
         if (pick != "BIG" && pick != "SMALL") return null
         return AiSignal(
             issueId = obj.optString("issue_id", issueId),
+            mode = obj.optString("mode", mode),
             pick = pick,
             confidence = obj.optString("confidence", "MEDIUM").uppercase(),
             reasoning = obj.optString("reasoning", ""),
@@ -100,6 +110,7 @@ object WinGoAiClient {
             creditsExhausted = obj.optBoolean("credits_exhausted", false),
         )
     }
+
 
     private fun postJson(endpoint: String, json: String): String? {
         val conn = URL(endpoint).openConnection() as HttpURLConnection
