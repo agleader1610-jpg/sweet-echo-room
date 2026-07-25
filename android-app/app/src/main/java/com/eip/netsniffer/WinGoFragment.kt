@@ -12,6 +12,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
@@ -129,29 +130,32 @@ class WinGoFragment : Fragment() {
         b.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
     }
 
-    private val serverSwitchListener = androidx.appcompat.widget.SwitchCompat.OnCheckedChangeListener { _, checked ->
-        val bnd = _b ?: return@OnCheckedChangeListener
-        if (checked) {
-            bnd.aiSignalSwitch.setOnCheckedChangeListener(null)
-            bnd.aiSignalSwitch.isChecked = false
-            // Re-attach the AI listener (re-declared inline to avoid cross-ref)
-            bnd.aiSignalSwitch.setOnCheckedChangeListener { _, aiOn ->
-                if (aiOn) {
-                    bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
-                    bnd.serverSignalSwitch.isChecked = false
-                    bnd.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
-                    prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
-                } else if (!bnd.serverSignalSwitch.isChecked) {
-                    prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+    private val serverSwitchListener: CompoundButton.OnCheckedChangeListener =
+        CompoundButton.OnCheckedChangeListener { _, checked ->
+            val bnd = _b ?: return@OnCheckedChangeListener
+            if (checked) {
+                bnd.aiSignalSwitch.setOnCheckedChangeListener(null)
+                bnd.aiSignalSwitch.isChecked = false
+                // Re-attach the AI listener (re-declared inline to avoid cross-ref)
+                bnd.aiSignalSwitch.setOnCheckedChangeListener { _: CompoundButton, aiOn: Boolean ->
+                    if (aiOn) {
+                        bnd.serverSignalSwitch.setOnCheckedChangeListener(null)
+                        bnd.serverSignalSwitch.isChecked = false
+                        bnd.serverSignalSwitch.setOnCheckedChangeListener(serverSwitchListener)
+                        prefs.edit().putString(PREF_SIGNAL_MODE, "ai").apply()
+                    } else if (!bnd.serverSignalSwitch.isChecked) {
+                        prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+                    }
+                    resetArmedSignalForModeChange()
                 }
-                resetArmedSignalForModeChange()
+                prefs.edit().putString(PREF_SIGNAL_MODE, "server").apply()
+            } else if (!bnd.aiSignalSwitch.isChecked) {
+                prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
             }
-            prefs.edit().putString(PREF_SIGNAL_MODE, "server").apply()
-        } else if (!bnd.aiSignalSwitch.isChecked) {
-            prefs.edit().putString(PREF_SIGNAL_MODE, "off").apply()
+            resetArmedSignalForModeChange()
         }
-        resetArmedSignalForModeChange()
-    }
+
+
 
     private fun currentSignalMode(): String =
         prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
