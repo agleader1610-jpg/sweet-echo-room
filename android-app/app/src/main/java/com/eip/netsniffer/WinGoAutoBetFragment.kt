@@ -46,6 +46,9 @@ class WinGoAutoBetFragment : Fragment() {
 
     override fun onViewCreated(view: View, s: Bundle?) {
         ReviewNagger.showWhenUnlocked(this, DepositGate.GAME_WINGO_AUTO)
+        observeUnlockForBriefing()
+
+
 
         AutoBetEngine.init(requireContext())
         val cfg = AutoBetEngine.config.value ?: AutoBetEngine.Config()
