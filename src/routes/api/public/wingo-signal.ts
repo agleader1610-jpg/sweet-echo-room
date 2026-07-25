@@ -81,7 +81,7 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
         } catch (e: any) {
           aiError = (e?.message ?? 'ai_failed').slice(0, 200);
           // 402 => credits exhausted; treat any AI failure as "no AI" -> random + stop banner.
-          creditsExhausted = /402|payment|credit|quota|insufficient/i.test(aiError);
+          creditsExhausted = /402|payment|credit|quota|insufficient/i.test(aiError ?? '');
           // If AI didn't respond, we still MUST commit ONE shared pick for this
           // period so all devices agree. Random 50/50 BIG/SMALL.
           pick = Math.random() < 0.5 ? 'BIG' : 'SMALL';
