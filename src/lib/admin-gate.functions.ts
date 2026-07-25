@@ -53,7 +53,7 @@ export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
   const { data, error } = await supabaseAdmin
     .from('app_config')
-    .select('min_version,latest_version,latest_version_name,apk_url,force_update,update_message,updated_at')
+    .select('min_version,latest_version,latest_version_name,apk_url,force_update,update_message,startup_note,updated_at')
     .eq('id', 1)
     .maybeSingle();
   if (error) throw error;
@@ -66,6 +66,7 @@ export const getAdminDashboard = createServerFn({ method: 'GET' }).handler(async
       apk_url: '',
       force_update: true,
       update_message: '',
+      startup_note: '',
       updated_at: null,
     },
   };
