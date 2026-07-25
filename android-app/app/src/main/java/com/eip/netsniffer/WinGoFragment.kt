@@ -176,8 +176,7 @@ class WinGoFragment : Fragment() {
             bnd.predConfidence.text = "—"
             bnd.predConfidence.setTextColor(0xFF94A3B8.toInt())
             bnd.predReasoning.text = "Signal source (AI বা Server) থেকে একটি on করুন।"
-            WinGoStore.currentSignal.postValue(null)
-            WinGoStore.currentTargetIssue.postValue(null)
+            WinGoStore.clearCurrentSignal()
         }
     }
 
@@ -266,7 +265,7 @@ class WinGoFragment : Fragment() {
             else -> nextIssueOf(newest.issue)
         }
         if (targetIssue != armedIssue || armedSignal == null) {
-            val existing = readPendingLogSignal(targetIssue)
+            val existing = readPendingLogSignal(targetIssue, mode)
             if (existing != null) {
                 armedIssue = targetIssue
                 armedSignal = existing
@@ -276,7 +275,7 @@ class WinGoFragment : Fragment() {
                 val sig = localRandomSignal()
                 armedIssue = targetIssue
                 armedSignal = sig
-                appendPendingLog(targetIssue, sig)
+                appendPendingLog(targetIssue, sig, mode)
                 renderLog()
             } else {
                 val aiCached = WinGoAiClient.cachedFor(targetIssue, mode)
@@ -284,7 +283,7 @@ class WinGoFragment : Fragment() {
                 if (sig != null) {
                     armedIssue = targetIssue
                     armedSignal = sig
-                    appendPendingLog(targetIssue, sig)
+                    appendPendingLog(targetIssue, sig, mode)
                     renderLog()
                     if (aiCached.creditsExhausted) creditsExhaustedPending = true
                 } else {
@@ -295,8 +294,7 @@ class WinGoFragment : Fragment() {
         }
 
         val lockedSignal = armedSignal ?: return
-        WinGoStore.currentSignal.postValue(lockedSignal)
-        WinGoStore.currentTargetIssue.postValue(targetIssue)
+        WinGoStore.setCurrentSignal(targetIssue, lockedSignal)
         renderSignal(lockedSignal, targetIssue)
         // Auto-bet: fire once per issue when signal is stable
         AutoBetEngine.onSignal(targetIssue, lockedSignal)
@@ -348,10 +346,9 @@ class WinGoFragment : Fragment() {
             val sig = signalFromAi(ai)
             armedIssue = targetIssue
             armedSignal = sig
-            appendPendingLog(targetIssue, sig)
+            appendPendingLog(targetIssue, sig, mode)
             renderLog()
-            WinGoStore.currentSignal.postValue(sig)
-            WinGoStore.currentTargetIssue.postValue(targetIssue)
+            WinGoStore.setCurrentSignal(targetIssue, sig)
             renderSignal(sig, targetIssue)
             AutoBetEngine.onSignal(targetIssue, sig)
             // Silent: mark exhausted internally, but DO NOT change the visible
@@ -374,8 +371,7 @@ class WinGoFragment : Fragment() {
         bnd.predReasoning.text =
             "🛑 System সাময়িকভাবে বন্ধ। কোনো সমস্যার কারণে signal off হয়েছে। Owner-কে inbox করুন।"
 
-        WinGoStore.currentSignal.postValue(null)
-        WinGoStore.currentTargetIssue.postValue(null)
+        WinGoStore.clearCurrentSignal()
         // Turn off auto-bet so no more random bets go through.
         val cfg = AutoBetEngine.config.value ?: AutoBetEngine.Config()
         if (cfg.enabled) AutoBetEngine.updateConfig(cfg.copy(enabled = false))
@@ -470,14 +466,16 @@ class WinGoFragment : Fragment() {
         prefs.edit().putString(PREF_LOG, arr.toString()).apply()
     }
 
-    private fun appendPendingLog(issue: String, sig: WinGoLogic.Signal) {
+    private fun appendPendingLog(issue: String, sig: WinGoLogic.Signal, mode: String) {
         val arr = readLog()
         // dedupe: if same issue already logged, keep that original locked signal
         for (i in 0 until arr.length()) {
-            if (arr.optJSONObject(i)?.optString("issue") == issue) return
+            val existing = arr.optJSONObject(i) ?: continue
+            if (existing.optString("issue") == issue && existing.optString("mode") == mode) return
         }
         val o = JSONObject().apply {
             put("issue", issue)
+            put("mode", mode)
             put("pick", sig.pick)
             put("category", sig.category)
             put("conf", sig.confidence)
@@ -494,11 +492,12 @@ class WinGoFragment : Fragment() {
         writeLog(next)
     }
 
-    private fun readPendingLogSignal(issue: String): WinGoLogic.Signal? {
+    private fun readPendingLogSignal(issue: String, mode: String): WinGoLogic.Signal? {
         val arr = readLog()
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
             if (o.optString("issue") != issue) continue
+            if (o.optString("mode") != mode) continue
             if (o.optString("status", "PENDING") != "PENDING") return null
             val pick = o.optString("pick").takeIf { it == "BIG" || it == "SMALL" } ?: return null
             return WinGoLogic.Signal(

@@ -585,24 +585,26 @@ object AutoBetEngine {
             }
         }
 
-        // 3) API-driven auto-fire. This keeps auto-bet alive even when the user
-        // is on DK Win, Auto-Bet, or another tab; WinGoFragment UI is no longer required.
+        // 3) API-driven auto-fire.
+        // In APP mode, only bet with the exact signal locked by WinGoFragment for
+        // this running period. Never synthesize a fallback signal here; otherwise
+        // Auto-Bet can place an old/local pick while the WinGo AI card later shows
+        // a different AI pick for the same period.
         val current = snap.currentIssue ?: return
         val latest = state.value ?: return
         if (cfg.enabled && latest.stepPendingIssue == null && !latest.stopAfterClear) {
             val slot = issueSlots[current]
             if (slot == null || (!slot.success && !slot.inflight && slot.tries < MAX_SUBMIT_TRIES)) {
-                val sig = if (WinGoStore.currentTargetIssue.value == current) {
-                    WinGoStore.currentSignal.value
+                val sig = if (cfg.mode == "APP") {
+                    WinGoStore.signalForIssue(current)
                 } else {
                     WinGoLogic.predict(WinGoStore.history.value ?: emptyList())
+                        ?: WinGoLogic.Signal("BIG", "SIZE", "MEDIUM", "AutoBet internal signal")
                 }
                 if (sig != null) {
-                    WinGoStore.currentTargetIssue.postValue(current)
-                    WinGoStore.currentSignal.postValue(sig)
                     onSignal(current, sig)
                 } else {
-                    note("Waiting for WinGo history before trading #${current.takeLast(6)}")
+                    note("Waiting for locked WinGo signal #${current.takeLast(6)}")
                 }
             }
         }
