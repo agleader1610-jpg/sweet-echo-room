@@ -257,7 +257,8 @@ class WinGoFragment : Fragment() {
             if (ai.creditsExhausted) {
                 creditsExhaustedPending = true
                 bnd.predReasoning.text =
-                    "⚠ AI credit শেষ — এই signal random। win হলে system off হবে। owner-কে inbox করুন।"
+                    "⚠ System temporarily unstable — win আসলে system off হবে। Owner-কে inbox করুন।"
+
             }
         }
     }
