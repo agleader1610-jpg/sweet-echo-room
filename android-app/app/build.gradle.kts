@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 122
-        versionName = "1.0.122-wingo-signal-source"
+        versionCode = 123
+        versionName = "1.0.123-server-local-random"
 
 
 

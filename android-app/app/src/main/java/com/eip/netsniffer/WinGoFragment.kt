@@ -258,9 +258,9 @@ class WinGoFragment : Fragment() {
             return
         }
 
-        // 3) Lock one signal per target period. Signal comes from the shared
-        // /api/public/wingo-signal endpoint keyed by (issue, mode) — one call
-        // per period across ALL devices in that mode, so no wasted credits.
+        // 3) Lock one signal per target period.
+        //    - AI mode: shared across devices via /api/public/wingo-signal (credit-safe).
+        //    - SERVER mode: pure local random per device, no network call.
         val runningId = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
         val targetIssue = when {
             runningId != null && runningId != newest.issue -> runningId
@@ -268,17 +268,30 @@ class WinGoFragment : Fragment() {
         }
         if (targetIssue != armedIssue || armedSignal == null) {
             val existing = readPendingLogSignal(targetIssue)
-            val aiCached = WinGoAiClient.cachedFor(targetIssue, mode)
-            val sig = existing ?: aiCached?.let(::signalFromAi)
-            if (sig != null) {
+            if (existing != null) {
+                armedIssue = targetIssue
+                armedSignal = existing
+                renderLog()
+            } else if (mode == "server") {
+                // Local random — different for every device, no server round-trip.
+                val sig = localRandomSignal()
                 armedIssue = targetIssue
                 armedSignal = sig
-                if (existing == null) appendPendingLog(targetIssue, sig)
+                appendPendingLog(targetIssue, sig)
                 renderLog()
-                if (aiCached?.creditsExhausted == true) creditsExhaustedPending = true
             } else {
-                requestAiSignal(targetIssue, list, mode)
-                return
+                val aiCached = WinGoAiClient.cachedFor(targetIssue, mode)
+                val sig = aiCached?.let(::signalFromAi)
+                if (sig != null) {
+                    armedIssue = targetIssue
+                    armedSignal = sig
+                    appendPendingLog(targetIssue, sig)
+                    renderLog()
+                    if (aiCached.creditsExhausted) creditsExhaustedPending = true
+                } else {
+                    requestAiSignal(targetIssue, list, mode)
+                    return
+                }
             }
         }
 
@@ -305,6 +318,16 @@ class WinGoFragment : Fragment() {
             category = "SIZE",
             confidence = ai.confidence,
             reasoning = reasoning,
+        )
+    }
+
+    private fun localRandomSignal(): WinGoLogic.Signal {
+        val pick = if (Math.random() < 0.5) "BIG" else "SMALL"
+        return WinGoLogic.Signal(
+            pick = pick,
+            category = "SIZE",
+            confidence = "MEDIUM",
+            reasoning = "SERVER · Random signal।",
         )
     }
 
