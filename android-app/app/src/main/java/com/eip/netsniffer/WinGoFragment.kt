@@ -111,8 +111,8 @@ class WinGoFragment : Fragment() {
             if (b.overlaySwitch.isChecked != (on == true)) b.overlaySwitch.isChecked = on == true
         }
 
-        // Signal source: AI or Server (random). Mutually exclusive.
-        val mode = prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
+        // Signal source: AI or Server (random). Mutually exclusive. Default = OFF.
+        val mode = prefs.getString(PREF_SIGNAL_MODE, "off") ?: "off"
         b.aiSignalSwitch.isChecked = mode == "ai"
         b.serverSignalSwitch.isChecked = mode == "server"
         applySignalModeState()
@@ -171,7 +171,7 @@ class WinGoFragment : Fragment() {
 
 
     private fun currentSignalMode(): String =
-        prefs.getString(PREF_SIGNAL_MODE, "ai") ?: "ai"
+        prefs.getString(PREF_SIGNAL_MODE, "off") ?: "off"
 
     private fun resetArmedSignalForModeChange() {
         armedIssue = null
