@@ -18,6 +18,7 @@ type Body = {
   device_id?: string;
   game_code?: string;
   issue_id?: string;               // target period (the one we predict)
+  mode?: string;                   // 'ai' | 'server'   (server = random)
   history?: Array<{ issue: string; number: number }>;
 };
 
@@ -32,20 +33,25 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
 
         const issueId = (body.issue_id ?? '').trim().slice(0, 64);
         const gameCode = (body.game_code ?? 'WinGo_30S').trim().slice(0, 32);
+        const modeRaw = (body.mode ?? 'ai').trim().toLowerCase();
+        const mode: 'ai' | 'server' = modeRaw === 'server' ? 'server' : 'ai';
         const history = (body.history ?? [])
           .filter(h => typeof h.issue === 'string' && typeof h.number === 'number' && h.number >= 0 && h.number <= 9)
           .slice(0, 10);
 
         if (!issueId) return json({ ok: false, error: 'need_issue_id' }, 200);
-        if (history.length < 3) return json({ ok: false, error: 'need_history' }, 200);
+        // Server (random) mode doesn't need history; AI mode does.
+        if (mode === 'ai' && history.length < 3) return json({ ok: false, error: 'need_history' }, 200);
 
         const supa = supaClient();
 
-        // 1) Shared cache lookup — every device asking for this period gets the same pick.
+        // 1) Shared cache lookup — keyed by (issue_id, mode) so AI-mode users
+        //    and Server-mode users each get a consistent shared pick per period.
         const cached = await supa
           .from('wingo_signal_cache')
-          .select('issue_id, pick, confidence, reasoning, source, ai_model, ai_error, credits_exhausted, created_at')
+          .select('issue_id, mode, pick, confidence, reasoning, source, ai_model, ai_error, credits_exhausted, created_at')
           .eq('issue_id', issueId)
+          .eq('mode', mode)
           .maybeSingle();
 
         if (cached.data) {
@@ -53,6 +59,7 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
             ok: true,
             cached: true,
             issue_id: issueId,
+            mode,
             pick: cached.data.pick,
             confidence: cached.data.confidence,
             reasoning: cached.data.reasoning ?? '',
@@ -64,38 +71,45 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
           }, 200);
         }
 
-        // 2) First device for this period — call AI.
+        // 2) First device for this (period, mode) — build the signal.
         let pick = 'BIG';
         let confidence = 'MEDIUM';
         let reasoning = '';
-        let source: 'ai' | 'random' = 'random';
+        let source: 'ai' | 'random' | 'server' = 'random';
         let aiError: string | null = null;
         let creditsExhausted = false;
 
-        try {
-          const ai = await callAI(history);
-          pick = ai.pick;
-          confidence = ai.confidence;
-          reasoning = ai.reasoning;
-          source = 'ai';
-        } catch (e: any) {
-          aiError = (e?.message ?? 'ai_failed').slice(0, 200);
-          // 402 => credits exhausted; treat any AI failure as "no AI" -> random + stop banner.
-          creditsExhausted = /402|payment|credit|quota|insufficient/i.test(aiError ?? '');
-          // If AI didn't respond, we still MUST commit ONE shared pick for this
-          // period so all devices agree. Random 50/50 BIG/SMALL.
+        if (mode === 'server') {
+          // Pure random shared pick — no AI call, no credit usage.
           pick = Math.random() < 0.5 ? 'BIG' : 'SMALL';
-          confidence = 'LOW';
-          reasoning = creditsExhausted
-            ? 'AI credit শেষ — random signal, next win-এ system off।'
-            : 'AI unavailable — random signal।';
+          confidence = 'MEDIUM';
+          reasoning = 'Server random signal।';
+          source = 'server';
+        } else {
+          try {
+            const ai = await callAI(history);
+            pick = ai.pick;
+            confidence = ai.confidence;
+            reasoning = ai.reasoning;
+            source = 'ai';
+          } catch (e: any) {
+            aiError = (e?.message ?? 'ai_failed').slice(0, 200);
+            // 402 => credits exhausted; app will silently keep running until win.
+            creditsExhausted = /402|payment|credit|quota|insufficient/i.test(aiError ?? '');
+            pick = Math.random() < 0.5 ? 'BIG' : 'SMALL';
+            confidence = 'MEDIUM';
+            // Keep reasoning neutral — the app never displays a "credit shesh" hint to users.
+            reasoning = 'Signal ready।';
+            source = 'random';
+          }
         }
 
-        // 3) Persist. Use upsert so races between concurrent devices don't crash.
+        // 3) Persist. Composite PK (issue_id, mode) — upsert on that conflict.
         const upsert = await supa
           .from('wingo_signal_cache')
           .upsert({
             issue_id: issueId,
+            mode,
             game_code: gameCode,
             pick,
             confidence,
@@ -104,17 +118,17 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
             ai_model: source === 'ai' ? AI_MODEL : null,
             ai_error: aiError,
             credits_exhausted: creditsExhausted,
-          }, { onConflict: 'issue_id' })
+          }, { onConflict: 'issue_id,mode' })
           .select('pick, confidence, reasoning, source, ai_model, ai_error, credits_exhausted')
           .maybeSingle();
 
-        // If another request beat us to it, prefer the stored row (single source of truth).
         const final = upsert.data ?? { pick, confidence, reasoning, source, ai_model: source === 'ai' ? AI_MODEL : null, ai_error: aiError, credits_exhausted: creditsExhausted };
 
         return json({
           ok: true,
           cached: false,
           issue_id: issueId,
+          mode,
           pick: final.pick,
           confidence: final.confidence,
           reasoning: final.reasoning ?? '',
@@ -128,6 +142,7 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
     },
   },
 });
+
 
 async function callAI(history: Array<{ issue: string; number: number }>): Promise<{ pick: string; confidence: string; reasoning: string }> {
   const key = process.env.LOVABLE_API_KEY;
