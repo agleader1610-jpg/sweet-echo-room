@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 126
-        versionName = "1.0.126-autobet-signal-sync"
+        versionCode = 127
+        versionName = "1.0.127-signal-source-ui"
 
 
 

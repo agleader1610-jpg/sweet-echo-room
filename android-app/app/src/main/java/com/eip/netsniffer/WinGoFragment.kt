@@ -342,7 +342,7 @@ class WinGoFragment : Fragment() {
             pick = pick,
             category = "SIZE",
             confidence = "MEDIUM",
-            reasoning = "SERVER · Random signal।",
+            reasoning = "Random Engine · Local random pick।",
         )
     }
 
