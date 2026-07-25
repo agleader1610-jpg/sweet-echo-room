@@ -321,6 +321,16 @@ class WinGoFragment : Fragment() {
         )
     }
 
+    private fun localRandomSignal(): WinGoLogic.Signal {
+        val pick = if (Math.random() < 0.5) "BIG" else "SMALL"
+        return WinGoLogic.Signal(
+            pick = pick,
+            category = "SIZE",
+            confidence = "MEDIUM",
+            reasoning = "SERVER · Random signal।",
+        )
+    }
+
     private fun requestAiSignal(targetIssue: String, history: List<WinGoRound>, mode: String) {
         val deviceId = prefs.getString("device_id", "") ?: ""
         val gameCode = WinGoStore.activeGameCode.value ?: "WinGo_30S"
