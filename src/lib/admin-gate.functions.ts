@@ -81,6 +81,7 @@ export const publishUpdate = createServerFn({ method: 'POST' })
     apk_url: string;
     force_update: boolean;
     update_message: string;
+    startup_note?: string;
   }) => d)
   .handler(async ({ data }) => {
     await requireUnlocked();
@@ -94,6 +95,7 @@ export const publishUpdate = createServerFn({ method: 'POST' })
         apk_url: String(data.apk_url || '').trim(),
         force_update: data.force_update,
         update_message: data.update_message,
+        startup_note: String(data.startup_note ?? '').trim(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', 1);
