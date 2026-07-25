@@ -86,19 +86,20 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
           reasoning = 'Server random signal।';
           source = 'server';
         } else {
+          // Feedback loop: pull previous AI signals for the exact issues in history,
+          // compare pick vs actual, and pass hit-rate + last 5 outcomes to the model.
+          const outcomes = await buildOutcomeFeedback(supa, history);
           try {
-            const ai = await callAI(history);
+            const ai = await callAI(history, outcomes);
             pick = ai.pick;
             confidence = ai.confidence;
             reasoning = ai.reasoning;
             source = 'ai';
           } catch (e: any) {
             aiError = (e?.message ?? 'ai_failed').slice(0, 200);
-            // 402 => credits exhausted; app will silently keep running until win.
             creditsExhausted = /402|payment|credit|quota|insufficient/i.test(aiError ?? '');
             pick = Math.random() < 0.5 ? 'BIG' : 'SMALL';
             confidence = 'MEDIUM';
-            // Keep reasoning neutral — the app never displays a "credit shesh" hint to users.
             reasoning = 'Signal ready।';
             source = 'random';
           }
