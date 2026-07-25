@@ -286,7 +286,7 @@ class WinGoFragment : Fragment() {
         WinGoStore.overlayEnabled.postValue(false)
         android.widget.Toast.makeText(
             requireContext(),
-            "AI credit শেষ। System off — owner-কে inbox করুন।",
+            "System off — Owner-কে inbox করুন।",
             android.widget.Toast.LENGTH_LONG
         ).show()
     }
