@@ -257,7 +257,8 @@ class WinGoFragment : Fragment() {
             if (ai.creditsExhausted) {
                 creditsExhaustedPending = true
                 bnd.predReasoning.text =
-                    "⚠ AI credit শেষ — এই signal random। win হলে system off হবে। owner-কে inbox করুন।"
+                    "⚠ System temporarily unstable — win আসলে system off হবে। Owner-কে inbox করুন।"
+
             }
         }
     }
@@ -273,7 +274,8 @@ class WinGoFragment : Fragment() {
         bnd.predConfidence.text = "—"
         bnd.predConfidence.setTextColor(0xFF94A3B8.toInt())
         bnd.predReasoning.text =
-            "🛑 AI credit শেষ। Update Notice: signal system বন্ধ। নতুন update-এর জন্য owner-কে inbox করুন।"
+            "🛑 System সাময়িকভাবে বন্ধ। কোনো সমস্যার কারণে signal off হয়েছে। Owner-কে inbox করুন।"
+
         WinGoStore.currentSignal.postValue(null)
         WinGoStore.currentTargetIssue.postValue(null)
         // Turn off auto-bet so no more random bets go through.
@@ -284,7 +286,7 @@ class WinGoFragment : Fragment() {
         WinGoStore.overlayEnabled.postValue(false)
         android.widget.Toast.makeText(
             requireContext(),
-            "AI credit শেষ। System off — owner-কে inbox করুন।",
+            "System off — Owner-কে inbox করুন।",
             android.widget.Toast.LENGTH_LONG
         ).show()
     }

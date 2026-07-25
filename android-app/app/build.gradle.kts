@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 120
-        versionName = "1.0.120-wingo-shared-ai"
+        versionCode = 121
+        versionName = "1.0.121-wingo-silent-fallback"
 
 
 
