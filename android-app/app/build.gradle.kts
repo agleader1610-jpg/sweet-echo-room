@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 118
-        versionName = "1.0.118-remote-config"
+        versionCode = 119
+        versionName = "1.0.119-startup-notice"
 
 
 
