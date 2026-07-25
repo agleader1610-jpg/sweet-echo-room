@@ -12,8 +12,9 @@ android {
         minSdk = 24
         targetSdk = 34
         // Manual app version. Increase versionCode before making a new APK.
-        versionCode = 131
-        versionName = "1.0.131-your-jack-signal"
+        versionCode = 132
+        versionName = "1.0.132-autobet-safety-brief"
+
 
 
 
