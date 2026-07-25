@@ -145,22 +145,50 @@ export const Route = createFileRoute('/api/public/wingo-signal')({
 });
 
 
-async function callAI(history: Array<{ issue: string; number: number }>): Promise<{ pick: string; confidence: string; reasoning: string }> {
+async function buildOutcomeFeedback(
+  supa: ReturnType<typeof supaClient>,
+  history: Array<{ issue: string; number: number }>,
+): Promise<{ hits: number; total: number; recent: string }> {
+  if (history.length === 0) return { hits: 0, total: 0, recent: '' };
+  const issues = history.map(h => h.issue).slice(0, 10);
+  const { data } = await supa
+    .from('wingo_signal_cache')
+    .select('issue_id, pick, source')
+    .in('issue_id', issues)
+    .eq('mode', 'ai');
+  const rows = (data ?? []).filter(r => r.source === 'ai');
+  const byIssue = new Map(rows.map(r => [r.issue_id, r.pick as string]));
+  let hits = 0, total = 0;
+  const pairs: string[] = [];
+  for (const h of history) {
+    const p = byIssue.get(h.issue);
+    if (!p) continue;
+    total++;
+    const actual = h.number >= 5 ? 'BIG' : 'SMALL';
+    const win = p === actual;
+    if (win) hits++;
+    if (pairs.length < 5) pairs.push(`${p}→${actual}(${win ? 'W' : 'L'})`);
+  }
+  return { hits, total, recent: pairs.join(',') };
+}
+
+async function callAI(
+  history: Array<{ issue: string; number: number }>,
+  outcomes: { hits: number; total: number; recent: string },
+): Promise<{ pick: string; confidence: string; reasoning: string }> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error('no_ai_key');
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-  const compact = history.map(h => `${h.issue.slice(-6)}:${h.number}${h.number >= 5 ? 'B' : 'S'}`).join(', ');
+  const compact = history.map(h => `${h.number}${h.number >= 5 ? 'B' : 'S'}`).join(',');
+  const feedback = outcomes.total > 0
+    ? `\nRecent AI hit-rate: ${outcomes.hits}/${outcomes.total} (${Math.round(100 * outcomes.hits / outcomes.total)}%). Last picks vs actual: ${outcomes.recent}. If losing streak, adapt strategy (flip bias or increase mean-reversion weight).`
+    : '';
 
-  const sys = `You are a WinGo (color/size lottery) analyst. Follow these 5 steps for EVERY prediction:
-1) Detect current BIG/SMALL streak length and direction.
-2) Count BIG vs SMALL in the last 10 rounds — note market imbalance.
-3) Detect alternating patterns (BSBSBS...) or clusters (BBBB, SSSS).
-4) Weigh mean-reversion (long streak → reverse) vs momentum (short streak → continue).
-5) Pick BIG or SMALL for the NEXT round with confidence.
-Output ONLY JSON: {"pick":"BIG"|"SMALL","confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=90 chars Bengali or English"}`;
+  const sys = `WinGo BIG/SMALL predictor. Analyze streak, imbalance, alternation; pick BIG or SMALL for NEXT round.
+Output ONLY JSON: {"pick":"BIG"|"SMALL","confidence":"LOW"|"MEDIUM"|"HIGH","reasoning":"<=80 chars"}`;
 
-  const user = `Last 10 rounds (newest→oldest, issue:number, B=BIG≥5 S=SMALL<5): ${compact}. Predict NEXT round only.`;
+  const user = `Last 10 (newest→oldest, B≥5 S<5): ${compact}.${feedback}`;
 
   try {
     const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
