@@ -2,7 +2,7 @@
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0B1220"
+    android:background="#05060A"
     android:fillViewport="true">
 
     <LinearLayout
@@ -11,29 +11,43 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="⚙️  SETUP GUIDE"
-            android:textColor="#22D3EE"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.24"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="4dp">
+            <View
+                android:layout_width="4dp"
+                android:layout_height="20dp"
+                android:background="@drawable/section_bar_amber"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="⚙️  SETUP GUIDE"
+                android:textColor="#22D3EE"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.28"/>
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="6dp"
+            android:paddingTop="8dp"
             android:paddingBottom="4dp"
-            android:text="সেটআপ গাইড (ভিডিও টিউটোরিয়াল)"
+            android:text="সেটআপ গাইড"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold"/>
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.02"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="18dp"
+            android:paddingBottom="20dp"
             android:text="যেকোনো কার্ডে ট্যাপ করলে ভিডিওটা অ্যাপের ভেতরেই বড় player-এ খুলবে। প্রতিটি প্যানেল কীভাবে সেট করবেন — ধাপে ধাপে দেখা যাবে।"
             android:textColor="#94A3B8"
             android:textSize="13sp"
@@ -52,19 +66,30 @@
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🤖  STEP 1"
-                android:textColor="#F59E0B"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.2"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/step_chip_amber"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🤖  STEP 1"
+                    android:textColor="#FBBF24"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.24"/>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="4dp"
+                android:paddingTop="10dp"
                 android:text="Win Go Auto-Bet প্যানেল সেটআপ"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
@@ -82,19 +107,35 @@
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="150dp"
-                android:background="#000000">
+                android:layout_height="170dp"
+                android:background="@drawable/video_thumb_amber">
+                <View
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/play_btn_circle_amber"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="▶  PLAY"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
+                    android:text="▶"
+                    android:textColor="#1A0F00"
+                    android:textSize="26sp"
                     android:textStyle="bold"
-                    android:paddingHorizontal="18dp"
-                    android:paddingVertical="10dp"
-                    android:background="#F59E0B"/>
+                    android:paddingStart="6dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="10dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="HD  •  TUTORIAL"
+                    android:textColor="#FBBF24"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:background="@drawable/step_chip_amber"/>
             </FrameLayout>
         </LinearLayout>
 
@@ -111,19 +152,30 @@
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🎲  STEP 2"
-                android:textColor="#22D3EE"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.2"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/step_chip_cyan"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎲  STEP 2"
+                    android:textColor="#67E8F9"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.24"/>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="4dp"
+                android:paddingTop="10dp"
                 android:text="Win Go সিগন্যাল সেটআপ"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
@@ -141,19 +193,35 @@
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="150dp"
-                android:background="#000000">
+                android:layout_height="170dp"
+                android:background="@drawable/video_thumb_bg">
+                <View
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/play_btn_circle_cyan"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="▶  PLAY"
-                    android:textColor="#0B1220"
-                    android:textSize="16sp"
+                    android:text="▶"
+                    android:textColor="#062A33"
+                    android:textSize="26sp"
                     android:textStyle="bold"
-                    android:paddingHorizontal="18dp"
-                    android:paddingVertical="10dp"
-                    android:background="#22D3EE"/>
+                    android:paddingStart="6dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="10dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="HD  •  TUTORIAL"
+                    android:textColor="#67E8F9"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:background="@drawable/step_chip_cyan"/>
             </FrameLayout>
         </LinearLayout>
 
@@ -170,19 +238,30 @@
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✈  STEP 3"
-                android:textColor="#A78BFA"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.2"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/step_chip_violet"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✈  STEP 3"
+                    android:textColor="#C4B5FD"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.24"/>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="4dp"
+                android:paddingTop="10dp"
                 android:text="Aviator সিগন্যাল সেটআপ"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
@@ -200,19 +279,35 @@
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="150dp"
-                android:background="#000000">
+                android:layout_height="170dp"
+                android:background="@drawable/video_thumb_violet">
+                <View
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/play_btn_circle_violet"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="▶  PLAY"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
+                    android:text="▶"
+                    android:textColor="#1A0F33"
+                    android:textSize="26sp"
                     android:textStyle="bold"
-                    android:paddingHorizontal="18dp"
-                    android:paddingVertical="10dp"
-                    android:background="#A78BFA"/>
+                    android:paddingStart="6dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="10dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="HD  •  TUTORIAL"
+                    android:textColor="#C4B5FD"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:background="@drawable/step_chip_violet"/>
             </FrameLayout>
         </LinearLayout>
 
