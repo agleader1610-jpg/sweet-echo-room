@@ -1,13 +1,24 @@
 package com.eip.netsniffer
 
+import android.app.AlertDialog
+import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Html
+import android.text.method.LinkMovementMethod
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.eip.netsniffer.databinding.FragmentWingoAutobetBinding
+
 
 /**
  * Dedicated tab for the WinGo Auto-Bet control panel.
@@ -35,6 +46,9 @@ class WinGoAutoBetFragment : Fragment() {
 
     override fun onViewCreated(view: View, s: Bundle?) {
         ReviewNagger.showWhenUnlocked(this, DepositGate.GAME_WINGO_AUTO)
+        observeUnlockForBriefing()
+
+
 
         AutoBetEngine.init(requireContext())
         val cfg = AutoBetEngine.config.value ?: AutoBetEngine.Config()
@@ -166,6 +180,123 @@ class WinGoAutoBetFragment : Fragment() {
             "Timer: %02d:%02d left".format(mm, ss)
         }
     }
+
+    // ─────────────────────── First-time safety briefing ───────────────────────
+    // Shown ONCE, only after both License + Deposit gates unlock for AutoBet.
+    // Never shown while locked — user must reach the real panel first.
+
+    private fun observeUnlockForBriefing() {
+        val check = {
+            val licenseLocked = try { LicenseGate.isLocked() } catch (_: Throwable) { false }
+            val depositLocked = try { DepositGate.isLocked(DepositGate.GAME_WINGO_AUTO) } catch (_: Throwable) { true }
+            if (!licenseLocked && !depositLocked) maybeShowSafetyBriefing()
+        }
+        LicenseGate.state.observe(viewLifecycleOwner) { check() }
+        DepositGate.stateFor(DepositGate.GAME_WINGO_AUTO).observe(viewLifecycleOwner) { check() }
+    }
+
+    private fun maybeShowSafetyBriefing() {
+        val ctx = context ?: return
+        val prefs = ctx.getSharedPreferences("autobet_briefing", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("shown_v1", false)) return
+        if (!isResumed) return
+        prefs.edit().putBoolean("shown_v1", true).apply()
+        showSafetyBriefingDialog(ctx)
+    }
+
+    private fun showSafetyBriefingDialog(ctx: Context) {
+        val pad = dpPx(ctx, 22)
+        val root = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, dpPx(ctx, 20), pad, dpPx(ctx, 8))
+            background = GradientDrawable().apply {
+                cornerRadius = dpPx(ctx, 18).toFloat()
+                setColor(0xFF0B1220.toInt())
+                setStroke(dpPx(ctx, 1), 0xFF22D3EE.toInt())
+            }
+        }
+
+        val title = TextView(ctx).apply {
+            text = "🚀 Auto-Bet Unlock হয়েছে!"
+            textSize = 20f
+            setTextColor(0xFF22D3EE.toInt())
+            setPadding(0, 0, 0, dpPx(ctx, 6))
+        }
+        val subtitle = TextView(ctx).apply {
+            text = "শুরুর আগে কয়েকটা গুরুত্বপূর্ণ কথা 🙏"
+            textSize = 13f
+            setTextColor(0xFF94A3B8.toInt())
+            setPadding(0, 0, 0, dpPx(ctx, 14))
+        }
+
+        val bodyHtml = """
+            <b><font color='#FBBF24'>⚠️ Auto-Bet একটা high-risk system।</font></b><br/>
+            নিচের কথাগুলা মেনে চললে আপনার balance অনেক দিন চলবে —<br/><br/>
+
+            <b><font color='#22D3EE'>💰 Balance বেশি রাখুন</font></b><br/>
+            কম balance-এ ladder ভেঙে যাবে। Recommended: <b>কমপক্ষে ৳500+</b>।<br/><br/>
+
+            <b><font color='#22D3EE'>📈 Stake একটু বেশি নিন</font></b><br/>
+            ছোট stake-এ profit কম দেখাবে, motivation কমে যাবে। আপনার balance অনুযায়ী confident stake সেট করুন।<br/><br/>
+
+            <b><font color='#22D3EE'>⏱️ কম সময় Auto-Bet চালান</font></b><br/>
+            যত বেশি সময় চালু রাখবেন, risk তত বাড়ে। ছোট session (<b>5–15 মিনিট</b>) সবচেয়ে safe।<br/><br/>
+
+            <b><font color='#22D3EE'>🎯 Profit হলে থামুন</font></b><br/>
+            Target hit হলে সাথে সাথে Auto-Bet OFF করুন। লোভ = loss।<br/><br/>
+
+            <b><font color='#F87171'>❌ যা করবেন না:</font></b><br/>
+            • সব balance এক session-এ লাগাবেন না<br/>
+            • Loss recover-এর জন্য stake বাড়াবেন না<br/>
+            • System-কে সারাদিন unattended রাখবেন না<br/><br/>
+
+            <b><font color='#10B981'>✅ মনে রাখবেন:</font></b> AI ৮০-৯০% accurate — কিন্তু ১০০% না। ধৈর্য + discipline = long-term profit। 🌟
+        """.trimIndent()
+
+        val body = TextView(ctx).apply {
+            text = Html.fromHtml(bodyHtml, Html.FROM_HTML_MODE_COMPACT)
+            textSize = 14f
+            setTextColor(0xFFE5E7EB.toInt())
+            setLineSpacing(dpPx(ctx, 2).toFloat(), 1.15f)
+            movementMethod = LinkMovementMethod.getInstance()
+        }
+
+        root.addView(title)
+        root.addView(subtitle)
+        root.addView(body)
+
+        val dialog = AlertDialog.Builder(ctx)
+            .setView(FrameLayout(ctx).apply {
+                setPadding(dpPx(ctx, 12), dpPx(ctx, 12), dpPx(ctx, 12), dpPx(ctx, 12))
+                addView(root, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ))
+            })
+            .setCancelable(false)
+            .setPositiveButton("বুঝেছি, শুরু করি 🚀") { d, _ -> d.dismiss() }
+            .create()
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(GradientDrawable().apply {
+                cornerRadius = dpPx(ctx, 20).toFloat()
+                setColor(Color.TRANSPARENT)
+            })
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                setTextColor(0xFF0B1220.toInt())
+                background = GradientDrawable().apply {
+                    cornerRadius = dpPx(ctx, 24).toFloat()
+                    setColor(0xFF22D3EE.toInt())
+                }
+                setPadding(dpPx(ctx, 24), dpPx(ctx, 10), dpPx(ctx, 24), dpPx(ctx, 10))
+            }
+        }
+        dialog.show()
+    }
+
+    private fun dpPx(ctx: Context, dp: Int): Int =
+        (dp * ctx.resources.displayMetrics.density).toInt()
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()
