@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamProxyRouteImport } from './routes/api/stream/proxy'
 import { Route as ApiPublicWsProxyRouteImport } from './routes/api/public/ws-proxy'
+import { Route as ApiPublicWingoSignalRouteImport } from './routes/api/public/wingo-signal'
 import { Route as ApiPublicVerifyResultRouteImport } from './routes/api/public/verify-result'
 import { Route as ApiPublicVerifyLicenseRouteImport } from './routes/api/public/verify-license'
 import { Route as ApiPublicPredictSignalRouteImport } from './routes/api/public/predict-signal'
@@ -53,6 +54,11 @@ const ApiStreamProxyRoute = ApiStreamProxyRouteImport.update({
 const ApiPublicWsProxyRoute = ApiPublicWsProxyRouteImport.update({
   id: '/api/public/ws-proxy',
   path: '/api/public/ws-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWingoSignalRoute = ApiPublicWingoSignalRouteImport.update({
+  id: '/api/public/wingo-signal',
+  path: '/api/public/wingo-signal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicVerifyResultRoute = ApiPublicVerifyResultRouteImport.update({
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
+  '/api/public/wingo-signal': typeof ApiPublicWingoSignalRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
+  '/api/public/wingo-signal': typeof ApiPublicWingoSignalRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/api/public/predict-signal': typeof ApiPublicPredictSignalRoute
   '/api/public/verify-license': typeof ApiPublicVerifyLicenseRoute
   '/api/public/verify-result': typeof ApiPublicVerifyResultRoute
+  '/api/public/wingo-signal': typeof ApiPublicWingoSignalRoute
   '/api/public/ws-proxy': typeof ApiPublicWsProxyRoute
   '/api/stream/proxy': typeof ApiStreamProxyRoute
   '/api/stream/playlist/$channelId': typeof ApiStreamPlaylistChannelIdRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
+    | '/api/public/wingo-signal'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
     | '/api/stream/playlist/$channelId'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
+    | '/api/public/wingo-signal'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
     | '/api/stream/playlist/$channelId'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/api/public/predict-signal'
     | '/api/public/verify-license'
     | '/api/public/verify-result'
+    | '/api/public/wingo-signal'
     | '/api/public/ws-proxy'
     | '/api/stream/proxy'
     | '/api/stream/playlist/$channelId'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   ApiPublicPredictSignalRoute: typeof ApiPublicPredictSignalRoute
   ApiPublicVerifyLicenseRoute: typeof ApiPublicVerifyLicenseRoute
   ApiPublicVerifyResultRoute: typeof ApiPublicVerifyResultRoute
+  ApiPublicWingoSignalRoute: typeof ApiPublicWingoSignalRoute
   ApiPublicWsProxyRoute: typeof ApiPublicWsProxyRoute
   ApiStreamProxyRoute: typeof ApiStreamProxyRoute
   ApiStreamPlaylistChannelIdRoute: typeof ApiStreamPlaylistChannelIdRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/ws-proxy'
       fullPath: '/api/public/ws-proxy'
       preLoaderRoute: typeof ApiPublicWsProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/wingo-signal': {
+      id: '/api/public/wingo-signal'
+      path: '/api/public/wingo-signal'
+      fullPath: '/api/public/wingo-signal'
+      preLoaderRoute: typeof ApiPublicWingoSignalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/verify-result': {
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPredictSignalRoute: ApiPublicPredictSignalRoute,
   ApiPublicVerifyLicenseRoute: ApiPublicVerifyLicenseRoute,
   ApiPublicVerifyResultRoute: ApiPublicVerifyResultRoute,
+  ApiPublicWingoSignalRoute: ApiPublicWingoSignalRoute,
   ApiPublicWsProxyRoute: ApiPublicWsProxyRoute,
   ApiStreamProxyRoute: ApiStreamProxyRoute,
   ApiStreamPlaylistChannelIdRoute: ApiStreamPlaylistChannelIdRoute,

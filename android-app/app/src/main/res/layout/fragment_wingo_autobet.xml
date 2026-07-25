@@ -132,7 +132,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:orientation="horizontal">
-                    <RadioButton android:id="@+id/modeApp"     android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="App Signal" android:textColor="#E2E8F0" android:textSize="11sp"/>
+                    <RadioButton android:id="@+id/modeApp"     android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="AI (In-App)" android:textColor="#E2E8F0" android:textSize="11sp"/>
                     <RadioButton android:id="@+id/modeRandom"  android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Random"     android:textColor="#E2E8F0" android:textSize="11sp"/>
                     <RadioButton android:id="@+id/modePattern" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Pattern"    android:textColor="#E2E8F0" android:textSize="11sp"/>
                 </RadioGroup>
