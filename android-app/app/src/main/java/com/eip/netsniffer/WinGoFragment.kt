@@ -116,9 +116,28 @@ class WinGoFragment : Fragment() {
         b.aiSignalSwitch.isChecked = mode == "ai"
         b.serverSignalSwitch.isChecked = mode == "server"
         applySignalModeState()
+        updateSignalSourceUi()
         attachAiSignalListener()
         attachServerSignalListener()
     }
+
+    private fun updateSignalSourceUi() {
+        val bnd = _b ?: return
+        val mode = currentSignalMode()
+        bnd.aiSignalRow.isActivated = mode == "ai"
+        bnd.serverSignalRow.isActivated = mode == "server"
+        bnd.signalSourceStatus.text = when (mode) {
+            "ai" -> "● GEMINI LIVE"
+            "server" -> "● RNG LIVE"
+            else -> "○ OFF"
+        }
+        bnd.signalSourceStatus.setTextColor(
+            when (mode) {
+                "ai" -> 0xFF22D3EE.toInt()
+                "server" -> 0xFFF59E0B.toInt()
+                else -> 0xFF64748B.toInt()
+            }
+        )
 
     private fun attachAiSignalListener() {
         val bnd = _b ?: return
