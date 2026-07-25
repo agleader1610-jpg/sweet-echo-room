@@ -2,6 +2,7 @@ package com.eip.netsniffer
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
+import android.os.Looper
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -41,6 +42,9 @@ object WinGoStore {
     /** Live signal + target period, updated by WinGoFragment for the browser overlay. */
     val currentSignal = MutableLiveData<WinGoLogic.Signal?>(null)
     val currentTargetIssue = MutableLiveData<String?>(null)
+    private data class LockedSignal(val issue: String, val signal: WinGoLogic.Signal)
+    private val signalLock = Any()
+    private var lockedSignal: LockedSignal? = null
     data class LastResult(val issue: String, val win: Boolean, val number: Int, val colors: List<String>, val pick: String)
     val lastResult = MutableLiveData<LastResult?>(null)
     val score = MutableLiveData(0 to 0) // wins to losses
@@ -52,6 +56,32 @@ object WinGoStore {
         .build()
     private val exec = Executors.newSingleThreadScheduledExecutor()
     @Volatile private var started = false
+
+    fun setCurrentSignal(issue: String, signal: WinGoLogic.Signal) {
+        synchronized(signalLock) { lockedSignal = LockedSignal(issue, signal) }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            currentTargetIssue.value = issue
+            currentSignal.value = signal
+        } else {
+            currentTargetIssue.postValue(issue)
+            currentSignal.postValue(signal)
+        }
+    }
+
+    fun clearCurrentSignal() {
+        synchronized(signalLock) { lockedSignal = null }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            currentTargetIssue.value = null
+            currentSignal.value = null
+        } else {
+            currentTargetIssue.postValue(null)
+            currentSignal.postValue(null)
+        }
+    }
+
+    fun signalForIssue(issue: String): WinGoLogic.Signal? = synchronized(signalLock) {
+        lockedSignal?.takeIf { it.issue == issue }?.signal
+    }
 
     fun start() {
         if (started) return
