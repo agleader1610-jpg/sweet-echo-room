@@ -165,34 +165,130 @@ class WinGoFragment : Fragment() {
                 armedIssue = null; armedSignal = null
                 renderScoreboard()
                 renderLog()
+                // Recovery step: if AI credit ran out, stop AFTER a win so user
+                // doesn't get stuck on a losing random signal.
+                if (win && creditsExhaustedPending) {
+                    creditsExhaustedPending = false
+                    stopSignalsCreditExhausted()
+                    return
+                }
             }
         }
 
         // 2) Render history strip
         renderHistoryStrip(list)
 
-        // 3) Lock one signal per target period. Do not recalculate/randomize while
-        // the same period is still running, otherwise the prediction flips.
+        if (signalsStopped) return
+
+        // 3) Lock one signal per target period. AI signal comes from the shared
+        // /api/public/wingo-signal endpoint — one AI call per period across
+        // ALL devices (server-side cache), so extra credits are never burned.
         val runningId = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
-        val armIssue = when {
+        val targetIssue = when {
             runningId != null && runningId != newest.issue -> runningId
             else -> nextIssueOf(newest.issue)
         }
-        if (armIssue != armedIssue || armedSignal == null) {
-            val sig = readPendingLogSignal(armIssue) ?: (WinGoLogic.predict(list) ?: return)
-            armedIssue = armIssue
-            armedSignal = sig
-            appendPendingLog(armIssue, sig)
-            renderLog()
+        if (targetIssue != armedIssue || armedSignal == null) {
+            // Prefer already-armed local log for this period, then AI shared
+            // cache; otherwise trigger ONE async fetch and let the callback
+            // arm + render when the AI signal arrives.
+            val existing = readPendingLogSignal(targetIssue)
+            val aiCached = WinGoAiClient.cachedFor(targetIssue)
+            val sig = existing ?: aiCached?.let(::signalFromAi)
+            if (sig != null) {
+                armedIssue = targetIssue
+                armedSignal = sig
+                if (existing == null) appendPendingLog(targetIssue, sig)
+                renderLog()
+                if (aiCached?.creditsExhausted == true) creditsExhaustedPending = true
+            } else {
+                requestAiSignal(targetIssue, list)
+                return
+            }
         }
 
         val lockedSignal = armedSignal ?: return
         WinGoStore.currentSignal.postValue(lockedSignal)
-        WinGoStore.currentTargetIssue.postValue(armIssue)
-        renderSignal(lockedSignal, armIssue)
+        WinGoStore.currentTargetIssue.postValue(targetIssue)
+        renderSignal(lockedSignal, targetIssue)
         // Auto-bet: fire once per issue when signal is stable
-        AutoBetEngine.onSignal(armIssue, lockedSignal)
+        AutoBetEngine.onSignal(targetIssue, lockedSignal)
     }
+
+    private var signalsStopped = false
+    private var creditsExhaustedPending = false
+
+    private fun signalFromAi(ai: WinGoAiClient.AiSignal): WinGoLogic.Signal {
+        val prefix = if (ai.source == "ai") "AI" else "AI-off"
+        val model = ai.model?.let { " · ${it.substringAfterLast('/')}" } ?: ""
+        val reasoning = "${prefix}$model · ${ai.reasoning}".take(180)
+        return WinGoLogic.Signal(
+            pick = ai.pick,
+            category = "SIZE",
+            confidence = ai.confidence,
+            reasoning = reasoning,
+        )
+    }
+
+    private fun requestAiSignal(targetIssue: String, history: List<WinGoRound>) {
+        val deviceId = prefs.getString("device_id", "") ?: ""
+        val gameCode = WinGoStore.activeGameCode.value ?: "WinGo_30S"
+        WinGoAiClient.fetchSignal(deviceId, gameCode, targetIssue, history) { ai ->
+            val bnd = _b ?: return@fetchSignal
+            if (ai == null) return@fetchSignal
+            if (signalsStopped) return@fetchSignal
+            // Period may have advanced while we waited.
+            val newestNow = WinGoStore.history.value?.firstOrNull() ?: return@fetchSignal
+            val runningNow = AutoBetEngine.state.value?.apiCurrentIssue ?: WinGoStore.live.value?.currentIssue
+            val stillTarget = when {
+                runningNow != null && runningNow != newestNow.issue -> runningNow
+                else -> nextIssueOf(newestNow.issue)
+            }
+            if (stillTarget != targetIssue) return@fetchSignal
+            val sig = signalFromAi(ai)
+            armedIssue = targetIssue
+            armedSignal = sig
+            appendPendingLog(targetIssue, sig)
+            renderLog()
+            WinGoStore.currentSignal.postValue(sig)
+            WinGoStore.currentTargetIssue.postValue(targetIssue)
+            renderSignal(sig, targetIssue)
+            AutoBetEngine.onSignal(targetIssue, sig)
+            if (ai.creditsExhausted) {
+                creditsExhaustedPending = true
+                bnd.predReasoning.text =
+                    "⚠ AI credit শেষ — এই signal random। win হলে system off হবে। owner-কে inbox করুন।"
+            }
+        }
+    }
+
+    private fun stopSignalsCreditExhausted() {
+        signalsStopped = true
+        armedIssue = null; armedSignal = null
+        val bnd = _b ?: return
+        bnd.signalCard.visibility = View.VISIBLE
+        bnd.predPick.text = "OFF"
+        bnd.predPick.setBackgroundResource(R.drawable.hero_neutral_gradient)
+        bnd.predCategory.text = "SYSTEM STOPPED"
+        bnd.predConfidence.text = "—"
+        bnd.predConfidence.setTextColor(0xFF94A3B8.toInt())
+        bnd.predReasoning.text =
+            "🛑 AI credit শেষ। Update Notice: signal system বন্ধ। নতুন update-এর জন্য owner-কে inbox করুন।"
+        WinGoStore.currentSignal.postValue(null)
+        WinGoStore.currentTargetIssue.postValue(null)
+        // Turn off auto-bet so no more random bets go through.
+        val cfg = AutoBetEngine.config.value ?: AutoBetEngine.Config()
+        if (cfg.enabled) AutoBetEngine.updateConfig(cfg.copy(enabled = false))
+        // Turn off browser overlay to stop injecting.
+        prefs.edit().putBoolean(PREF_WINGO_OVERLAY, false).apply()
+        WinGoStore.overlayEnabled.postValue(false)
+        android.widget.Toast.makeText(
+            requireContext(),
+            "AI credit শেষ। System off — owner-কে inbox করুন।",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+    }
+
 
     private fun renderSignal(sig: WinGoLogic.Signal, forIssue: String) {
         b.signalCard.visibility = View.VISIBLE
