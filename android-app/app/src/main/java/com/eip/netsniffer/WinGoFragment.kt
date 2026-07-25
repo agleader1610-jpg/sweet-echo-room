@@ -179,6 +179,7 @@ class WinGoFragment : Fragment() {
         signalsStopped = false
         creditsExhaustedPending = false
         applySignalModeState()
+        updateSignalSourceUi()
         // Force a fresh evaluation on next history tick.
         WinGoStore.history.value?.let { onHistory(it) }
     }
