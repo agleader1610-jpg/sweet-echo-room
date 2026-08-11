@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Web Data Interceptor & Editor PRO",
-  "version": "2.0.0",
-  "description": "A-Z capture (Fetch/XHR/WebSocket/EventSource/sendBeacon + Chrome Debugger deep mode) with persistent per-domain mock rules that survive refresh.",
+  "version": "2.1.0",
+  "description": "A-Z capture (Fetch/XHR/WebSocket/EventSource/sendBeacon + Chrome Debugger deep mode) with persistent per-domain mock rules and optional live telemetry forwarding.",
   "permissions": [
     "storage",
     "tabs",

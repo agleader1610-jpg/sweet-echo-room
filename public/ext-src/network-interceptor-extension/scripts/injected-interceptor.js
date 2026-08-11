@@ -1,11 +1,12 @@
 (function () {
-  const TAG = '[NetInterceptor v2.0]';
-  console.log(TAG, 'MAIN world active');
+  const TAG = '[NetInterceptor v2.1]';
+  console.log(TAG, 'MAIN world active @', location.href);
 
   let activeRules = window.__NI_RULES__ || [];
   let isEnabled = window.__NI_ENABLED__ !== false;
-  let wsRelay = null; // { url, token }
+  let wsRelay = null;
 
+  // ---- config bridge ----
   function loadDataset() {
     try {
       const raw = document.documentElement && document.documentElement.dataset.niConfig;
@@ -30,7 +31,7 @@
       window.__NI_ENABLED__ = isEnabled;
     }
   });
-  window.postMessage({ type: 'NI_GET_RULES' }, '*');
+  try { window.postMessage({ type: 'NI_GET_RULES' }, '*'); } catch {}
 
   function report(kind, data) {
     try {
@@ -38,18 +39,24 @@
         type: 'NI_CAPTURED',
         payload: {
           id: 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-          kind, // fetch|xhr|ws|sse|beacon
+          kind,
           url: data.url,
           method: data.method || 'GET',
-          status: data.status || 200,
+          status: data.status || 0,
+          mime: data.mime || null,
+          bytes: data.bytes || null,
+          ms: data.ms || null,
           timestamp: new Date().toISOString(),
           requestData: data.requestData || null,
           responseData: data.responseData || null,
+          reqHeaders: data.reqHeaders || null,
+          resHeaders: data.resHeaders || null,
           isMocked: !!data.isMocked,
-          direction: data.direction || null
+          direction: data.direction || null,
+          frame: location.href
         }
       }, '*');
-    } catch (_) {}
+    } catch (e) { console.warn(TAG, 'report failed', e); }
   }
 
   function cleanUrl(u) { try { return (u || '').split('?')[0].split('#')[0]; } catch { return u || ''; } }
@@ -74,11 +81,40 @@
     });
   }
 
+  // Serialize request bodies for all common shapes
+  function serializeBody(body) {
+    if (body == null) return null;
+    try {
+      if (typeof body === 'string') return body.length > 8000 ? body.slice(0, 8000) + '…[truncated]' : body;
+      if (body instanceof URLSearchParams) return body.toString();
+      if (body instanceof FormData) {
+        const o = {};
+        for (const [k, v] of body.entries()) o[k] = typeof v === 'string' ? v : `[File:${v.name || 'blob'}:${v.size}b]`;
+        return JSON.stringify(o);
+      }
+      if (body instanceof Blob) return `[Blob ${body.type || ''} ${body.size}b]`;
+      if (body instanceof ArrayBuffer) return `[ArrayBuffer ${body.byteLength}b]`;
+      if (typeof body === 'object') return JSON.stringify(body);
+      return String(body);
+    } catch { return '[unserializable body]'; }
+  }
+
+  function headersToObj(h) {
+    try {
+      if (!h) return null;
+      if (h instanceof Headers) { const o = {}; h.forEach((v, k) => (o[k] = v)); return o; }
+      if (Array.isArray(h)) return Object.fromEntries(h);
+      if (typeof h === 'object') return { ...h };
+    } catch {}
+    return null;
+  }
+
   // ---------- FETCH ----------
   if (!window.__NI_FETCH__) {
     window.__NI_FETCH__ = true;
     const oFetch = window.fetch;
     window.fetch = async function (resource, config) {
+      const t0 = performance.now();
       let url = '';
       if (typeof resource === 'string') url = resource;
       else if (resource instanceof URL) url = resource.href;
@@ -86,7 +122,8 @@
       else url = String(resource);
       try { url = new URL(url, location.href).href; } catch {}
       const method = ((config && config.method) || (resource && resource.method) || 'GET').toUpperCase();
-      const reqBody = config && config.body ? (typeof config.body === 'string' ? config.body : '[Binary/FormData]') : null;
+      const reqBody = serializeBody(config && config.body);
+      const reqHeaders = headersToObj((config && config.headers) || (resource && resource.headers));
 
       const rule = findRule(url);
       if (rule) {
@@ -97,24 +134,38 @@
           statusText: 'OK (Mocked)',
           headers: new Headers(rule.headers || { 'Content-Type': 'application/json' })
         });
-        report('fetch', { url, method, status: rule.statusCode || 200, requestData: reqBody, responseData: body, isMocked: true });
+        report('fetch', { url, method, status: rule.statusCode || 200, requestData: reqBody, responseData: body, reqHeaders, isMocked: true, ms: Math.round(performance.now() - t0) });
         return resp;
       }
 
       try {
         const r = await oFetch.apply(this, arguments);
+        const ms = Math.round(performance.now() - t0);
         try {
           const c = r.clone();
           const ct = (c.headers.get('content-type') || '').toLowerCase();
-          if (ct.includes('json') || ct.includes('text') || ct.includes('xml') || ct.includes('javascript') || ct === '') {
-            c.text().then(t => report('fetch', { url, method, status: r.status, requestData: reqBody, responseData: t, isMocked: false }))
-                   .catch(() => report('fetch', { url, method, status: r.status, requestData: reqBody, responseData: '[unreadable]', isMocked: false }));
+          const resHeaders = headersToObj(c.headers);
+          const isText = ct.includes('json') || ct.includes('text') || ct.includes('xml') || ct.includes('javascript') || ct.includes('form-urlencoded') || ct === '';
+          if (isText) {
+            c.text().then(t => report('fetch', {
+              url, method, status: r.status, mime: ct, bytes: t ? t.length : 0, ms,
+              requestData: reqBody, responseData: t && t.length > 65000 ? t.slice(0, 65000) + '…[truncated]' : t,
+              reqHeaders, resHeaders, isMocked: false
+            })).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[unreadable]', reqHeaders, resHeaders, isMocked: false }));
           } else {
-            report('fetch', { url, method, status: r.status, requestData: reqBody, responseData: '[binary: ' + ct + ']', isMocked: false });
+            // Non-text: still record metadata; try to read as ArrayBuffer for size
+            c.arrayBuffer().then(buf => report('fetch', {
+              url, method, status: r.status, mime: ct, bytes: buf.byteLength, ms,
+              requestData: reqBody, responseData: `[binary ${ct} ${buf.byteLength}b]`,
+              reqHeaders, resHeaders, isMocked: false
+            })).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[binary]', reqHeaders, resHeaders, isMocked: false }));
           }
-        } catch { report('fetch', { url, method, status: r.status, requestData: reqBody, responseData: null, isMocked: false }); }
+        } catch { report('fetch', { url, method, status: r.status, ms, requestData: reqBody, responseData: null, reqHeaders, isMocked: false }); }
         return r;
-      } catch (err) { throw err; }
+      } catch (err) {
+        report('fetch', { url, method, status: 0, requestData: reqBody, responseData: '[network error: ' + (err && err.message) + ']', reqHeaders, isMocked: false, ms: Math.round(performance.now() - t0) });
+        throw err;
+      }
     };
   }
 
@@ -123,25 +174,32 @@
     window.__NI_XHR__ = true;
     const oOpen = XMLHttpRequest.prototype.open;
     const oSend = XMLHttpRequest.prototype.send;
+    const oSetHdr = XMLHttpRequest.prototype.setRequestHeader;
     XMLHttpRequest.prototype.open = function (m, u) {
       this._niMethod = (m || 'GET').toUpperCase();
       try { this._niUrl = new URL(u, location.href).href; } catch { this._niUrl = u; }
+      this._niReqHeaders = {};
       return oOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+      try { this._niReqHeaders[name] = String(value); } catch {}
+      return oSetHdr.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function (body) {
       const xhr = this;
       const url = xhr._niUrl, method = xhr._niMethod || 'GET';
-      const reqBody = typeof body === 'string' ? body : (body ? '[FormData/Binary]' : null);
+      const reqBody = serializeBody(body);
+      const t0 = performance.now();
       const rule = findRule(url);
       if (rule) {
         let rb = rule.mockResponse;
         if (typeof rb === 'object' && rb !== null) rb = JSON.stringify(rb);
-        Object.defineProperty(xhr, 'readyState', { writable: true, value: 4 });
-        Object.defineProperty(xhr, 'status', { writable: true, value: rule.statusCode || 200 });
-        Object.defineProperty(xhr, 'statusText', { writable: true, value: 'OK (Mocked)' });
-        Object.defineProperty(xhr, 'responseText', { writable: true, value: rb });
-        Object.defineProperty(xhr, 'response', { writable: true, value: rb });
-        report('xhr', { url, method, status: rule.statusCode || 200, requestData: reqBody, responseData: rb, isMocked: true });
+        Object.defineProperty(xhr, 'readyState', { configurable: true, writable: true, value: 4 });
+        Object.defineProperty(xhr, 'status', { configurable: true, writable: true, value: rule.statusCode || 200 });
+        Object.defineProperty(xhr, 'statusText', { configurable: true, writable: true, value: 'OK (Mocked)' });
+        Object.defineProperty(xhr, 'responseText', { configurable: true, writable: true, value: rb });
+        Object.defineProperty(xhr, 'response', { configurable: true, writable: true, value: rb });
+        report('xhr', { url, method, status: rule.statusCode || 200, requestData: reqBody, responseData: rb, reqHeaders: xhr._niReqHeaders, isMocked: true, ms: 0 });
         setTimeout(() => {
           try { xhr.onreadystatechange && xhr.onreadystatechange(); } catch {}
           try { xhr.onload && xhr.onload(); } catch {}
@@ -151,10 +209,36 @@
         }, 5);
         return;
       }
-      xhr.addEventListener('load', function () {
+      xhr.addEventListener('loadend', function () {
         try {
-          report('xhr', { url, method, status: xhr.status, requestData: reqBody, responseData: xhr.responseText || '[non-text]', isMocked: false });
-        } catch {}
+          const ms = Math.round(performance.now() - t0);
+          const rt = (xhr.responseType || '').toLowerCase();
+          let respText = null;
+          try {
+            if (!rt || rt === 'text') respText = xhr.responseText;
+            else if (rt === 'json') respText = JSON.stringify(xhr.response);
+            else if (rt === 'arraybuffer' && xhr.response) respText = `[arraybuffer ${xhr.response.byteLength}b]`;
+            else if (rt === 'blob' && xhr.response) respText = `[blob ${xhr.response.type} ${xhr.response.size}b]`;
+            else if (rt === 'document' && xhr.response) respText = new XMLSerializer().serializeToString(xhr.response);
+            else respText = String(xhr.response);
+          } catch { respText = '[unreadable]'; }
+          if (respText && respText.length > 65000) respText = respText.slice(0, 65000) + '…[truncated]';
+
+          // Parse response headers
+          let resHeaders = null;
+          try {
+            const raw = xhr.getAllResponseHeaders();
+            if (raw) {
+              resHeaders = {};
+              raw.trim().split(/[\r\n]+/).forEach(line => {
+                const idx = line.indexOf(':');
+                if (idx > 0) resHeaders[line.slice(0, idx).trim().toLowerCase()] = line.slice(idx + 1).trim();
+              });
+            }
+          } catch {}
+          const mime = resHeaders && resHeaders['content-type'] ? resHeaders['content-type'] : null;
+          report('xhr', { url, method, status: xhr.status, mime, bytes: respText ? respText.length : 0, ms, requestData: reqBody, responseData: respText, reqHeaders: xhr._niReqHeaders, resHeaders, isMocked: false });
+        } catch (e) { console.warn(TAG, 'xhr capture err', e); }
       });
       return oSend.apply(this, arguments);
     };
@@ -186,7 +270,7 @@
       ws.addEventListener('message', (ev) => {
         try {
           const d = ev.data;
-          const preview = typeof d === 'string' ? d : '[binary]';
+          const preview = typeof d === 'string' ? (d.length > 8000 ? d.slice(0, 8000) + '…' : d) : '[binary]';
           report('ws', { url, method: 'WS-RECV', status: 0, responseData: preview, direction: 'in' });
         } catch {}
       });
@@ -220,7 +304,7 @@
     const oBeacon = navigator.sendBeacon.bind(navigator);
     navigator.sendBeacon = function (url, data) {
       try {
-        const preview = typeof data === 'string' ? data : '[binary/form]';
+        const preview = serializeBody(data);
         report('beacon', { url, method: 'BEACON', status: 204, requestData: preview });
       } catch {}
       return oBeacon(url, data);
