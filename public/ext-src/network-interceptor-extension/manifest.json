@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Web Data Interceptor & Editor PRO",
+  "version": "2.0.0",
+  "description": "A-Z capture (Fetch/XHR/WebSocket/EventSource/sendBeacon + Chrome Debugger deep mode) with persistent per-domain mock rules that survive refresh.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "debugger",
+    "activeTab"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Network Interceptor PRO v2.0"
+  },
+  "background": { "service_worker": "scripts/background.js" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["scripts/injected-interceptor.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["scripts/content-script.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["scripts/injected-interceptor.js"], "matches": ["<all_urls>"] }
+  ]
+}
