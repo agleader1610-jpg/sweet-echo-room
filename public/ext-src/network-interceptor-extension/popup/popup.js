@@ -541,3 +541,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial load
   await loadData();
 });
+
+// ===== v2.0 PRO extensions: Deep Mode + WS Relay =====
+(async function () {
+  try {
+    const deepToggle = document.getElementById('deep-mode-toggle');
+    const deepLabel = document.getElementById('deep-domain-label');
+    const wsUrl = document.getElementById('ws-relay-url');
+    const wsTok = document.getElementById('ws-relay-token');
+    const btnSaveRelay = document.getElementById('btn-save-relay');
+    const btnClearRelay = document.getElementById('btn-clear-relay');
+    if (!deepToggle) return;
+
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs && tabs[0];
+    let domain = '';
+    try { domain = tab && tab.url ? new URL(tab.url).hostname : ''; } catch {}
+    if (deepLabel) deepLabel.textContent = domain || '(no domain)';
+
+    const s = await chrome.storage.local.get(['deepModeTabs', 'wsRelay']);
+    const dm = s.deepModeTabs || {};
+    deepToggle.checked = !!(domain && dm[domain]);
+    const relay = s.wsRelay || {};
+    if (wsUrl) wsUrl.value = relay.url || '';
+    if (wsTok) wsTok.value = relay.token || '';
+
+    deepToggle.addEventListener('change', async () => {
+      if (!domain) return;
+      await chrome.runtime.sendMessage({ action: 'TOGGLE_DEEP', domain, tabId: tab.id, enabled: deepToggle.checked });
+      const t = document.getElementById('toast');
+      if (t) { t.textContent = deepToggle.checked ? 'Deep Mode ON — reload page' : 'Deep Mode OFF'; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2200); }
+    });
+
+    btnSaveRelay && btnSaveRelay.addEventListener('click', async () => {
+      const url = (wsUrl.value || '').trim();
+      const token = (wsTok.value || '').trim();
+      if (!url) { alert('Enter relay URL'); return; }
+      await chrome.storage.local.set({ wsRelay: { url, token } });
+      const t = document.getElementById('toast'); if (t) { t.textContent = '✅ Relay saved — reload page'; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2200); }
+    });
+    btnClearRelay && btnClearRelay.addEventListener('click', async () => {
+      await chrome.storage.local.remove('wsRelay');
+      wsUrl.value = ''; wsTok.value = '';
+      const t = document.getElementById('toast'); if (t) { t.textContent = '🚫 Relay disabled'; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2200); }
+    });
+  } catch (e) { console.error('[popup v2] init error', e); }
+})();
