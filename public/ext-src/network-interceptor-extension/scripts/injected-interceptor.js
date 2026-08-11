@@ -308,8 +308,13 @@
   }
 
   function rowForAd(id) {
-    const sel = 'a[href*="/ad/' + id + '"], a[href*="ad_id=' + id + '"], [data-ad-id="' + id + '"]';
-    const anchor = document.querySelector(sel);
+    const anchors = Array.from(document.querySelectorAll('a[href], [data-ad-id]'));
+    const rx = new RegExp('(?:/ad/|ad_id=)' + id + '(?![0-9])');
+    const anchor = anchors.find(a => {
+      if (a.getAttribute('data-ad-id') === String(id)) return true;
+      const h = a.getAttribute('href') || '';
+      return rx.test(h);
+    });
     if (!anchor) return null;
     let node = anchor;
     for (let i = 0; i < 6 && node.parentElement; i++) {
@@ -319,27 +324,71 @@
     return anchor.parentElement || anchor;
   }
 
-  function replaceTextIn(root, from, to) {
-    if (from == null || to == null) return;
-    const fromStr = String(from);
-    if (!fromStr.trim() || fromStr === String(to)) return;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    const targets = [];
+  // field -> table column header aliases (column-scoped patching only)
+  const COLUMN_ALIASES = {
+    title: ['ad title', 'title'],
+    ad_title: ['ad title', 'title'],
+    views: ['views'],
+    opened: ['opened'],
+    clicks: ['clicks'],
+    actions: ['actions'],
+    ctr: ['ctr'],
+    cvr: ['cvr'],
+    cpm: ['cpm'],
+    cpc: ['cpc'],
+    cpa: ['cpa'],
+    spent: ['spent'],
+    budget: ['budget'],
+    daily_budget: ['daily budget'],
+    status: ['status'],
+    target: ['target']
+  };
+
+  function headerMap(row) {
+    const table = row.closest && row.closest('table');
+    if (!table) return null;
+    const ths = Array.from(table.querySelectorAll('thead th, thead td'));
+    if (!ths.length) return null;
+    const map = {};
+    ths.forEach((th, i) => {
+      const key = (th.textContent || '').replace(/[^a-z ]/gi, '').trim().toLowerCase();
+      if (key && map[key] === undefined) map[key] = i;
+    });
+    return map;
+  }
+
+  function cellFor(row, map, field) {
+    const aliases = COLUMN_ALIASES[String(field).toLowerCase()];
+    if (!aliases || !map) return null;
+    for (const a of aliases) {
+      if (map[a] !== undefined) {
+        const cells = row.children;
+        return cells[map[a]] || null;
+      }
+    }
+    return null;
+  }
+
+  function patchCell(cell, from, to) {
+    if (!cell || to == null) return;
+    const fromStr = from == null ? '' : String(from);
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    const nodes = [];
     while (walker.nextNode()) {
       const t = walker.currentNode;
-      const txt = t.nodeValue || '';
-      if (!txt.trim()) continue;
-      const norm = txt.replace(/[\u00a0,\s]/g, '');
-      const fromNorm = fromStr.replace(/[\u00a0,\s]/g, '');
-      if (txt.includes(fromStr) || (fromNorm && norm === fromNorm)) targets.push(t);
+      if ((t.nodeValue || '').trim()) nodes.push(t);
     }
-    targets.forEach(t => {
-      const txt = t.nodeValue;
-      const out = /^\-?[\d\s\u00a0,\.]+$/.test(txt.trim())
-        ? txt.replace(txt.trim(), fmtNumberLike(txt, to))
-        : txt.split(fromStr).join(String(to));
-      if (out !== txt) t.nodeValue = out;
-    });
+    if (!nodes.length) return;
+    // prefer the node whose text matches the original value; else the first one
+    const norm = s => String(s).replace(/[\u00a0,\s]/g, '');
+    let target = nodes.find(t => norm(t.nodeValue) === norm(fromStr));
+    if (!target) target = nodes.find(t => /\d/.test(t.nodeValue)) || nodes[0];
+    const txt = target.nodeValue;
+    const trimmed = txt.trim();
+    const out = /^[\-\d\s\u00a0,\.%]+$/.test(trimmed)
+      ? txt.replace(trimmed, fmtNumberLike(txt, to))
+      : txt.replace(trimmed, String(to));
+    if (out !== txt) target.nodeValue = out;
   }
 
   function runDomPatch() {
@@ -350,12 +399,16 @@
       const original = p.original || {};
       const row = rowForAd(id);
       if (!row) return;
+      const map = headerMap(row);
+      if (!map) return;
       Object.keys(fields).forEach(k => {
-        if (original[k] === undefined) return;
-        replaceTextIn(row, original[k], fields[k]);
+        const cell = cellFor(row, map, k);
+        if (!cell) return; // never blind-replace across the row
+        patchCell(cell, original[k], fields[k]);
       });
     });
   }
+
 
   if (isTelegramAdsApi(location.href)) {
     const obs = new MutationObserver(() => scheduleDomPatch());
