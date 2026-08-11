@@ -1,11 +1,12 @@
 (function () {
-  const TAG = '[NetInterceptor v2.2]';
+  const TAG = '[NetInterceptor v2.4]';
   console.log(TAG, 'MAIN world active @', location.href);
 
   let activeRules = window.__NI_RULES__ || [];
   let isEnabled = window.__NI_ENABLED__ !== false;
   let wsRelay = null;
   const nativeFetch = window.fetch.bind(window);
+  let adPatches = {};
   let telegramCatalogJob = null;
   let telegramCatalogKey = '';
 
@@ -18,6 +19,8 @@
       activeRules = cfg.rules || [];
       isEnabled = cfg.enabled !== false;
       wsRelay = cfg.wsRelay || null;
+      adPatches = cfg.adPatches || {};
+      scheduleDomPatch();
       window.__NI_RULES__ = activeRules;
       window.__NI_ENABLED__ = isEnabled;
     } catch (_) {}
@@ -30,6 +33,8 @@
       activeRules = e.data.rules || [];
       isEnabled = e.data.enabled !== false;
       wsRelay = e.data.wsRelay || null;
+      adPatches = e.data.adPatches || {};
+      scheduleDomPatch();
       window.__NI_RULES__ = activeRules;
       window.__NI_ENABLED__ = isEnabled;
     }
@@ -243,6 +248,127 @@
     });
   }
 
+
+  // ---------- AD PATCH ENGINE (id-based, page independent) ----------
+  function hasPatches() { return adPatches && Object.keys(adPatches).length > 0; }
+
+  function coerce(newVal, oldVal) {
+    if (typeof oldVal === 'number') {
+      const n = Number(String(newVal).replace(/[\s,]/g, ''));
+      return Number.isFinite(n) ? n : oldVal;
+    }
+    if (typeof oldVal === 'boolean') return String(newVal) === 'true' || newVal === true;
+    return newVal;
+  }
+
+  function patchNode(node) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(patchNode); return; }
+    const id = node.ad_id != null ? String(node.ad_id) : (node.id != null && node.ad_title !== undefined ? String(node.id) : null);
+    if (id && adPatches[id] && adPatches[id].fields) {
+      const fields = adPatches[id].fields;
+      Object.keys(fields).forEach(k => {
+        node[k] = coerce(fields[k], node[k]);
+      });
+    }
+    Object.keys(node).forEach(k => {
+      const v = node[k];
+      if (v && typeof v === 'object') patchNode(v);
+    });
+  }
+
+  function applyAdPatchesToText(text) {
+    if (!hasPatches() || !text) return text;
+    try {
+      const data = JSON.parse(text);
+      patchNode(data);
+      return JSON.stringify(data);
+    } catch { return text; }
+  }
+
+  function isTelegramAdsApi(url) {
+    try { return String(url || '').includes('ads.telegram.org'); } catch { return false; }
+  }
+
+  // ---------- DOM PATCHER (for server rendered / already painted rows) ----------
+  let domPatchTimer = null;
+  function scheduleDomPatch() {
+    if (!isTelegramAdsApi(location.href) || !hasPatches()) return;
+    if (domPatchTimer) return;
+    domPatchTimer = setTimeout(() => { domPatchTimer = null; runDomPatch(); }, 120);
+  }
+
+  function fmtNumberLike(sample, value) {
+    // mimic 1 234 / 1,234 grouping used in the original text
+    const digits = String(value).replace(/[^\d.-]/g, '');
+    if (!/^\-?\d+(\.\d+)?$/.test(digits)) return String(value);
+    if (/\d[\s\u00a0]\d/.test(sample)) return Number(digits).toLocaleString('en-US').replace(/,/g, '\u00a0');
+    if (/\d,\d/.test(sample)) return Number(digits).toLocaleString('en-US');
+    return digits;
+  }
+
+  function rowForAd(id) {
+    const sel = 'a[href*="/ad/' + id + '"], a[href*="ad_id=' + id + '"], [data-ad-id="' + id + '"]';
+    const anchor = document.querySelector(sel);
+    if (!anchor) return null;
+    let node = anchor;
+    for (let i = 0; i < 6 && node.parentElement; i++) {
+      node = node.parentElement;
+      if (/^(TR|LI)$/.test(node.tagName) || (node.className && /row|item|card/i.test(String(node.className)))) return node;
+    }
+    return anchor.parentElement || anchor;
+  }
+
+  function replaceTextIn(root, from, to) {
+    if (from == null || to == null) return;
+    const fromStr = String(from);
+    if (!fromStr.trim() || fromStr === String(to)) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const targets = [];
+    while (walker.nextNode()) {
+      const t = walker.currentNode;
+      const txt = t.nodeValue || '';
+      if (!txt.trim()) continue;
+      const norm = txt.replace(/[\u00a0,\s]/g, '');
+      const fromNorm = fromStr.replace(/[\u00a0,\s]/g, '');
+      if (txt.includes(fromStr) || (fromNorm && norm === fromNorm)) targets.push(t);
+    }
+    targets.forEach(t => {
+      const txt = t.nodeValue;
+      const out = /^\-?[\d\s\u00a0,\.]+$/.test(txt.trim())
+        ? txt.replace(txt.trim(), fmtNumberLike(txt, to))
+        : txt.split(fromStr).join(String(to));
+      if (out !== txt) t.nodeValue = out;
+    });
+  }
+
+  function runDomPatch() {
+    if (!hasPatches()) return;
+    Object.keys(adPatches).forEach(id => {
+      const p = adPatches[id] || {};
+      const fields = p.fields || {};
+      const original = p.original || {};
+      const row = rowForAd(id);
+      if (!row) return;
+      Object.keys(fields).forEach(k => {
+        if (original[k] === undefined) return;
+        replaceTextIn(row, original[k], fields[k]);
+      });
+    });
+  }
+
+  if (isTelegramAdsApi(location.href)) {
+    const obs = new MutationObserver(() => scheduleDomPatch());
+    const start = () => {
+      try { obs.observe(document.documentElement, { childList: true, subtree: true, characterData: true }); } catch {}
+      scheduleDomPatch();
+    };
+    if (document.documentElement) start();
+    else document.addEventListener('DOMContentLoaded', start, { once: true });
+    document.addEventListener('DOMContentLoaded', scheduleDomPatch);
+    setInterval(scheduleDomPatch, 2000);
+  }
+
   // ---------- FETCH ----------
   if (!window.__NI_FETCH__) {
     window.__NI_FETCH__ = true;
@@ -281,6 +407,14 @@
             const raw = await r.clone().text();
             const merged = mergeByAdId(raw, rule.mockResponse);
             response = new Response(merged, { status: r.status, statusText: r.statusText, headers: r.headers });
+          }
+          if (hasPatches() && isTelegramAdsApi(url)) {
+            const rawTxt = await response.clone().text();
+            const patched = applyAdPatchesToText(rawTxt);
+            if (patched !== rawTxt) {
+              response = new Response(patched, { status: response.status, statusText: response.statusText, headers: response.headers });
+              setTimeout(scheduleDomPatch, 50);
+            }
           }
           const c = response.clone();
           const ct = (c.headers.get('content-type') || '').toLowerCase();
