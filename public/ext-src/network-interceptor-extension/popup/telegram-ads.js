@@ -117,7 +117,7 @@
       const rows = fieldsOf(ad).map(k => {
         const val = currentValue(id, ad, k);
         const changed = String(val) !== String(baselineValue(id, ad, k));
-        const type = typeof ad[k] === 'number' ? 'number' : 'text';
+        const type = typeof getPath(ad, k) === 'number' ? 'number' : 'text';
         return `
           <label class="tg-field ${changed ? 'changed' : ''}">
             <span class="tg-key">${esc(k)}</span>
