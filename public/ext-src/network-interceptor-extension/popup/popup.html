@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Network Data Interceptor & Editor v2.3.1</title>
+  <title>Network Data Interceptor & Editor v2.4.0</title>
   <link rel="stylesheet" href="popup.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
         <div class="brand-title">
           <div class="title-row">
             <h1>Network Data Interceptor</h1>
-            <span class="version-tag">v2.3.1</span>
+            <span class="version-tag">v2.4.0</span>
           </div>
           <span class="subtitle">A-Z Capture • Live Telemetry • Persistent Mocks</span>
         </div>
@@ -41,6 +41,9 @@
       </button>
       <button class="tab-btn" data-tab="tab-mocks">
         <span class="tab-icon">✏️</span> Mock Rules <span id="mocks-count-badge" class="badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-telegram">
+        <span class="tab-icon">✈️</span> Telegram Ads <span id="tg-count" class="badge">0</span>
       </button>
       <button class="tab-btn" data-tab="tab-settings">
         <span class="tab-icon">⚙️</span> Backup & Diagnostics
@@ -144,6 +147,33 @@
       </section>
 
       <!-- TAB 3: Backup & Diagnostics -->
+      <!-- TAB: Telegram Ads Manager -->
+      <section id="tab-telegram" class="tab-content">
+        <div class="tg-head">
+          <div class="tg-logo">✈️</div>
+          <div class="tg-head-meta">
+            <div class="tg-head-title">Telegram Ads Manager</div>
+            <div class="tg-head-sub">ID-based live patch — works on every ad, every page</div>
+          </div>
+          <label class="switch-toggle" title="Enable ad patching">
+            <input type="checkbox" id="tg-patch-toggle" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="tg-search" placeholder="Search by ad title or ad_id...">
+          </div>
+          <button id="tg-refresh" class="btn btn-secondary btn-sm">↻ Sync</button>
+          <button id="tg-save-all" class="btn btn-primary btn-sm">💾 Save All</button>
+          <button id="tg-reset" class="btn btn-danger btn-sm">Reset</button>
+        </div>
+
+        <div id="tg-list" class="tg-list"></div>
+      </section>
+
       <section id="tab-settings" class="tab-content">
         <div class="settings-card">
           <h4>📦 Backup & Diagnostic Logs</h4>
@@ -199,7 +229,7 @@
 
         <div class="settings-card">
           <h4>ℹ️ System & Engine Info</h4>
-          <p class="settings-desc">Extension Version: <strong>v2.3.1 PRO</strong> — Full Telegram Ads pagination catalog + MAIN-world capture + Persistent Mocks</p>
+          <p class="settings-desc">Extension Version: <strong>v2.4.0 PRO</strong> — Full Telegram Ads pagination catalog + MAIN-world capture + Persistent Mocks</p>
           <button id="btn-clear-all-data" class="btn btn-danger btn-sm">Clear All Storage & Diagnostics</button>
         </div>
 
@@ -222,5 +252,6 @@
   </div>
 
   <script src="popup.js"></script>
+  <script src="telegram-ads.js"></script>
 </body>
 </html>

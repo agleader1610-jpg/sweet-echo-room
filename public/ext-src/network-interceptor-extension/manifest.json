@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Web Data Interceptor & Editor PRO",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "A-Z capture (Fetch/XHR/WebSocket/EventSource/sendBeacon + Chrome Debugger deep mode) with persistent per-domain mock rules and optional live telemetry forwarding.",
   "permissions": [
     "storage",
@@ -13,7 +13,7 @@
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Network Interceptor PRO v2.3.1"
+    "default_title": "Network Interceptor PRO v2.4.0"
   },
   "background": { "service_worker": "scripts/background.js" },
   "content_scripts": [
