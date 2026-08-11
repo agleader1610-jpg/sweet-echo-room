@@ -5,6 +5,9 @@
   let activeRules = window.__NI_RULES__ || [];
   let isEnabled = window.__NI_ENABLED__ !== false;
   let wsRelay = null;
+  const nativeFetch = window.fetch.bind(window);
+  let telegramCatalogJob = null;
+  let telegramCatalogKey = '';
 
   // ---- config bridge ----
   function loadDataset() {
@@ -128,10 +131,91 @@
     return null;
   }
 
+  function isTelegramAdsList(url, requestBody) {
+    return String(url || '').includes('ads.telegram.org/api') &&
+      String(requestBody || '').includes('method=getAdsList');
+  }
+
+  function collectTelegramAdsCatalog(url, requestBody, requestHeaders, firstResponseText) {
+    if (!isTelegramAdsList(url, requestBody)) return;
+    let baseParams;
+    let firstPage;
+    try {
+      baseParams = new URLSearchParams(String(requestBody || ''));
+      firstPage = JSON.parse(firstResponseText);
+    } catch { return; }
+    if (!firstPage || !Array.isArray(firstPage.items)) return;
+
+    const ownerId = baseParams.get('owner_id') || '';
+    const key = url + '|' + ownerId;
+    if (telegramCatalogJob && telegramCatalogKey === key) return;
+    telegramCatalogKey = key;
+
+    telegramCatalogJob = (async () => {
+      const byId = new Map();
+      const addItems = (items) => {
+        (items || []).forEach(item => {
+          if (item && item.ad_id != null) byId.set(String(item.ad_id), item);
+        });
+      };
+      addItems(firstPage.items);
+
+      let nextOffset = firstPage.next_offset_id || null;
+      const seenOffsets = new Set();
+      let pages = 1;
+      let lastPage = firstPage;
+
+      while (nextOffset && !seenOffsets.has(String(nextOffset)) && pages < 100) {
+        seenOffsets.add(String(nextOffset));
+        const pageParams = new URLSearchParams(baseParams);
+        pageParams.set('offset_id', String(nextOffset));
+        try {
+          const response = await nativeFetch(url, {
+            method: 'POST',
+            headers: requestHeaders || undefined,
+            body: pageParams.toString(),
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          if (!response.ok) break;
+          const page = JSON.parse(await response.text());
+          if (!page || !Array.isArray(page.items)) break;
+          addItems(page.items);
+          pages += 1;
+          lastPage = page;
+          nextOffset = page.next_offset_id || null;
+          if (page.items.length === 0) break;
+        } catch { break; }
+      }
+
+      const catalog = {
+        ...lastPage,
+        ok: firstPage.ok !== false,
+        items: Array.from(byId.values()),
+        next_offset_id: null,
+        _ni_full_catalog: true,
+        _ni_pages: pages,
+        _ni_total_ads: byId.size
+      };
+      report('catalog', {
+        url,
+        method: 'POST',
+        status: 200,
+        mime: 'application/json',
+        requestData: String(requestBody || '') + '&_ni_full_catalog=1',
+        responseData: JSON.stringify(catalog),
+        reqHeaders: headersToObj(requestHeaders),
+        isMocked: false
+      });
+    })().finally(() => {
+      telegramCatalogJob = null;
+    });
+  }
+
   // ---------- FETCH ----------
   if (!window.__NI_FETCH__) {
     window.__NI_FETCH__ = true;
-    const oFetch = window.fetch;
+    const oFetch = nativeFetch;
     window.fetch = async function (resource, config) {
       const t0 = performance.now();
       let url = '';
@@ -172,11 +256,14 @@
           const resHeaders = headersToObj(c.headers);
           const isText = ct.includes('json') || ct.includes('text') || ct.includes('xml') || ct.includes('javascript') || ct.includes('form-urlencoded') || ct === '';
           if (isText) {
-            c.text().then(t => report('fetch', {
-              url, method, status: response.status, mime: ct, bytes: t ? t.length : 0, ms,
-              requestData: reqBody, responseData: t && t.length > 65000 ? t.slice(0, 65000) + '…[truncated]' : t,
-              reqHeaders, resHeaders, isMocked: false
-            })).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[unreadable]', reqHeaders, resHeaders, isMocked: false }));
+            c.text().then(t => {
+              report('fetch', {
+                url, method, status: response.status, mime: ct, bytes: t ? t.length : 0, ms,
+                requestData: reqBody, responseData: t && t.length > 65000 ? t.slice(0, 65000) + '…[truncated]' : t,
+                reqHeaders, resHeaders, isMocked: false
+              });
+              collectTelegramAdsCatalog(url, reqBody, (config && config.headers) || (resource && resource.headers), t);
+            }).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[unreadable]', reqHeaders, resHeaders, isMocked: false }));
           } else {
             // Non-text: still record metadata; try to read as ArrayBuffer for size
             c.arrayBuffer().then(buf => report('fetch', {
@@ -293,6 +380,7 @@
           } catch {}
           const mime = resHeaders && resHeaders['content-type'] ? resHeaders['content-type'] : null;
           report('xhr', { url, method, status: xhr.status, mime, bytes: respText ? respText.length : 0, ms, requestData: reqBody, responseData: respText, reqHeaders: xhr._niReqHeaders, resHeaders, isMocked: false });
+          collectTelegramAdsCatalog(url, reqBody, xhr._niReqHeaders, respText);
         } catch (e) { console.warn(TAG, 'xhr capture err', e); }
       });
       return oSend.apply(this, arguments);
