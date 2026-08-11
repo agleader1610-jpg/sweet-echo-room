@@ -160,10 +160,33 @@
         </div>
 
         <div class="settings-card">
+          <h4>🔬 Deep Capture Mode (Chrome Debugger)</h4>
+          <p class="settings-desc">Enables A-Z network capture via Chrome DevTools Protocol — captures fetch/XHR/WebSocket/streaming/service-worker requests that in-page hooks miss, and mocks at protocol level.</p>
+          <label class="switch-toggle" style="display:inline-flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="deep-mode-toggle">
+            <span class="slider round"></span>
+            <span>Enable Deep Mode for <strong id="deep-domain-label">this domain</strong></span>
+          </label>
+          <p class="settings-desc" style="margin-top:8px;color:#DC2626;">⚠️ Chrome will show a yellow "being debugged" bar — that's normal.</p>
+        </div>
+
+        <div class="settings-card">
+          <h4>🌐 WebSocket Relay (Optional)</h4>
+          <p class="settings-desc">All WebSocket connections will be routed through your relay server for logging.</p>
+          <input type="text" id="ws-relay-url" placeholder="wss://netsniffer.198-54-121-62.sslip.io/ws-proxy" style="width:100%;padding:8px;margin:4px 0;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;">
+          <input type="text" id="ws-relay-token" placeholder="Token (optional)" style="width:100%;padding:8px;margin:4px 0;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;">
+          <div class="btn-group" style="margin-top:8px;">
+            <button id="btn-save-relay" class="btn btn-primary btn-sm">💾 Save Relay</button>
+            <button id="btn-clear-relay" class="btn btn-secondary btn-sm">🚫 Disable Relay</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
           <h4>ℹ️ System & Engine Info</h4>
-          <p class="settings-desc">Extension Version: <strong>v1.4.0</strong> (Multi-Payload Aggregator & Direct Storage Engine Active)</p>
+          <p class="settings-desc">Extension Version: <strong>v2.0.0 PRO</strong> — Deep Capture + WS/SSE/Beacon + Persistent Mocks</p>
           <button id="btn-clear-all-data" class="btn btn-danger btn-sm">Clear All Storage & Diagnostics</button>
         </div>
+
 
         <div class="settings-card info-card">
           <h4>💡 Quick Usage Guide</h4>
