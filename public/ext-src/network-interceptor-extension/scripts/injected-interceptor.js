@@ -261,6 +261,19 @@
     return newVal;
   }
 
+  function setPath(obj, path, value) {
+    const parts = String(path).split('.');
+    let cur = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const k = parts[i];
+      if (cur[k] == null || typeof cur[k] !== 'object') return;
+      cur = cur[k];
+    }
+    const last = parts[parts.length - 1];
+    if (cur == null || typeof cur !== 'object') return;
+    cur[last] = coerce(value, cur[last]);
+  }
+
   function patchNode(node) {
     if (!node || typeof node !== 'object') return;
     if (Array.isArray(node)) { node.forEach(patchNode); return; }
@@ -268,7 +281,8 @@
     if (id && adPatches[id] && adPatches[id].fields) {
       const fields = adPatches[id].fields;
       Object.keys(fields).forEach(k => {
-        node[k] = coerce(fields[k], node[k]);
+        if (k.indexOf('.') !== -1) setPath(node, k, fields[k]);
+        else node[k] = coerce(fields[k], node[k]);
       });
     }
     Object.keys(node).forEach(k => {
