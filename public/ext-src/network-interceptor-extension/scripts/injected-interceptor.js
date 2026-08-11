@@ -158,21 +158,52 @@
           if (item && item.ad_id != null) byId.set(String(item.ad_id), item);
         });
       };
-      addItems(firstPage.items);
+      let catalogFirstPage = firstPage;
+      const capturedOffset = baseParams.get('offset_id');
+      if (capturedOffset) {
+        const firstParams = new URLSearchParams(baseParams);
+        firstParams.delete('offset_id');
+        try {
+          const firstHeaders = new Headers(requestHeaders || {});
+          if (!firstHeaders.has('content-type')) {
+            firstHeaders.set('content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+          }
+          const firstResponse = await nativeFetch(url, {
+            method: 'POST',
+            headers: firstHeaders,
+            body: firstParams.toString(),
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          if (firstResponse.ok) {
+            const parsedFirstPage = JSON.parse(await firstResponse.text());
+            if (parsedFirstPage && Array.isArray(parsedFirstPage.items)) {
+              catalogFirstPage = parsedFirstPage;
+              baseParams = firstParams;
+            }
+          }
+        } catch {}
+      }
 
-      let nextOffset = firstPage.next_offset_id || null;
+      addItems(catalogFirstPage.items);
+
+      let nextOffset = catalogFirstPage.next_offset_id || null;
       const seenOffsets = new Set();
       let pages = 1;
-      let lastPage = firstPage;
+      let lastPage = catalogFirstPage;
 
       while (nextOffset && !seenOffsets.has(String(nextOffset)) && pages < 100) {
         seenOffsets.add(String(nextOffset));
         const pageParams = new URLSearchParams(baseParams);
         pageParams.set('offset_id', String(nextOffset));
         try {
+          const pageHeaders = new Headers(requestHeaders || {});
+          if (!pageHeaders.has('content-type')) {
+            pageHeaders.set('content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+          }
           const response = await nativeFetch(url, {
             method: 'POST',
-            headers: requestHeaders || undefined,
+            headers: pageHeaders,
             body: pageParams.toString(),
             credentials: 'include',
             cache: 'no-store'
@@ -190,7 +221,7 @@
 
       const catalog = {
         ...lastPage,
-        ok: firstPage.ok !== false,
+        ok: catalogFirstPage.ok !== false,
         items: Array.from(byId.values()),
         next_offset_id: null,
         _ni_full_catalog: true,
