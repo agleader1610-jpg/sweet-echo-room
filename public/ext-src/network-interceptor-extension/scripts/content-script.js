@@ -122,9 +122,16 @@
       let changed = false;
       found.forEach(item => {
         const id = String(item.ad_id);
-        // never overwrite the baseline of an ad the user already edited
-        if (patches[id] && map[id]) return;
         const prev = map[id];
+        if (patches[id] && prev) {
+          // keep edited baselines, but still add fields we never saw before
+          let added = false;
+          Object.keys(item).forEach(k => {
+            if (prev[k] === undefined) { prev[k] = item[k]; added = true; }
+          });
+          if (added) { map[id] = prev; changed = true; }
+          return;
+        }
         if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) { map[id] = item; changed = true; }
       });
       if (changed) await chrome.storage.local.set({ telegramAdsCatalog: map });
