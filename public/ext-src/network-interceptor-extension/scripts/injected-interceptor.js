@@ -1,5 +1,5 @@
 (function () {
-  const TAG = '[NetInterceptor v2.1]';
+  const TAG = '[NetInterceptor v2.2]';
   console.log(TAG, 'MAIN world active @', location.href);
 
   let activeRules = window.__NI_RULES__ || [];
@@ -61,7 +61,7 @@
 
   function cleanUrl(u) { try { return (u || '').split('?')[0].split('#')[0]; } catch { return u || ''; } }
 
-  function findRule(rawUrl) {
+  function findRule(rawUrl, requestBody) {
     if (!isEnabled || !activeRules.length) return null;
     const cu = cleanUrl(rawUrl);
     return activeRules.find(r => {
@@ -70,15 +70,34 @@
       const cp = cleanUrl(p);
       const t = r.matchType || 'smart';
       try {
-        if (t === 'exact') return rawUrl === p || cu === cp;
-        if (t === 'regex') return new RegExp(p, 'i').test(rawUrl);
+        let urlMatches = false;
+        if (t === 'exact') urlMatches = rawUrl === p || cu === cp;
+        else if (t === 'regex') urlMatches = new RegExp(p, 'i').test(rawUrl);
         if (t === 'wildcard') {
           const rx = '^' + p.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&').replace(/\\\*/g, '.*') + '$';
-          return new RegExp(rx, 'i').test(rawUrl) || new RegExp(rx, 'i').test(cu);
+          urlMatches = new RegExp(rx, 'i').test(rawUrl) || new RegExp(rx, 'i').test(cu);
         }
-        return rawUrl.includes(p) || (cu && cp && (cu.includes(cp) || cp.includes(cu)));
+        if (!urlMatches && t !== 'exact' && t !== 'regex' && t !== 'wildcard') {
+          urlMatches = rawUrl.includes(p) || (cu && cp && (cu.includes(cp) || cp.includes(cu)));
+        }
+        if (!urlMatches) return false;
+        return !r.requestBodyPattern || String(requestBody || '').includes(r.requestBodyPattern);
       } catch { return rawUrl.includes(p); }
     });
+  }
+
+  function mergeByAdId(rawText, mockResponse) {
+    try {
+      const live = JSON.parse(rawText);
+      const patch = typeof mockResponse === 'string' ? JSON.parse(mockResponse) : mockResponse;
+      if (!live || !patch || !Array.isArray(live.items) || !Array.isArray(patch.items)) return rawText;
+      const edits = new Map(patch.items.filter(item => item && item.ad_id != null).map(item => [String(item.ad_id), item]));
+      live.items = live.items.map(item => {
+        const edited = item && edits.get(String(item.ad_id));
+        return edited ? { ...item, ...edited, ad_id: item.ad_id } : item;
+      });
+      return JSON.stringify(live);
+    } catch { return rawText; }
   }
 
   // Serialize request bodies for all common shapes
@@ -125,8 +144,8 @@
       const reqBody = serializeBody(config && config.body);
       const reqHeaders = headersToObj((config && config.headers) || (resource && resource.headers));
 
-      const rule = findRule(url);
-      if (rule) {
+      const rule = findRule(url, reqBody);
+      if (rule && rule.responseMode !== 'mergeByAdId') {
         let body = rule.mockResponse;
         if (typeof body === 'object' && body !== null) body = JSON.stringify(body);
         const resp = new Response(body, {
@@ -142,13 +161,19 @@
         const r = await oFetch.apply(this, arguments);
         const ms = Math.round(performance.now() - t0);
         try {
-          const c = r.clone();
+          let response = r;
+          if (rule && rule.responseMode === 'mergeByAdId') {
+            const raw = await r.clone().text();
+            const merged = mergeByAdId(raw, rule.mockResponse);
+            response = new Response(merged, { status: r.status, statusText: r.statusText, headers: r.headers });
+          }
+          const c = response.clone();
           const ct = (c.headers.get('content-type') || '').toLowerCase();
           const resHeaders = headersToObj(c.headers);
           const isText = ct.includes('json') || ct.includes('text') || ct.includes('xml') || ct.includes('javascript') || ct.includes('form-urlencoded') || ct === '';
           if (isText) {
             c.text().then(t => report('fetch', {
-              url, method, status: r.status, mime: ct, bytes: t ? t.length : 0, ms,
+              url, method, status: response.status, mime: ct, bytes: t ? t.length : 0, ms,
               requestData: reqBody, responseData: t && t.length > 65000 ? t.slice(0, 65000) + '…[truncated]' : t,
               reqHeaders, resHeaders, isMocked: false
             })).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[unreadable]', reqHeaders, resHeaders, isMocked: false }));
@@ -160,8 +185,8 @@
               reqHeaders, resHeaders, isMocked: false
             })).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[binary]', reqHeaders, resHeaders, isMocked: false }));
           }
-        } catch { report('fetch', { url, method, status: r.status, ms, requestData: reqBody, responseData: null, reqHeaders, isMocked: false }); }
-        return r;
+          report('fetch', { url, method, status: response.status, ms, requestData: reqBody, responseData: null, reqHeaders, isMocked: false }); }
+        return response;
       } catch (err) {
         report('fetch', { url, method, status: 0, requestData: reqBody, responseData: '[network error: ' + (err && err.message) + ']', reqHeaders, isMocked: false, ms: Math.round(performance.now() - t0) });
         throw err;
@@ -190,8 +215,8 @@
       const url = xhr._niUrl, method = xhr._niMethod || 'GET';
       const reqBody = serializeBody(body);
       const t0 = performance.now();
-      const rule = findRule(url);
-      if (rule) {
+      const rule = findRule(url, reqBody);
+      if (rule && rule.responseMode !== 'mergeByAdId') {
         let rb = rule.mockResponse;
         if (typeof rb === 'object' && rb !== null) rb = JSON.stringify(rb);
         Object.defineProperty(xhr, 'readyState', { configurable: true, writable: true, value: 4 });
@@ -208,6 +233,34 @@
           xhr.dispatchEvent(new Event('loadend'));
         }, 5);
         return;
+      }
+      if (rule && rule.responseMode === 'mergeByAdId') {
+        const responseTextGetter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
+        const responseGetter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'response');
+        try {
+          Object.defineProperty(xhr, 'responseText', {
+            configurable: true,
+            get() {
+              const raw = responseTextGetter && responseTextGetter.get ? responseTextGetter.get.call(xhr) : '';
+              return mergeByAdId(raw, rule.mockResponse);
+            }
+          });
+          Object.defineProperty(xhr, 'response', {
+            configurable: true,
+            get() {
+              const nativeValue = responseGetter && responseGetter.get ? responseGetter.get.call(xhr) : null;
+              if ((xhr.responseType || '') === 'json') {
+                const raw = JSON.stringify(nativeValue);
+                return JSON.parse(mergeByAdId(raw, rule.mockResponse));
+              }
+              if (!xhr.responseType || xhr.responseType === 'text') {
+                const raw = typeof nativeValue === 'string' ? nativeValue : '';
+                return mergeByAdId(raw, rule.mockResponse);
+              }
+              return nativeValue;
+            }
+          });
+        } catch {}
       }
       xhr.addEventListener('loadend', function () {
         try {
