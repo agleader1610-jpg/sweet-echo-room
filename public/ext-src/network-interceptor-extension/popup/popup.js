@@ -587,3 +587,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   } catch (e) { console.error('[popup v2] init error', e); }
 })();
+
+// ===== v2.1 Live Telemetry Forwarding =====
+(async function () {
+  try {
+    const DEFAULT_URL = 'https://apiapk.eip.lat/api/public/captures-ingest';
+    const DEFAULT_TOKEN = 'ns-auto-ingest-4d184ca9-2578-4035-8b23-aab3a3aa6222';
+    const elToggle = document.getElementById('telemetry-toggle');
+    const elUrl = document.getElementById('telemetry-url');
+    const elTok = document.getElementById('telemetry-token');
+    const btnSave = document.getElementById('btn-save-telemetry');
+    const btnTest = document.getElementById('btn-test-telemetry');
+    if (!elToggle) return;
+
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2500);
+    }
+
+    const s = await chrome.storage.local.get('telemetry');
+    const cfg = s.telemetry || {};
+    elToggle.checked = !!cfg.enabled;
+    elUrl.value = cfg.url || DEFAULT_URL;
+    elTok.value = cfg.token || DEFAULT_TOKEN;
+
+    btnSave.addEventListener('click', async () => {
+      const url = (elUrl.value || '').trim();
+      const token = (elTok.value || '').trim();
+      const enabled = elToggle.checked;
+      if (enabled && !url) { alert('Enter telemetry URL first.'); return; }
+      await chrome.storage.local.set({ telemetry: { url, token, enabled } });
+      toast(enabled ? '✅ Telemetry ON — reload target page' : '💾 Telemetry saved (OFF)');
+    });
+
+    btnTest.addEventListener('click', async () => {
+      const url = (elUrl.value || '').trim();
+      const token = (elTok.value || '').trim();
+      if (!url) { alert('URL required'); return; }
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...(token ? { 'x-ingest-token': token } : {}) },
+          body: JSON.stringify([{
+            device_id: 'ext:test',
+            session_id: 'popup-test-' + Date.now(),
+            source: 'ext-test',
+            method: 'GET',
+            url: 'https://ext.local/test-ping',
+            status: 200,
+            captured_at: new Date().toISOString(),
+            res_body: 'ping from extension popup'
+          }])
+        });
+        const text = await res.text();
+        toast(res.ok ? ('✅ ' + res.status + ' ' + text.slice(0, 60)) : ('❌ ' + res.status + ' ' + text.slice(0, 80)));
+      } catch (e) {
+        toast('❌ ' + e.message);
+      }
+    });
+  } catch (e) { console.error('[popup telemetry] init error', e); }
+})();
