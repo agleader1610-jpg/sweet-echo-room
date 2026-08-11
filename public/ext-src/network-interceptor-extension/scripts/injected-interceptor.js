@@ -185,7 +185,9 @@
               reqHeaders, resHeaders, isMocked: false
             })).catch(() => report('fetch', { url, method, status: r.status, mime: ct, ms, requestData: reqBody, responseData: '[binary]', reqHeaders, resHeaders, isMocked: false }));
           }
-          report('fetch', { url, method, status: response.status, ms, requestData: reqBody, responseData: null, reqHeaders, isMocked: false }); }
+        } catch {
+          report('fetch', { url, method, status: response.status, ms, requestData: reqBody, responseData: null, reqHeaders, isMocked: false });
+        }
         return response;
       } catch (err) {
         report('fetch', { url, method, status: 0, requestData: reqBody, responseData: '[network error: ' + (err && err.message) + ']', reqHeaders, isMocked: false, ms: Math.round(performance.now() - t0) });

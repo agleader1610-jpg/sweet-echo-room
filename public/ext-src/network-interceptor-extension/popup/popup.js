@@ -288,6 +288,34 @@ document.addEventListener('DOMContentLoaded', async () => {
       (!isTelegramAdsList || r.responseMode === 'mergeByAdId')
     );
     if (existingRule) {
+      if (isTelegramAdsList && existingRule.responseMode === 'mergeByAdId') {
+        try {
+          const liveResponse = JSON.parse(log.responseData || '{}');
+          const savedResponse = typeof existingRule.mockResponse === 'string'
+            ? JSON.parse(existingRule.mockResponse)
+            : existingRule.mockResponse;
+          if (Array.isArray(liveResponse.items) && savedResponse && Array.isArray(savedResponse.items)) {
+            const savedById = new Map(savedResponse.items
+              .filter(item => item && item.ad_id != null)
+              .map(item => [String(item.ad_id), item]));
+            const currentIds = new Set(liveResponse.items
+              .filter(item => item && item.ad_id != null)
+              .map(item => String(item.ad_id)));
+            const currentPage = liveResponse.items.map(item => {
+              const saved = item && savedById.get(String(item.ad_id));
+              return saved ? { ...item, ...saved, ad_id: item.ad_id } : item;
+            });
+            const otherSavedPages = savedResponse.items.filter(item =>
+              item && item.ad_id != null && !currentIds.has(String(item.ad_id))
+            );
+            openEditorWithRule({
+              ...existingRule,
+              mockResponse: { ...liveResponse, items: [...currentPage, ...otherSavedPages] }
+            });
+            return;
+          }
+        } catch {}
+      }
       openEditorWithRule(existingRule);
       return;
     }
