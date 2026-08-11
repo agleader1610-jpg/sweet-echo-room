@@ -19,7 +19,7 @@
   let dirty = {};     // ad_id -> { field: value }
 
   const PRIORITY = ['title', 'ad_title', 'text', 'status', 'views', 'opened', 'clicks', 'actions',
-    'joined', 'budget', 'cpm', 'daily_budget', 'spent', 'active_views', 'url'];
+    'action', 'joined', 'joins', 'budget', 'cpm', 'daily_budget', 'spent', 'active_views', 'url'];
 
   function toast(msg) {
     const t = document.getElementById('toast');
