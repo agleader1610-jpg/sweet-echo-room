@@ -43,11 +43,32 @@
     render();
   }
 
-  function fieldsOf(ad) {
-    const keys = Object.keys(ad).filter(k => {
-      const v = ad[k];
-      return k !== 'ad_id' && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean');
+  function getPath(obj, path) {
+    return String(path).split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+  }
+
+  function flatten(obj, prefix, out, depth) {
+    Object.keys(obj || {}).forEach(k => {
+      const path = prefix ? prefix + '.' + k : k;
+      if (path === 'ad_id') return;
+      const v = obj[k];
+      if (v === null) { out.push(path); return; }
+      const t = typeof v;
+      if (t === 'string' || t === 'number' || t === 'boolean') { out.push(path); return; }
+      if (Array.isArray(v)) {
+        if (depth < 3) v.forEach((item, i) => {
+          if (item && typeof item === 'object') flatten(item, path + '.' + i, out, depth + 1);
+          else out.push(path + '.' + i);
+        });
+        return;
+      }
+      if (t === 'object' && depth < 3) flatten(v, path, out, depth + 1);
     });
+    return out;
+  }
+
+  function fieldsOf(ad) {
+    const keys = flatten(ad, '', [], 0);
     keys.sort((a, b) => {
       const ia = PRIORITY.indexOf(a), ib = PRIORITY.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
@@ -59,13 +80,13 @@
     if (dirty[id] && dirty[id][key] !== undefined) return dirty[id][key];
     const p = patches[id];
     if (p && p.fields && p.fields[key] !== undefined) return p.fields[key];
-    return ad[key];
+    return getPath(ad, key);
   }
 
   function baselineValue(id, ad, key) {
     const p = patches[id];
     if (p && p.original && p.original[key] !== undefined) return p.original[key];
-    return ad[key];
+    return getPath(ad, key);
   }
 
   function render() {
