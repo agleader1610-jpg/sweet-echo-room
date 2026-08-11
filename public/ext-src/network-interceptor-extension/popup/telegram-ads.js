@@ -183,7 +183,7 @@
     Object.keys(changes).forEach(k => {
       const base = baselineValue(id, ad, k);
       const raw = changes[k];
-      const value = typeof ad[k] === 'number' ? Number(String(raw).replace(/[\s,]/g, '')) : raw;
+      const value = typeof getPath(ad, k) === 'number' ? Number(String(raw).replace(/[\s,]/g, '')) : raw;
       if (String(value) === String(base)) {
         delete entry.fields[k];
         delete entry.original[k];
