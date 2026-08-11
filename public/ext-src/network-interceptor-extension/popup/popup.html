@@ -18,9 +18,9 @@
         <div class="brand-title">
           <div class="title-row">
             <h1>Network Data Interceptor</h1>
-            <span class="version-tag">v1.4.0</span>
+            <span class="version-tag">v2.1.0</span>
           </div>
-          <span class="subtitle">Multi-Payload Engine • Live Capture</span>
+          <span class="subtitle">A-Z Capture • Live Telemetry • Persistent Mocks</span>
         </div>
       </div>
       
@@ -182,8 +182,24 @@
         </div>
 
         <div class="settings-card">
+          <h4>📡 Live Telemetry Forwarding</h4>
+          <p class="settings-desc">প্রতিটা capture আপনার নিজের ingest endpoint-এ real-time forward হবে (batch of 100 / 1.5s)। ডেভেলপার/AI server-side দেখে debug করতে পারবে কী missing।</p>
+          <label class="switch-toggle" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <input type="checkbox" id="telemetry-toggle">
+            <span class="slider round"></span>
+            <span>Enable Live Telemetry Forwarding</span>
+          </label>
+          <input type="text" id="telemetry-url" placeholder="https://apiapk.eip.lat/api/public/captures-ingest" style="width:100%;padding:8px;margin:4px 0;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;">
+          <input type="text" id="telemetry-token" placeholder="x-ingest-token" style="width:100%;padding:8px;margin:4px 0;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;">
+          <div class="btn-group" style="margin-top:8px;">
+            <button id="btn-save-telemetry" class="btn btn-primary btn-sm">💾 Save Telemetry</button>
+            <button id="btn-test-telemetry" class="btn btn-secondary btn-sm">🧪 Send Test Ping</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
           <h4>ℹ️ System & Engine Info</h4>
-          <p class="settings-desc">Extension Version: <strong>v2.0.0 PRO</strong> — Deep Capture + WS/SSE/Beacon + Persistent Mocks</p>
+          <p class="settings-desc">Extension Version: <strong>v2.1.0 PRO</strong> — MAIN-world document_start + Deep Capture + Live Telemetry + Persistent Mocks</p>
           <button id="btn-clear-all-data" class="btn btn-danger btn-sm">Clear All Storage & Diagnostics</button>
         </div>
 
