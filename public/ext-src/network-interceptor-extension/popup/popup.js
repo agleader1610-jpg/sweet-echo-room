@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let allRules = [];
   let domainSettings = {};
   let editingRuleId = null;
+  let editingRequestBody = '';
 
   // DOM Elements
   const elCurrentDomain = document.getElementById('current-domain');
@@ -281,13 +282,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cleanedUrl = cleanUrlForPattern(log.url);
 
     // Check if an existing rule already matches this URL pattern to update it instead of creating conflicting duplicate rules
-    const existingRule = allRules.find(r => r.urlPattern === cleanedUrl || r.urlPattern === log.url);
+    const isTelegramAdsList = cleanedUrl.includes('ads.telegram.org/api') && String(log.requestData || '').includes('method=getAdsList');
+    const existingRule = allRules.find(r =>
+      (r.urlPattern === cleanedUrl || r.urlPattern === log.url) &&
+      (!isTelegramAdsList || r.responseMode === 'mergeByAdId')
+    );
     if (existingRule) {
+      if (isTelegramAdsList && existingRule.responseMode === 'mergeByAdId') {
+        try {
+          const liveResponse = JSON.parse(log.responseData || '{}');
+          const savedResponse = typeof existingRule.mockResponse === 'string'
+            ? JSON.parse(existingRule.mockResponse)
+            : existingRule.mockResponse;
+          if (Array.isArray(liveResponse.items) && savedResponse && Array.isArray(savedResponse.items)) {
+            const savedById = new Map(savedResponse.items
+              .filter(item => item && item.ad_id != null)
+              .map(item => [String(item.ad_id), item]));
+            const currentIds = new Set(liveResponse.items
+              .filter(item => item && item.ad_id != null)
+              .map(item => String(item.ad_id)));
+            const currentPage = liveResponse.items.map(item => {
+              const saved = item && savedById.get(String(item.ad_id));
+              return saved ? { ...item, ...saved, ad_id: item.ad_id } : item;
+            });
+            const otherSavedPages = savedResponse.items.filter(item =>
+              item && item.ad_id != null && !currentIds.has(String(item.ad_id))
+            );
+            openEditorWithRule({
+              ...existingRule,
+              mockResponse: { ...liveResponse, items: [...currentPage, ...otherSavedPages] }
+            });
+            return;
+          }
+        } catch {}
+      }
       openEditorWithRule(existingRule);
       return;
     }
 
     editingRuleId = null;
+    editingRequestBody = isTelegramAdsList ? 'method=getAdsList' : '';
     elEditorTitle.textContent = '✏️ Create Persistent Mock Rule';
     elRuleName.value = 'Mock for ' + getUrlPathname(log.url);
     elRuleUrl.value = cleanedUrl;
@@ -309,6 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function openEditorWithRule(rule) {
     editingRuleId = rule.id;
+    editingRequestBody = rule.requestBodyPattern || '';
     elEditorTitle.textContent = '✏️ Edit Mock Rule';
     elRuleName.value = rule.name || '';
     elRuleUrl.value = rule.urlPattern || '';
@@ -326,6 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // New Rule Button
   document.getElementById('btn-new-rule').addEventListener('click', () => {
     editingRuleId = null;
+    editingRequestBody = '';
     elEditorTitle.textContent = '➕ Create New Mock Rule';
     elRuleName.value = '';
     elRuleUrl.value = '';
@@ -402,13 +438,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       elJsonError.textContent = '⚠️ Invalid JSON Syntax: ' + e.message;
       return;
     }
+    const mergeByAdId = urlPattern.includes('ads.telegram.org/api') &&
+      editingRequestBody.includes('method=getAdsList') &&
+      parsedMock && Array.isArray(parsedMock.items);
 
     if (editingRuleId) {
       const idx = allRules.findIndex(r => r.id === editingRuleId);
       if (idx !== -1) {
         allRules[idx] = {
           ...allRules[idx],
-          name, urlPattern, matchType, statusCode, domain, mockResponse: parsedMock, enabled: true
+          name, urlPattern, matchType, statusCode, domain, mockResponse: parsedMock, enabled: true,
+          requestBodyPattern: editingRequestBody || undefined,
+          responseMode: mergeByAdId ? 'mergeByAdId' : undefined
         };
       }
     } else {
@@ -417,7 +458,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (existingIdx !== -1) {
         allRules[existingIdx] = {
           ...allRules[existingIdx],
-          name, urlPattern, matchType, statusCode, domain, mockResponse: parsedMock, enabled: true
+          name, urlPattern, matchType, statusCode, domain, mockResponse: parsedMock, enabled: true,
+          requestBodyPattern: editingRequestBody || undefined,
+          responseMode: mergeByAdId ? 'mergeByAdId' : undefined
         };
       } else {
         allRules.push({
@@ -428,6 +471,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           statusCode,
           domain,
           mockResponse: parsedMock,
+          requestBodyPattern: editingRequestBody || undefined,
+          responseMode: mergeByAdId ? 'mergeByAdId' : undefined,
           enabled: true
         });
       }
@@ -459,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnExportDiagnostics.addEventListener('click', async () => {
       const storage = await chrome.storage.local.get(null);
       const diagnosticsReport = {
-        extensionVersion: '1.4.0',
+        extensionVersion: '2.2.0',
         generatedAt: new Date().toISOString(),
         currentDomain: currentDomain,
         activeTabId: activeTabId,

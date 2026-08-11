@@ -4,11 +4,23 @@ const tabDomain = new Map();
 
 chrome.runtime.onInstalled.addListener(async () => {
   const s = await chrome.storage.local.get(['mockRules','domainSettings','capturedLogs','deepModeTabs','wsRelay']);
-  if (!s.mockRules) await chrome.storage.local.set({ mockRules: [] });
+  if (!s.mockRules) {
+    await chrome.storage.local.set({ mockRules: [] });
+  } else {
+    const migratedRules = s.mockRules.map(migrateTelegramRule);
+    await chrome.storage.local.set({ mockRules: migratedRules });
+  }
   if (!s.domainSettings) await chrome.storage.local.set({ domainSettings: {} });
   if (!s.capturedLogs) await chrome.storage.local.set({ capturedLogs: {} });
   if (!s.deepModeTabs) await chrome.storage.local.set({ deepModeTabs: {} });
 });
+
+function migrateTelegramRule(rule) {
+  if (!rule || rule.responseMode || !String(rule.urlPattern || '').includes('ads.telegram.org/api')) return rule;
+  const payload = rule.mockResponse;
+  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.items)) return rule;
+  return { ...rule, responseMode: 'mergeByAdId', requestBodyPattern: 'method=getAdsList' };
+}
 
 async function getRulesForDomain(domain) {
   const s = await chrome.storage.local.get(['mockRules','domainSettings']);
@@ -19,18 +31,23 @@ async function getRulesForDomain(domain) {
 }
 
 function cleanUrl(u){ try { return (u||'').split('?')[0].split('#')[0]; } catch { return u||''; } }
-function matchRule(rule, url) {
+function matchRule(rule, url, requestBody) {
   const p = (rule.urlPattern || '').trim(); if (!p) return false;
   const t = rule.matchType || 'smart';
   const cu = cleanUrl(url), cp = cleanUrl(p);
   try {
-    if (t === 'exact') return url === p || cu === cp;
-    if (t === 'regex') return new RegExp(p, 'i').test(url);
+    let urlMatches = false;
+    if (t === 'exact') urlMatches = url === p || cu === cp;
+    else if (t === 'regex') urlMatches = new RegExp(p, 'i').test(url);
     if (t === 'wildcard') {
       const rx = '^' + p.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&').replace(/\\\*/g, '.*') + '$';
-      return new RegExp(rx, 'i').test(url) || new RegExp(rx, 'i').test(cu);
+      urlMatches = new RegExp(rx, 'i').test(url) || new RegExp(rx, 'i').test(cu);
     }
-    return url.includes(p) || (cu && cp && (cu.includes(cp) || cp.includes(cu)));
+    if (!urlMatches && t !== 'exact' && t !== 'regex' && t !== 'wildcard') {
+      urlMatches = url.includes(p) || (cu && cp && (cu.includes(cp) || cp.includes(cu)));
+    }
+    if (!urlMatches) return false;
+    return !rule.requestBodyPattern || String(requestBody || '').includes(rule.requestBodyPattern);
   } catch { return url.includes(p); }
 }
 
@@ -78,8 +95,8 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
       if (!isResponseStage) {
         // Request stage — check for mock
         const rules = await getRulesForDomain(domain);
-        const rule = rules.find(r => matchRule(r, url));
-        if (rule) {
+        const rule = rules.find(r => matchRule(r, url, request.postData));
+        if (rule && rule.responseMode !== 'mergeByAdId') {
           let body = rule.mockResponse;
           if (typeof body === 'object' && body !== null) body = JSON.stringify(body);
           const b64 = btoa(unescape(encodeURIComponent(body || '')));
