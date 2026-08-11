@@ -116,11 +116,14 @@
         Object.keys(node).forEach(k => { const v = node[k]; if (v && typeof v === 'object') walk(v); });
       })(data);
       if (!found.length) return;
-      const s = await chrome.storage.local.get('telegramAdsCatalog');
+      const s = await chrome.storage.local.get(['telegramAdsCatalog', 'telegramAdPatches']);
       const map = s.telegramAdsCatalog || {};
+      const patches = s.telegramAdPatches || {};
       let changed = false;
       found.forEach(item => {
         const id = String(item.ad_id);
+        // never overwrite the baseline of an ad the user already edited
+        if (patches[id] && map[id]) return;
         const prev = map[id];
         if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) { map[id] = item; changed = true; }
       });
