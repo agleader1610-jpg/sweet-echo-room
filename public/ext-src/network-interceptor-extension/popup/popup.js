@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnExportDiagnostics.addEventListener('click', async () => {
       const storage = await chrome.storage.local.get(null);
       const diagnosticsReport = {
-        extensionVersion: '2.3.0',
+        extensionVersion: '2.3.1',
         generatedAt: new Date().toISOString(),
         currentDomain: currentDomain,
         activeTabId: activeTabId,
