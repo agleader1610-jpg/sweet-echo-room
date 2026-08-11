@@ -172,6 +172,8 @@
       if (entry.original[k] === undefined) entry.original[k] = base;
     });
     entry.updated_at = Date.now();
+    entry.title = ad.title != null ? ad.title : ad.ad_title;
+    entry.ad_title = ad.ad_title != null ? ad.ad_title : ad.title;
     if (Object.keys(entry.fields).length) patches[id] = entry;
     else delete patches[id];
     delete dirty[id];
