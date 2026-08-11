@@ -12,11 +12,11 @@
 
   async function syncDataset() {
     try {
-      const s = await chrome.storage.local.get(['mockRules', 'domainSettings', 'wsRelay', 'telegramAdPatches']);
+      const s = await chrome.storage.local.get(['mockRules', 'domainSettings', 'wsRelay', 'telegramAdPatches', 'telegramPatchEnabled']);
       const all = s.mockRules || [];
       const ds = s.domainSettings || {};
       const rules = all.filter(r => !r.domain || r.domain === domain || domain.includes(r.domain) || r.domain === rootDomain);
-      const cfg = { rules, enabled: ds[rootDomain] !== false && ds[domain] !== false, domain, rootDomain, wsRelay: s.wsRelay || null, adPatches: s.telegramAdPatches || {} };
+      const cfg = { rules, enabled: ds[rootDomain] !== false && ds[domain] !== false, domain, rootDomain, wsRelay: s.wsRelay || null, adPatches: s.telegramPatchEnabled === false ? {} : (s.telegramAdPatches || {}) };
       if (document.documentElement) document.documentElement.dataset.niConfig = JSON.stringify(cfg);
       return cfg;
     } catch { return { rules: [], enabled: true, domain, rootDomain, wsRelay: null, adPatches: {} }; }
@@ -163,7 +163,7 @@
 
   chrome.storage.onChanged.addListener((changes, ns) => {
     if (ns !== 'local') return;
-    if (changes.mockRules || changes.domainSettings || changes.wsRelay || changes.telegramAdPatches) {
+    if (changes.mockRules || changes.domainSettings || changes.wsRelay || changes.telegramAdPatches || changes.telegramPatchEnabled) {
       syncDataset().then(cfg => window.postMessage({ type: 'NI_SET_RULES', rules: cfg.rules, enabled: cfg.enabled, wsRelay: cfg.wsRelay, adPatches: cfg.adPatches }, '*'));
     }
     if (changes.telemetry) {

@@ -614,3 +614,37 @@ input:checked + .slider:before {
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   z-index: 999;
 }
+
+/* ===== v2.4.0 Telegram Ads Manager ===== */
+.tg-head { display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:10px;
+  background:linear-gradient(135deg,#2AABEE,#229ED9); border-radius:12px; color:#fff; }
+.tg-logo { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.2);
+  display:flex; align-items:center; justify-content:center; font-size:20px; }
+.tg-head-meta { flex:1; }
+.tg-head-title { font-weight:700; font-size:14px; }
+.tg-head-sub { font-size:11px; opacity:.9; }
+.tg-list { display:flex; flex-direction:column; gap:10px; }
+.tg-card { background:#fff; border:1px solid #e6ecf2; border-radius:12px; overflow:hidden;
+  box-shadow:0 1px 3px rgba(16,44,66,.06); }
+.tg-card-head { display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:default; }
+.tg-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#2AABEE,#229ED9);
+  color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.tg-card-meta { flex:1; min-width:0; }
+.tg-card-title { font-weight:600; font-size:13px; color:#0f1c26; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tg-card-id { font-size:11px; color:#7d8b97; font-family:'Fira Code',monospace; }
+.tg-edited { color:#1a9c53; font-weight:600; }
+.tg-fields { display:none; padding:0 12px 6px; grid-template-columns:1fr 1fr; gap:8px; }
+.tg-card.open .tg-fields { display:grid; }
+.tg-card.open .tg-card-actions { display:flex; }
+.tg-field { display:flex; flex-direction:column; gap:3px; }
+.tg-key { font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:#8a97a3; }
+.tg-input { border:1px solid #dfe6ec; border-radius:8px; padding:7px 9px; font-size:12px;
+  font-family:'Fira Code',monospace; background:#f8fafc; color:#0f1c26; }
+.tg-input:focus { outline:none; border-color:#2AABEE; background:#fff; box-shadow:0 0 0 3px rgba(42,171,238,.15); }
+.tg-field.changed .tg-input { border-color:#1a9c53; background:#f3fbf6; }
+.tg-card-actions { display:none; gap:8px; padding:8px 12px 12px; }
+.tg-btn { border:none; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; }
+.tg-btn-primary { background:#2AABEE; color:#fff; }
+.tg-btn-primary:hover { background:#1e97d6; }
+.tg-btn-ghost { background:#eef3f7; color:#42535f; }
+.tg-expand { background:transparent; color:#7d8b97; font-size:14px; }
