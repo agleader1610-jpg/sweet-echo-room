@@ -307,27 +307,46 @@
     return digits;
   }
 
-  function rowForAd(id) {
-    const anchors = Array.from(document.querySelectorAll('a[href], [data-ad-id]'));
-    const rx = new RegExp('(?:/ad/|ad_id=)' + id + '(?![0-9])');
-    const anchor = anchors.find(a => {
-      if (a.getAttribute('data-ad-id') === String(id)) return true;
-      const h = a.getAttribute('href') || '';
+  function rowOf(node) {
+    let n = node;
+    for (let i = 0; i < 8 && n && n.parentElement; i++) {
+      if (n.tagName === 'TR') return n;
+      n = n.parentElement;
+      if (n.tagName === 'TR') return n;
+      if (/^(LI)$/.test(n.tagName) || (n.className && /(^|[\s_-])(row|item|card)/i.test(String(n.className)))) return n;
+    }
+    return null;
+  }
+
+  function rowForAd(id, title) {
+    // 1) by explicit ad id reference
+    const rx = new RegExp('(?:/ad/|ad_id=|adId=)' + id + '(?![0-9])');
+    const byId = Array.from(document.querySelectorAll('a[href], [data-ad-id]')).find(a => {
+      if (a.getAttribute && a.getAttribute('data-ad-id') === String(id)) return true;
+      const h = (a.getAttribute && a.getAttribute('href')) || '';
       return rx.test(h);
     });
-    if (!anchor) return null;
-    let node = anchor;
-    for (let i = 0; i < 6 && node.parentElement; i++) {
-      node = node.parentElement;
-      if (/^(TR|LI)$/.test(node.tagName) || (node.className && /row|item|card/i.test(String(node.className)))) return node;
+    if (byId) { const r = rowOf(byId); if (r) return r; }
+
+    // 2) by the ad title text (server-rendered table has no ad-id link)
+    const t = title == null ? '' : String(title).trim();
+    if (!t) return null;
+    const rows = Array.from(document.querySelectorAll('tr, li, [class*="row"]'));
+    for (const r of rows) {
+      const first = r.children && r.children[0];
+      if (!first) continue;
+      const txt = (first.textContent || '').trim();
+      if (!txt) continue;
+      const head = txt.split('\n')[0].trim();
+      if (head === t || txt.startsWith(t)) return r;
     }
-    return anchor.parentElement || anchor;
+    return null;
   }
 
   // field -> table column header aliases (column-scoped patching only)
   const COLUMN_ALIASES = {
-    title: ['ad title', 'title'],
-    ad_title: ['ad title', 'title'],
+    title: ['ad title', 'title', 'ad'],
+    ad_title: ['ad title', 'title', 'ad'],
     views: ['views'],
     opened: ['opened'],
     clicks: ['clicks'],
@@ -341,35 +360,47 @@
     budget: ['budget'],
     daily_budget: ['daily budget'],
     status: ['status'],
-    target: ['target']
+    target: ['target'],
+    date_added: ['date added']
   };
 
-  function headerMap(row) {
+  function headerCells(row) {
     const table = row.closest && row.closest('table');
-    if (!table) return null;
-    const ths = Array.from(table.querySelectorAll('thead th, thead td'));
-    if (!ths.length) return null;
+    let cells = [];
+    if (table) {
+      cells = Array.from(table.querySelectorAll('thead th, thead td'));
+      if (!cells.length) {
+        const first = table.querySelector('tr');
+        if (first && first !== row) cells = Array.from(first.children);
+      }
+    } else if (row.parentElement) {
+      const first = row.parentElement.children[0];
+      if (first && first !== row) cells = Array.from(first.children);
+    }
+    return cells;
+  }
+
+  function headerMap(row) {
+    const cells = headerCells(row);
+    if (!cells.length) return null;
     const map = {};
-    ths.forEach((th, i) => {
-      const key = (th.textContent || '').replace(/[^a-z ]/gi, '').trim().toLowerCase();
+    cells.forEach((th, i) => {
+      const key = (th.textContent || '').replace(/[^a-z ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
       if (key && map[key] === undefined) map[key] = i;
     });
-    return map;
+    return Object.keys(map).length ? map : null;
   }
 
   function cellFor(row, map, field) {
     const aliases = COLUMN_ALIASES[String(field).toLowerCase()];
     if (!aliases || !map) return null;
     for (const a of aliases) {
-      if (map[a] !== undefined) {
-        const cells = row.children;
-        return cells[map[a]] || null;
-      }
+      if (map[a] !== undefined) return row.children[map[a]] || null;
     }
     return null;
   }
 
-  function patchCell(cell, from, to) {
+  function patchCell(cell, from, to, field) {
     if (!cell || to == null) return;
     const fromStr = from == null ? '' : String(from);
     const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
@@ -379,13 +410,18 @@
       if ((t.nodeValue || '').trim()) nodes.push(t);
     }
     if (!nodes.length) return;
-    // prefer the node whose text matches the original value; else the first one
     const norm = s => String(s).replace(/[\u00a0,\s]/g, '');
+    const numeric = /^[\-\d\s\u00a0,\.%]+$/;
     let target = nodes.find(t => norm(t.nodeValue) === norm(fromStr));
-    if (!target) target = nodes.find(t => /\d/.test(t.nodeValue)) || nodes[0];
+    if (!target) {
+      const isNumField = !['title', 'ad_title', 'status', 'target', 'action'].includes(String(field).toLowerCase());
+      target = isNumField
+        ? (nodes.find(t => numeric.test(t.nodeValue.trim())) || nodes[0])
+        : nodes[0];
+    }
     const txt = target.nodeValue;
     const trimmed = txt.trim();
-    const out = /^[\-\d\s\u00a0,\.%]+$/.test(trimmed)
+    const out = numeric.test(trimmed)
       ? txt.replace(trimmed, fmtNumberLike(txt, to))
       : txt.replace(trimmed, String(to));
     if (out !== txt) target.nodeValue = out;
@@ -397,17 +433,22 @@
       const p = adPatches[id] || {};
       const fields = p.fields || {};
       const original = p.original || {};
-      const row = rowForAd(id);
+      // title used both for row lookup and as a patchable field
+      const lookupTitle = original.title != null ? original.title
+        : (original.ad_title != null ? original.ad_title
+          : (fields.title != null ? fields.title : (p.title != null ? p.title : p.ad_title)));
+      const row = rowForAd(id, lookupTitle);
       if (!row) return;
       const map = headerMap(row);
       if (!map) return;
       Object.keys(fields).forEach(k => {
         const cell = cellFor(row, map, k);
         if (!cell) return; // never blind-replace across the row
-        patchCell(cell, original[k], fields[k]);
+        patchCell(cell, original[k], fields[k], k);
       });
     });
   }
+
 
 
   if (isTelegramAdsApi(location.href)) {
