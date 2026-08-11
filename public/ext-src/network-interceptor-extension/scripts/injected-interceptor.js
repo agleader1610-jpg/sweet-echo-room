@@ -488,7 +488,14 @@
         }, 5);
         return;
       }
-      if (rule && rule.responseMode === 'mergeByAdId') {
+      const needsTransform = (rule && rule.responseMode === 'mergeByAdId') || (isTelegramAdsApi(url) && hasPatches());
+      if (needsTransform) {
+        const transform = (raw) => {
+          let out = typeof raw === 'string' ? raw : '';
+          if (rule && rule.responseMode === 'mergeByAdId') out = mergeByAdId(out, rule.mockResponse);
+          if (isTelegramAdsApi(url) && hasPatches()) out = applyAdPatchesToText(out);
+          return out;
+        };
         const responseTextGetter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
         const responseGetter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'response');
         try {
@@ -496,7 +503,7 @@
             configurable: true,
             get() {
               const raw = responseTextGetter && responseTextGetter.get ? responseTextGetter.get.call(xhr) : '';
-              return mergeByAdId(raw, rule.mockResponse);
+              return transform(raw);
             }
           });
           Object.defineProperty(xhr, 'response', {
@@ -504,17 +511,16 @@
             get() {
               const nativeValue = responseGetter && responseGetter.get ? responseGetter.get.call(xhr) : null;
               if ((xhr.responseType || '') === 'json') {
-                const raw = JSON.stringify(nativeValue);
-                return JSON.parse(mergeByAdId(raw, rule.mockResponse));
+                try { return JSON.parse(transform(JSON.stringify(nativeValue))); } catch { return nativeValue; }
               }
               if (!xhr.responseType || xhr.responseType === 'text') {
-                const raw = typeof nativeValue === 'string' ? nativeValue : '';
-                return mergeByAdId(raw, rule.mockResponse);
+                return transform(typeof nativeValue === 'string' ? nativeValue : '');
               }
               return nativeValue;
             }
           });
         } catch {}
+        xhr.addEventListener('loadend', () => setTimeout(scheduleDomPatch, 50));
       }
       xhr.addEventListener('loadend', function () {
         try {
