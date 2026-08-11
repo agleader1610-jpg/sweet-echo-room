@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Data Interceptor & Editor v1.4.0</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-title">
+          <div class="title-row">
+            <h1>Network Data Interceptor</h1>
+            <span class="version-tag">v1.4.0</span>
+          </div>
+          <span class="subtitle">Multi-Payload Engine • Live Capture</span>
+        </div>
+      </div>
+      
+      <div class="domain-banner">
+        <span class="domain-icon">🌐</span>
+        <span id="current-domain" class="domain-name">Detecting domain...</span>
+        <label class="switch-toggle" title="Enable/Disable Interceptor for this domain">
+          <input type="checkbox" id="domain-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-captured">
+        <span class="tab-icon">📡</span> Captured APIs <span id="captured-count-badge" class="badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-mocks">
+        <span class="tab-icon">✏️</span> Mock Rules <span id="mocks-count-badge" class="badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-settings">
+        <span class="tab-icon">⚙️</span> Backup & Diagnostics
+      </button>
+    </nav>
+
+    <!-- Tab Contents -->
+    <main class="content-area">
+      <!-- TAB 1: Captured Network Requests -->
+      <section id="tab-captured" class="tab-content active">
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-logs" placeholder="Search API URL or response content...">
+          </div>
+          <button id="btn-clear-logs" class="btn btn-secondary btn-sm">🗑️ Clear Logs</button>
+        </div>
+
+        <div id="logs-container" class="logs-list">
+          <div class="empty-state">
+            <div class="empty-icon">🌐</div>
+            <p class="empty-title">No API requests captured yet</p>
+            <p class="empty-sub">Reload or interact with the page to start capturing XHR / Fetch network data.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Mock Rules & JSON Editor -->
+      <section id="tab-mocks" class="tab-content">
+        <div class="toolbar">
+          <h3 class="section-title">Active Mock Rules</h3>
+          <button id="btn-new-rule" class="btn btn-primary btn-sm">+ New Mock Rule</button>
+        </div>
+
+        <!-- Rule Form Panel -->
+        <div id="rule-editor-panel" class="editor-card hidden">
+          <div class="editor-header">
+            <h4 id="editor-title">✏️ Edit / Create Mock Rule</h4>
+            <button id="btn-close-editor" class="btn-icon">✖</button>
+          </div>
+
+          <div class="form-group">
+            <label for="rule-name">Rule Title / Description</label>
+            <input type="text" id="rule-name" placeholder="e.g. Change Telegram Ads Views & Clicks">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="rule-url">Target API URL / Pattern</label>
+              <input type="text" id="rule-url" placeholder="e.g. https://ads.telegram.org/api or /api">
+              <span class="field-hint">💡 Dynamic parameters (like ?hash=...) are auto-cleaned for permanent reload matching.</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="rule-match-type">Match Strategy</label>
+              <select id="rule-match-type">
+                <option value="smart">Smart Path (Ignore Query/Hash) ⭐</option>
+                <option value="wildcard">Wildcard (e.g. */api*)</option>
+                <option value="contains">Contains (Partial)</option>
+                <option value="exact">Exact Full URL</option>
+                <option value="regex">Regex Pattern</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="rule-status">HTTP Status Code</label>
+              <input type="number" id="rule-status" value="200" min="100" max="599">
+            </div>
+            <div class="form-group flex-2">
+              <label for="rule-target-domain">Applies To Domain</label>
+              <input type="text" id="rule-target-domain" placeholder="Current Domain or leave blank for all">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="editor-label-row">
+              <label for="rule-json">Mock JSON Response Payload</label>
+              <div class="editor-tools">
+                <button type="button" id="btn-preset-telegram" class="btn-link">📋 Multi-Ad Telegram Preset</button>
+                <button type="button" id="btn-format-json" class="btn-link">✨ Format JSON</button>
+              </div>
+            </div>
+            <textarea id="rule-json" rows="8" placeholder='{ "ok": true, "items": [ { "ad_id": 1, "views": 50000 } ] }'></textarea>
+            <div id="json-error" class="json-validation-msg hidden">⚠️ Invalid JSON Syntax</div>
+          </div>
+
+          <div class="form-actions">
+            <button id="btn-save-rule" class="btn btn-primary">💾 Save & Apply Rule</button>
+            <button id="btn-cancel-rule" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+
+        <div id="rules-container" class="rules-list">
+          <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <p class="empty-title">No mock rules active</p>
+            <p class="empty-sub">Click "Captured APIs" tab to select any response and edit it, or click "+ New Mock Rule".</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: Backup & Diagnostics -->
+      <section id="tab-settings" class="tab-content">
+        <div class="settings-card">
+          <h4>📦 Backup & Diagnostic Logs</h4>
+          <p class="settings-desc">Export custom mock rules or download complete extension diagnostic logs for debugging and updates.</p>
+
+          <div class="btn-group">
+            <button id="btn-export-rules" class="btn btn-secondary">📥 Export Mock Rules (JSON)</button>
+            <button id="btn-export-diagnostics" class="btn btn-primary">🛠️ Export Debug Diagnostics Log</button>
+            <label class="btn btn-secondary file-upload-label">
+              📤 Import Mock Rules
+              <input type="file" id="file-import-rules" accept=".json" class="hidden-input">
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h4>ℹ️ System & Engine Info</h4>
+          <p class="settings-desc">Extension Version: <strong>v1.4.0</strong> (Multi-Payload Aggregator & Direct Storage Engine Active)</p>
+          <button id="btn-clear-all-data" class="btn btn-danger btn-sm">Clear All Storage & Diagnostics</button>
+        </div>
+
+        <div class="settings-card info-card">
+          <h4>💡 Quick Usage Guide</h4>
+          <ol class="guide-list">
+            <li><strong>1. Open Target Website:</strong> Browse to any website (e.g. ads.telegram.org).</li>
+            <li><strong>2. Capture APIs:</strong> Check the "Captured APIs" tab to view intercepted JSON requests.</li>
+            <li><strong>3. Edit Data:</strong> Click <strong>"✏️ Edit & Mock"</strong> on any captured response to change names, balances, views, or numbers.</li>
+            <li><strong>4. Save & Refresh:</strong> Click Save, then refresh the target web page. Smart Path matching will keep your modified data active every time you reload!</li>
+            <li><strong>5. Share Diagnostics:</strong> If any issue occurs, click <strong>"🛠️ Export Debug Diagnostics Log"</strong> and send us the file to fix and update the extension!</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
