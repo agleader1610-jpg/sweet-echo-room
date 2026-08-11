@@ -122,11 +122,12 @@
         </div>`;
     }).join('');
 
-    elList.querySelectorAll('.tg-expand').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const card = btn.closest('.tg-card');
+    elList.querySelectorAll('.tg-card-head').forEach(head => {
+      head.addEventListener('click', () => {
+        const card = head.closest('.tg-card');
         card.classList.toggle('open');
-        btn.textContent = card.classList.contains('open') ? '▴' : '▾';
+        const btn = card.querySelector('.tg-expand');
+        if (btn) btn.textContent = card.classList.contains('open') ? '▴' : '▾';
       });
     });
 
