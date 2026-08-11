@@ -12,14 +12,14 @@
 
   async function syncDataset() {
     try {
-      const s = await chrome.storage.local.get(['mockRules', 'domainSettings', 'wsRelay']);
+      const s = await chrome.storage.local.get(['mockRules', 'domainSettings', 'wsRelay', 'telegramAdPatches']);
       const all = s.mockRules || [];
       const ds = s.domainSettings || {};
       const rules = all.filter(r => !r.domain || r.domain === domain || domain.includes(r.domain) || r.domain === rootDomain);
-      const cfg = { rules, enabled: ds[rootDomain] !== false && ds[domain] !== false, domain, rootDomain, wsRelay: s.wsRelay || null };
+      const cfg = { rules, enabled: ds[rootDomain] !== false && ds[domain] !== false, domain, rootDomain, wsRelay: s.wsRelay || null, adPatches: s.telegramAdPatches || {} };
       if (document.documentElement) document.documentElement.dataset.niConfig = JSON.stringify(cfg);
       return cfg;
-    } catch { return { rules: [], enabled: true, domain, rootDomain, wsRelay: null }; }
+    } catch { return { rules: [], enabled: true, domain, rootDomain, wsRelay: null, adPatches: {} }; }
   }
 
   // Fallback inject in case manifest MAIN-world content_script did not run
@@ -101,8 +101,36 @@
     } catch {}
   }
 
+  // Harvest Telegram ads from any captured getAdsList / catalog response so the
+  // popup can offer a full per-ad editor, independent of pagination.
+  async function harvestTelegramAds(payload) {
+    try {
+      if (!payload || !payload.url || !String(payload.url).includes('ads.telegram.org')) return;
+      if (!payload.responseData) return;
+      const data = JSON.parse(payload.responseData);
+      const found = [];
+      (function walk(node) {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (node.ad_id != null) found.push(node);
+        Object.keys(node).forEach(k => { const v = node[k]; if (v && typeof v === 'object') walk(v); });
+      })(data);
+      if (!found.length) return;
+      const s = await chrome.storage.local.get('telegramAdsCatalog');
+      const map = s.telegramAdsCatalog || {};
+      let changed = false;
+      found.forEach(item => {
+        const id = String(item.ad_id);
+        const prev = map[id];
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) { map[id] = item; changed = true; }
+      });
+      if (changed) await chrome.storage.local.set({ telegramAdsCatalog: map });
+    } catch {}
+  }
+
   async function saveLog(payload) {
     try {
+      harvestTelegramAds(payload);
       payload.domain = rootDomain;
       payload.originDomain = domain;
       const s = await chrome.storage.local.get('capturedLogs');
@@ -124,7 +152,7 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
     if (e.data.type === 'NI_GET_RULES') {
-      syncDataset().then(cfg => window.postMessage({ type: 'NI_SET_RULES', rules: cfg.rules, enabled: cfg.enabled, wsRelay: cfg.wsRelay }, '*'));
+      syncDataset().then(cfg => window.postMessage({ type: 'NI_SET_RULES', rules: cfg.rules, enabled: cfg.enabled, wsRelay: cfg.wsRelay, adPatches: cfg.adPatches }, '*'));
     } else if (e.data.type === 'NI_CAPTURED') {
       saveLog(e.data.payload);
     }
@@ -132,8 +160,8 @@
 
   chrome.storage.onChanged.addListener((changes, ns) => {
     if (ns !== 'local') return;
-    if (changes.mockRules || changes.domainSettings || changes.wsRelay) {
-      syncDataset().then(cfg => window.postMessage({ type: 'NI_SET_RULES', rules: cfg.rules, enabled: cfg.enabled, wsRelay: cfg.wsRelay }, '*'));
+    if (changes.mockRules || changes.domainSettings || changes.wsRelay || changes.telegramAdPatches) {
+      syncDataset().then(cfg => window.postMessage({ type: 'NI_SET_RULES', rules: cfg.rules, enabled: cfg.enabled, wsRelay: cfg.wsRelay, adPatches: cfg.adPatches }, '*'));
     }
     if (changes.telemetry) {
       telemetryCfg = Object.assign({ url: '', token: '', enabled: false }, changes.telemetry.newValue || {});
