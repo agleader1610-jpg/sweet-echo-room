@@ -166,7 +166,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      card.innerHTML = `
+        let catalogMeta = '';
+        if (log.kind === 'catalog' && formattedJson) {
+          try {
+            const catalog = JSON.parse(log.responseData);
+            catalogMeta = `<div class="req-payload-snippet">FULL AD CATALOG: ${Number(catalog._ni_total_ads || catalog.items?.length || 0)} ads from ${Number(catalog._ni_pages || 1)} pages</div>`;
+          } catch {}
+        }
+
+        card.innerHTML = `
         <div class="log-header">
           <div class="log-meta">
             <span class="method-tag ${log.method}">${log.method}</span>
@@ -174,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
           <span class="status-pill ${statusClass}">${statusText}</span>
         </div>
-        ${log.requestData ? `<div class="req-payload-snippet">Payload: ${escapeHtml(log.requestData.substr(0, 100))}</div>` : ''}
+          ${catalogMeta || (log.requestData ? `<div class="req-payload-snippet">Payload: ${escapeHtml(log.requestData.substr(0, 100))}</div>` : '')}
         <div class="log-actions">
           <button class="btn btn-secondary btn-sm btn-edit-mock">✏️ Edit & Mock</button>
           <button class="btn btn-secondary btn-sm btn-toggle-preview">${formattedJson ? '👁️ Toggle Preview' : 'No Data'}</button>
@@ -323,7 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     editingRuleId = null;
     editingRequestBody = isTelegramAdsList ? 'method=getAdsList' : '';
     elEditorTitle.textContent = '✏️ Create Persistent Mock Rule';
-    elRuleName.value = 'Mock for ' + getUrlPathname(log.url);
+    elRuleName.value = log.kind === 'catalog' ? 'Telegram Ads — Full Catalog' : 'Mock for ' + getUrlPathname(log.url);
     elRuleUrl.value = cleanedUrl;
     elRuleMatchType.value = 'smart';
     elRuleStatus.value = '200';
@@ -504,7 +512,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnExportDiagnostics.addEventListener('click', async () => {
       const storage = await chrome.storage.local.get(null);
       const diagnosticsReport = {
-        extensionVersion: '2.2.0',
+        extensionVersion: '2.3.0',
         generatedAt: new Date().toISOString(),
         currentDomain: currentDomain,
         activeTabId: activeTabId,
