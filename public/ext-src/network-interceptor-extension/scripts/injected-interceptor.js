@@ -409,8 +409,9 @@
   }
 
   function cellFor(row, map, field) {
-    const aliases = COLUMN_ALIASES[String(field).toLowerCase()];
-    if (!aliases || !map) return null;
+    const leaf = String(field).toLowerCase().split('.').pop();
+    const aliases = COLUMN_ALIASES[leaf] || [leaf.replace(/_/g, ' ')];
+    if (!map) return null;
     for (const a of aliases) {
       if (map[a] !== undefined) return row.children[map[a]] || null;
     }
